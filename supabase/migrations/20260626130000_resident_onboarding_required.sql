@@ -1,29 +1,24 @@
-INSERT INTO public.estates (id, name, slug, country)
-VALUES (
-  '11111111-1111-1111-1111-111111111111'::uuid,
-  'Oyesile Estate',
-  'oyesile-estate',
-  'Nigeria'
-)
-ON CONFLICT (slug) DO UPDATE
-SET
-  name = EXCLUDED.name,
-  updated_at = now();
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_enum
+    WHERE enumtypid = 'public.resident_type'::regtype
+      AND enumlabel = 'owner'
+  ) THEN
+    ALTER TYPE public.resident_type RENAME VALUE 'owner' TO 'landlord';
+  END IF;
+END $$;
 
-UPDATE public.profiles
-SET estate_id = '11111111-1111-1111-1111-111111111111'::uuid
-WHERE estate_id IS NULL;
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS resident_type public.resident_type,
+ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS onboarding_completed_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS onboarding_data JSONB NOT NULL DEFAULT '{}'::JSONB;
 
-INSERT INTO public.user_roles (user_id, estate_id, role)
-SELECT DISTINCT
-  user_id,
-  '11111111-1111-1111-1111-111111111111'::uuid,
-  role
-FROM public.user_roles
-WHERE estate_id IS NULL;
-
-DELETE FROM public.user_roles
-WHERE estate_id IS NULL;
+ALTER TABLE public.profiles
+ALTER COLUMN resident_type DROP NOT NULL,
+ALTER COLUMN resident_type DROP DEFAULT;
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER

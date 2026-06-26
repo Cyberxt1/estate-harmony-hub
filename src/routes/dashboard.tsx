@@ -23,16 +23,29 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     if (typeof window === "undefined") return;
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
+
+    if (location.pathname !== "/dashboard/onboarding") {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("id", data.user.id)
+        .maybeSingle();
+
+      if (profile && !profile.onboarding_completed) {
+        throw redirect({ to: "/dashboard/onboarding" });
+      }
+    }
   },
   component: DashboardLayout,
 });
 
 const nav = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
+  { to: "/dashboard/onboarding", label: "Resident Form", icon: Users },
   { to: "/dashboard/residents", label: "Residents", icon: Users },
   { to: "/dashboard/properties", label: "Properties", icon: Home },
   { to: "/dashboard/visitors", label: "Visitors", icon: QrCode },

@@ -3,7 +3,7 @@ import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].m
 import { n as Users } from "../_libs/lucide-react.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-CGNtK6Vg.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-COCAyI0F.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-Bll3-leL.js
 var import_jsx_runtime = require_jsx_runtime();
 function ResidentsPage() {
 	const { data, isLoading } = useQuery({
@@ -16,7 +16,7 @@ function ResidentsPage() {
 	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PageHeader, {
 		title: "Residents",
-		description: "Manage resident profiles, households, vehicles and documents.",
+		description: "Manage landlords, tenants, household profiles, vehicles and documents.",
 		icon: Users
 	}), isLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 		className: "text-sm text-muted-foreground",
@@ -31,6 +31,10 @@ function ResidentsPage() {
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", {
 						className: "px-4 py-3",
 						children: "Name"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", {
+						className: "px-4 py-3",
+						children: "Type"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", {
 						className: "px-4 py-3",
@@ -53,6 +57,13 @@ function ResidentsPage() {
 						children: r.full_name || "—"
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
+						className: "px-4 py-3",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "rounded-full bg-secondary px-2 py-0.5 text-xs capitalize text-secondary-foreground",
+							children: r.resident_type || "Not completed"
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
 						className: "px-4 py-3 text-muted-foreground",
 						children: r.email
 					}),
@@ -72,7 +83,7 @@ function ResidentsPage() {
 		})
 	}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, {
 		title: "No residents yet",
-		description: "Residents that sign up will appear here. Estate admins can approve and assign them to households."
+		description: "Landlords and tenants that sign up will appear here for admin review."
 	})] });
 }
 //#endregion

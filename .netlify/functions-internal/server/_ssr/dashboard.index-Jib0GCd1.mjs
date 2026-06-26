@@ -1,6 +1,6 @@
 import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
-import { T as House, _ as CreditCard, c as QrCode, i as ShieldCheck, n as Users, r as TrendingUp, u as MessageSquareWarning } from "../_libs/lucide-react.mjs";
+import { D as House, _ as CreditCard, c as QrCode, i as ShieldCheck, n as Users, r as TrendingUp, u as MessageSquareWarning } from "../_libs/lucide-react.mjs";
 import { n as useAuth } from "./use-auth-CP7XOnjs.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/dashboard.index-Jib0GCd1.js

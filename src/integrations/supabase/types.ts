@@ -560,7 +560,11 @@ export type Database = {
           estate_id: string | null
           full_name: string | null
           id: string
+          onboarding_completed: boolean
+          onboarding_completed_at: string | null
+          onboarding_data: Json
           phone: string | null
+          resident_type: Database["public"]["Enums"]["resident_type"] | null
           status: string
           updated_at: string
         }
@@ -573,7 +577,11 @@ export type Database = {
           estate_id?: string | null
           full_name?: string | null
           id: string
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_data?: Json
           phone?: string | null
+          resident_type?: Database["public"]["Enums"]["resident_type"] | null
           status?: string
           updated_at?: string
         }
@@ -586,7 +594,11 @@ export type Database = {
           estate_id?: string | null
           full_name?: string | null
           id?: string
+          onboarding_completed?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_data?: Json
           phone?: string | null
+          resident_type?: Database["public"]["Enums"]["resident_type"] | null
           status?: string
           updated_at?: string
         }
@@ -945,7 +957,7 @@ export type Database = {
         | "apartment"
         | "duplex"
         | "bungalow"
-      resident_type: "owner" | "tenant"
+      resident_type: "landlord" | "tenant"
       visitor_status:
         | "expected"
         | "checked_in"
@@ -1134,7 +1146,7 @@ export const Constants = {
         "duplex",
         "bungalow",
       ],
-      resident_type: ["owner", "tenant"],
+      resident_type: ["landlord", "tenant"],
       visitor_status: [
         "expected",
         "checked_in",

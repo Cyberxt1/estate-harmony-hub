@@ -6,10 +6,10 @@ import { F as useRouter, O as redirect, c as HeadContent, d as createRouter, f a
 import { t as Toaster } from "../_libs/sonner.mjs";
 import { n as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { r as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-DmaXYRi3.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-oD8s-Ndy.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-BKMLB_ZF.css";
+var styles_default = "/assets/styles-BOk-yo27.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -102,7 +102,7 @@ function ErrorComponent({ error, reset }) {
 		})
 	});
 }
-var Route$14 = createRootRouteWithContext()({
+var Route$15 = createRootRouteWithContext()({
 	head: () => ({
 		meta: [
 			{ charSet: "utf-8" },
@@ -164,7 +164,7 @@ function RootShell({ children }) {
 	});
 }
 function RootComponent() {
-	const { queryClient } = Route$14.useRouteContext();
+	const { queryClient } = Route$15.useRouteContext();
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(QueryClientProvider, {
 		client: queryClient,
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Outlet, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Toaster$1, {
@@ -173,25 +173,29 @@ function RootComponent() {
 		})]
 	});
 }
-var $$splitComponentImporter$13 = () => import("./dashboard-DPmlUe8U.mjs");
-var Route$13 = createFileRoute("/dashboard")({
-	beforeLoad: async () => {
+var $$splitComponentImporter$14 = () => import("./dashboard-D94hHNbg.mjs");
+var Route$14 = createFileRoute("/dashboard")({
+	beforeLoad: async ({ location }) => {
 		if (typeof window === "undefined") return;
 		const { data } = await supabase.auth.getUser();
 		if (!data.user) throw redirect({ to: "/auth" });
+		if (location.pathname !== "/dashboard/onboarding") {
+			const { data: profile } = await supabase.from("profiles").select("onboarding_completed").eq("id", data.user.id).maybeSingle();
+			if (profile && !profile.onboarding_completed) throw redirect({ to: "/dashboard/onboarding" });
+		}
 	},
-	component: lazyRouteComponent($$splitComponentImporter$13, "component")
+	component: lazyRouteComponent($$splitComponentImporter$14, "component")
 });
-var $$splitComponentImporter$12 = () => import("./auth-DtFQvn7M.mjs");
-var Route$12 = createFileRoute("/auth")({
+var $$splitComponentImporter$13 = () => import("./auth-DtFQvn7M.mjs");
+var Route$13 = createFileRoute("/auth")({
 	head: () => ({ meta: [{ title: "Sign in - Oyesile Estate" }, {
 		name: "description",
 		content: "Sign in or create your Oyesile Estate account."
 	}] }),
-	component: lazyRouteComponent($$splitComponentImporter$12, "component")
+	component: lazyRouteComponent($$splitComponentImporter$13, "component")
 });
-var $$splitComponentImporter$11 = () => import("./routes-CB2VM_HO.mjs");
-var Route$11 = createFileRoute("/")({
+var $$splitComponentImporter$12 = () => import("./routes-CB2VM_HO.mjs");
+var Route$12 = createFileRoute("/")({
 	head: () => ({ meta: [
 		{ title: "Oyesile Estate" },
 		{
@@ -207,83 +211,90 @@ var Route$11 = createFileRoute("/")({
 			content: "Sign in to manage dues, visitors, announcements, complaints, security and community records."
 		}
 	] }),
-	component: lazyRouteComponent($$splitComponentImporter$11, "component")
+	component: lazyRouteComponent($$splitComponentImporter$12, "component")
 });
-var $$splitComponentImporter$10 = () => import("./dashboard.index-Jib0GCd1.mjs");
-var Route$10 = createFileRoute("/dashboard/")({ component: lazyRouteComponent($$splitComponentImporter$10, "component") });
-var $$splitComponentImporter$9 = () => import("./dashboard.visitors-B5hH8yb6.mjs");
-var Route$9 = createFileRoute("/dashboard/visitors")({ component: lazyRouteComponent($$splitComponentImporter$9, "component") });
-var $$splitComponentImporter$8 = () => import("./dashboard.settings-CXVCeXg_.mjs");
-var Route$8 = createFileRoute("/dashboard/settings")({ component: lazyRouteComponent($$splitComponentImporter$8, "component") });
-var $$splitComponentImporter$7 = () => import("./dashboard.security-Dk6Ex6KZ.mjs");
-var Route$7 = createFileRoute("/dashboard/security")({ component: lazyRouteComponent($$splitComponentImporter$7, "component") });
-var $$splitComponentImporter$6 = () => import("./dashboard.residents-COCAyI0F.mjs");
-var Route$6 = createFileRoute("/dashboard/residents")({ component: lazyRouteComponent($$splitComponentImporter$6, "component") });
-var $$splitComponentImporter$5 = () => import("./dashboard.reports-9_fZy6So.mjs");
-var Route$5 = createFileRoute("/dashboard/reports")({ component: lazyRouteComponent($$splitComponentImporter$5, "component") });
-var $$splitComponentImporter$4 = () => import("./dashboard.properties-Cofu3A42.mjs");
-var Route$4 = createFileRoute("/dashboard/properties")({ component: lazyRouteComponent($$splitComponentImporter$4, "component") });
-var $$splitComponentImporter$3 = () => import("./dashboard.payments-B_CeXvBO.mjs");
-var Route$3 = createFileRoute("/dashboard/payments")({ component: lazyRouteComponent($$splitComponentImporter$3, "component") });
+var $$splitComponentImporter$11 = () => import("./dashboard.index-Jib0GCd1.mjs");
+var Route$11 = createFileRoute("/dashboard/")({ component: lazyRouteComponent($$splitComponentImporter$11, "component") });
+var $$splitComponentImporter$10 = () => import("./dashboard.visitors-B5hH8yb6.mjs");
+var Route$10 = createFileRoute("/dashboard/visitors")({ component: lazyRouteComponent($$splitComponentImporter$10, "component") });
+var $$splitComponentImporter$9 = () => import("./dashboard.settings-CXVCeXg_.mjs");
+var Route$9 = createFileRoute("/dashboard/settings")({ component: lazyRouteComponent($$splitComponentImporter$9, "component") });
+var $$splitComponentImporter$8 = () => import("./dashboard.security-Dk6Ex6KZ.mjs");
+var Route$8 = createFileRoute("/dashboard/security")({ component: lazyRouteComponent($$splitComponentImporter$8, "component") });
+var $$splitComponentImporter$7 = () => import("./dashboard.residents-Bll3-leL.mjs");
+var Route$7 = createFileRoute("/dashboard/residents")({ component: lazyRouteComponent($$splitComponentImporter$7, "component") });
+var $$splitComponentImporter$6 = () => import("./dashboard.reports-9_fZy6So.mjs");
+var Route$6 = createFileRoute("/dashboard/reports")({ component: lazyRouteComponent($$splitComponentImporter$6, "component") });
+var $$splitComponentImporter$5 = () => import("./dashboard.properties-Cofu3A42.mjs");
+var Route$5 = createFileRoute("/dashboard/properties")({ component: lazyRouteComponent($$splitComponentImporter$5, "component") });
+var $$splitComponentImporter$4 = () => import("./dashboard.payments-_-jyWV7p.mjs");
+var Route$4 = createFileRoute("/dashboard/payments")({ component: lazyRouteComponent($$splitComponentImporter$4, "component") });
+var $$splitComponentImporter$3 = () => import("./dashboard.onboarding-C9b1Zwv9.mjs");
+var Route$3 = createFileRoute("/dashboard/onboarding")({ component: lazyRouteComponent($$splitComponentImporter$3, "component") });
 var $$splitComponentImporter$2 = () => import("./dashboard.documents-EkXFxxF_.mjs");
 var Route$2 = createFileRoute("/dashboard/documents")({ component: lazyRouteComponent($$splitComponentImporter$2, "component") });
 var $$splitComponentImporter$1 = () => import("./dashboard.complaints-zhRVc6h2.mjs");
 var Route$1 = createFileRoute("/dashboard/complaints")({ component: lazyRouteComponent($$splitComponentImporter$1, "component") });
 var $$splitComponentImporter = () => import("./dashboard.announcements-D8S3zgtR.mjs");
 var Route = createFileRoute("/dashboard/announcements")({ component: lazyRouteComponent($$splitComponentImporter, "component") });
-var DashboardRoute = Route$13.update({
+var DashboardRoute = Route$14.update({
 	id: "/dashboard",
 	path: "/dashboard",
-	getParentRoute: () => Route$14
+	getParentRoute: () => Route$15
 });
-var AuthRoute = Route$12.update({
+var AuthRoute = Route$13.update({
 	id: "/auth",
 	path: "/auth",
-	getParentRoute: () => Route$14
+	getParentRoute: () => Route$15
 });
-var IndexRoute = Route$11.update({
+var IndexRoute = Route$12.update({
 	id: "/",
 	path: "/",
-	getParentRoute: () => Route$14
+	getParentRoute: () => Route$15
 });
-var DashboardIndexRoute = Route$10.update({
+var DashboardIndexRoute = Route$11.update({
 	id: "/",
 	path: "/",
 	getParentRoute: () => DashboardRoute
 });
-var DashboardVisitorsRoute = Route$9.update({
+var DashboardVisitorsRoute = Route$10.update({
 	id: "/visitors",
 	path: "/visitors",
 	getParentRoute: () => DashboardRoute
 });
-var DashboardSettingsRoute = Route$8.update({
+var DashboardSettingsRoute = Route$9.update({
 	id: "/settings",
 	path: "/settings",
 	getParentRoute: () => DashboardRoute
 });
-var DashboardSecurityRoute = Route$7.update({
+var DashboardSecurityRoute = Route$8.update({
 	id: "/security",
 	path: "/security",
 	getParentRoute: () => DashboardRoute
 });
-var DashboardResidentsRoute = Route$6.update({
+var DashboardResidentsRoute = Route$7.update({
 	id: "/residents",
 	path: "/residents",
 	getParentRoute: () => DashboardRoute
 });
-var DashboardReportsRoute = Route$5.update({
+var DashboardReportsRoute = Route$6.update({
 	id: "/reports",
 	path: "/reports",
 	getParentRoute: () => DashboardRoute
 });
-var DashboardPropertiesRoute = Route$4.update({
+var DashboardPropertiesRoute = Route$5.update({
 	id: "/properties",
 	path: "/properties",
 	getParentRoute: () => DashboardRoute
 });
-var DashboardPaymentsRoute = Route$3.update({
+var DashboardPaymentsRoute = Route$4.update({
 	id: "/payments",
 	path: "/payments",
+	getParentRoute: () => DashboardRoute
+});
+var DashboardOnboardingRoute = Route$3.update({
+	id: "/onboarding",
+	path: "/onboarding",
 	getParentRoute: () => DashboardRoute
 });
 var DashboardDocumentsRoute = Route$2.update({
@@ -304,6 +315,7 @@ var DashboardRouteChildren = {
 	}),
 	DashboardComplaintsRoute,
 	DashboardDocumentsRoute,
+	DashboardOnboardingRoute,
 	DashboardPaymentsRoute,
 	DashboardPropertiesRoute,
 	DashboardReportsRoute,
@@ -318,7 +330,7 @@ var rootRouteChildren = {
 	AuthRoute,
 	DashboardRoute: DashboardRoute._addFileChildren(DashboardRouteChildren)
 };
-var routeTree = Route$14._addFileChildren(rootRouteChildren)._addFileTypes();
+var routeTree = Route$15._addFileChildren(rootRouteChildren)._addFileTypes();
 var getRouter = () => {
 	return createRouter({
 		routeTree,

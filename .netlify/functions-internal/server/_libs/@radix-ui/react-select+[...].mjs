@@ -2,29 +2,15 @@ import { r as __toESM } from "../../_runtime.mjs";
 import { l as require_react_dom, u as require_react } from "../@floating-ui/react-dom+[...].mjs";
 import { a as createSlot, n as Primitive, o as useComposedRefs, s as require_jsx_runtime } from "./react-arrow+[...].mjs";
 import { t as composeEventHandlers } from "../radix-ui__primitive.mjs";
-import { n as createContextScope, t as createCollection } from "./react-collection+[...].mjs";
-import { _ as useCallbackRef, d as useFocusGuards, f as Portal, g as useControllableState, h as Presence, l as hideOthers, m as DismissableLayer, p as FocusScope, u as ReactRemoveScroll, v as useId, y as useLayoutEffect2 } from "./react-dialog+[...].mjs";
+import { a as Presence, c as createContextScope, o as useControllableState, r as usePrevious, s as useLayoutEffect2 } from "./react-checkbox+[...].mjs";
+import { t as createCollection } from "../radix-ui__react-collection.mjs";
+import { d as useFocusGuards, f as Portal, g as useId, h as useCallbackRef, l as hideOthers, m as DismissableLayer, p as FocusScope, u as ReactRemoveScroll } from "./react-dialog+[...].mjs";
 import { t as useDirection } from "../radix-ui__react-direction.mjs";
 import { t as clamp } from "../radix-ui__number.mjs";
-import { a as createPopperScope, i as Root2, n as Arrow, r as Content, t as Anchor } from "./react-popper+[...].mjs";
-//#region node_modules/@radix-ui/react-use-previous/dist/index.mjs
+import { a as createPopperScope, i as Root2, n as Arrow, r as Content, t as Anchor } from "../radix-ui__react-popper.mjs";
+//#region node_modules/@radix-ui/react-visually-hidden/dist/index.mjs
 var import_react_dom = /* @__PURE__ */ __toESM(require_react_dom(), 1);
 var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
-function usePrevious(value) {
-	const ref = import_react.useRef({
-		value,
-		previous: value
-	});
-	return import_react.useMemo(() => {
-		if (ref.current.value !== value) {
-			ref.current.previous = ref.current.value;
-			ref.current.value = value;
-		}
-		return ref.current.previous;
-	}, [value]);
-}
-//#endregion
-//#region node_modules/@radix-ui/react-visually-hidden/dist/index.mjs
 var import_jsx_runtime = require_jsx_runtime();
 var VISUALLY_HIDDEN_STYLES = Object.freeze({
 	position: "absolute",

@@ -2,11 +2,11 @@ import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as Button } from "./button-DRsC1qZi.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { _ as CreditCard, o as Send, s as Repeat2, w as LoaderCircle, x as CalendarClock } from "../_libs/lucide-react.mjs";
+import { E as LoaderCircle, S as CalendarClock, _ as CreditCard, o as Send, s as Repeat2 } from "../_libs/lucide-react.mjs";
 import { n as useAuth } from "./use-auth-CP7XOnjs.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-CGNtK6Vg.mjs";
 import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-B_CeXvBO.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-_-jyWV7p.js
 var import_jsx_runtime = require_jsx_runtime();
 function PaymentsPage() {
 	const queryClient = useQueryClient();
@@ -71,7 +71,7 @@ function PaymentsPage() {
 					children: "Admins create and review repeating dues for tenants and landlords. Once sent, residents can pay with Paystack and the payment remains visible for admin verification."
 				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "rounded-md border border-border px-3 py-2 text-xs text-muted-foreground",
-					children: ["Paystack public key: ", "Not configured"]
+					children: ["Paystack public key: ", "Configured"]
 				})]
 			})
 		}),
@@ -216,7 +216,77 @@ function formatPeriod(start, end) {
 	return formatDate(start ?? end);
 }
 async function startPaystackPayment(invoice) {
-	toast.error("Add VITE_PAYSTACK_PUBLIC_KEY to enable Paystack checkout.");
+	const key = "pk_test_0c7e5f90f3379108f446343afef81ca4d6509dbe";
+	try {
+		await loadPaystack();
+	} catch (error) {
+		toast.error(error instanceof Error ? error.message : "Paystack failed to load");
+		return;
+	}
+	if (!window.PaystackPop) {
+		toast.error("Paystack could not load. Check your connection and try again.");
+		return;
+	}
+	const { data: userData } = await supabase.auth.getUser();
+	const email = userData.user?.email;
+	if (!email) {
+		toast.error("Your account needs an email before payment can start.");
+		return;
+	}
+	const balance = Math.max(Number(invoice.amount) - Number(invoice.amount_paid ?? 0), 0);
+	const ref = `oyesile-${invoice.invoice_number}-${Date.now()}`;
+	window.PaystackPop.setup({
+		key,
+		email,
+		amount: Math.round(balance * 100),
+		currency: invoice.currency,
+		ref,
+		metadata: {
+			invoice_id: invoice.id,
+			estate_id: invoice.estate_id,
+			resident_id: invoice.resident_id
+		},
+		callback: async (response) => {
+			const { error } = await supabase.from("payments").insert({
+				estate_id: invoice.estate_id,
+				invoice_id: invoice.id,
+				resident_id: invoice.resident_id,
+				amount: balance,
+				currency: invoice.currency,
+				method: "card",
+				reference: response.reference,
+				status: "pending",
+				notes: "Paystack payment submitted for admin review."
+			});
+			if (error) {
+				toast.error(error.message);
+				return;
+			}
+			toast.success("Payment submitted for admin review");
+		},
+		onClose: () => toast.info("Payment was not completed")
+	}).openIframe();
+}
+function loadPaystack() {
+	return new Promise((resolve, reject) => {
+		if (window.PaystackPop) {
+			resolve();
+			return;
+		}
+		const existing = document.querySelector("script[data-paystack]");
+		if (existing) {
+			existing.addEventListener("load", () => resolve(), { once: true });
+			existing.addEventListener("error", () => reject(/* @__PURE__ */ new Error("Paystack failed to load")), { once: true });
+			return;
+		}
+		const script = document.createElement("script");
+		script.src = "https://js.paystack.co/v1/inline.js";
+		script.async = true;
+		script.dataset.paystack = "true";
+		script.onload = () => resolve();
+		script.onerror = () => reject(/* @__PURE__ */ new Error("Paystack failed to load"));
+		document.head.appendChild(script);
+	});
 }
 //#endregion
 export { PaymentsPage as component };

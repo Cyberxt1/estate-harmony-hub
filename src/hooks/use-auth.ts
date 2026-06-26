@@ -30,6 +30,10 @@ export interface Profile {
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
+  resident_type: "landlord" | "tenant" | null;
+  onboarding_completed: boolean;
+  onboarding_completed_at: string | null;
+  onboarding_data: Record<string, unknown>;
   status: string;
 }
 

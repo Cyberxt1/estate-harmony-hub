@@ -5,7 +5,7 @@ import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].m
 import { t as Button } from "./button-DRsC1qZi.mjs";
 import { n as Label, t as Input } from "./label-CmIE8x5o.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { T as House, l as Plus } from "../_libs/lucide-react.mjs";
+import { D as House, l as Plus } from "../_libs/lucide-react.mjs";
 import { n as useAuth } from "./use-auth-CP7XOnjs.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-CGNtK6Vg.mjs";
 import { a as DialogTitle, i as DialogHeader, n as DialogContent, o as DialogTrigger, r as DialogFooter, t as Dialog } from "./dialog-DFjnKMNx.mjs";

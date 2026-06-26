@@ -20,6 +20,7 @@ import { Route as DashboardResidentsRouteImport } from './routes/dashboard.resid
 import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports'
 import { Route as DashboardPropertiesRouteImport } from './routes/dashboard.properties'
 import { Route as DashboardPaymentsRouteImport } from './routes/dashboard.payments'
+import { Route as DashboardOnboardingRouteImport } from './routes/dashboard.onboarding'
 import { Route as DashboardDocumentsRouteImport } from './routes/dashboard.documents'
 import { Route as DashboardComplaintsRouteImport } from './routes/dashboard.complaints'
 import { Route as DashboardAnnouncementsRouteImport } from './routes/dashboard.announcements'
@@ -79,6 +80,11 @@ const DashboardPaymentsRoute = DashboardPaymentsRouteImport.update({
   path: '/payments',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardOnboardingRoute = DashboardOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardDocumentsRoute = DashboardDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/onboarding': typeof DashboardOnboardingRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/properties': typeof DashboardPropertiesRoute
   '/dashboard/reports': typeof DashboardReportsRoute
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/onboarding': typeof DashboardOnboardingRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/properties': typeof DashboardPropertiesRoute
   '/dashboard/reports': typeof DashboardReportsRoute
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/onboarding': typeof DashboardOnboardingRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/properties': typeof DashboardPropertiesRoute
   '/dashboard/reports': typeof DashboardReportsRoute
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
+    | '/dashboard/onboarding'
     | '/dashboard/payments'
     | '/dashboard/properties'
     | '/dashboard/reports'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
+    | '/dashboard/onboarding'
     | '/dashboard/payments'
     | '/dashboard/properties'
     | '/dashboard/reports'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
+    | '/dashboard/onboarding'
     | '/dashboard/payments'
     | '/dashboard/properties'
     | '/dashboard/reports'
@@ -278,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardPaymentsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/onboarding': {
+      id: '/dashboard/onboarding'
+      path: '/onboarding'
+      fullPath: '/dashboard/onboarding'
+      preLoaderRoute: typeof DashboardOnboardingRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/documents': {
       id: '/dashboard/documents'
       path: '/documents'
@@ -306,6 +325,7 @@ interface DashboardRouteChildren {
   DashboardAnnouncementsRoute: typeof DashboardAnnouncementsRoute
   DashboardComplaintsRoute: typeof DashboardComplaintsRoute
   DashboardDocumentsRoute: typeof DashboardDocumentsRoute
+  DashboardOnboardingRoute: typeof DashboardOnboardingRoute
   DashboardPaymentsRoute: typeof DashboardPaymentsRoute
   DashboardPropertiesRoute: typeof DashboardPropertiesRoute
   DashboardReportsRoute: typeof DashboardReportsRoute
@@ -320,6 +340,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAnnouncementsRoute: DashboardAnnouncementsRoute,
   DashboardComplaintsRoute: DashboardComplaintsRoute,
   DashboardDocumentsRoute: DashboardDocumentsRoute,
+  DashboardOnboardingRoute: DashboardOnboardingRoute,
   DashboardPaymentsRoute: DashboardPaymentsRoute,
   DashboardPropertiesRoute: DashboardPropertiesRoute,
   DashboardReportsRoute: DashboardReportsRoute,

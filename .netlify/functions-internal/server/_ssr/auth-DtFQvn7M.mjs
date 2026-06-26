@@ -6,7 +6,7 @@ import { n as cn, t as Button } from "./button-DRsC1qZi.mjs";
 import { n as Label, t as Input } from "./label-CmIE8x5o.mjs";
 import { P as useNavigate, g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { S as Building2, w as LoaderCircle } from "../_libs/lucide-react.mjs";
+import { C as Building2, E as LoaderCircle } from "../_libs/lucide-react.mjs";
 import { t as createLovableAuth } from "../_libs/lovable.dev__cloud-auth-js.mjs";
 import { i as Trigger, n as List, r as Root2, t as Content } from "../_libs/radix-ui__react-tabs.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/auth-DtFQvn7M.js

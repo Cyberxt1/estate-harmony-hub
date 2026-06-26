@@ -25,7 +25,7 @@ function ResidentsPage() {
     <div>
       <PageHeader
         title="Residents"
-        description="Manage resident profiles, households, vehicles and documents."
+        description="Manage landlords, tenants, household profiles, vehicles and documents."
         icon={Users}
       />
       {isLoading ? (
@@ -36,6 +36,7 @@ function ResidentsPage() {
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3">Email</th>
                 <th className="px-4 py-3">Phone</th>
                 <th className="px-4 py-3">Status</th>
@@ -45,6 +46,11 @@ function ResidentsPage() {
               {data.map((r) => (
                 <tr key={r.id} className="border-t border-border">
                   <td className="px-4 py-3 font-medium">{r.full_name || "—"}</td>
+                  <td className="px-4 py-3">
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-xs capitalize text-secondary-foreground">
+                      {r.resident_type || "Not completed"}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-muted-foreground">{r.email}</td>
                   <td className="px-4 py-3 text-muted-foreground">{r.phone || "—"}</td>
                   <td className="px-4 py-3">
@@ -60,7 +66,7 @@ function ResidentsPage() {
       ) : (
         <EmptyState
           title="No residents yet"
-          description="Residents that sign up will appear here. Estate admins can approve and assign them to households."
+          description="Landlords and tenants that sign up will appear here for admin review."
         />
       )}
     </div>

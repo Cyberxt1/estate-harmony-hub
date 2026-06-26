@@ -45,7 +45,10 @@ function SettingsPage() {
 
   const saveProfile = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("profiles").update({ full_name: fullName, phone }).eq("id", user!.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: fullName, phone })
+        .eq("id", user!.id);
       if (error) throw error;
     },
     onSuccess: () => {

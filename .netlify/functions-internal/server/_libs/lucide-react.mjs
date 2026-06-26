@@ -199,6 +199,19 @@ var LoaderCircle = createLucideIcon("loader-circle", [["path", {
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var ArrowLeft = createLucideIcon("arrow-left", [["path", {
+	d: "m12 19-7-7 7-7",
+	key: "1l729n"
+}], ["path", {
+	d: "M19 12H5",
+	key: "x3x0zl"
+}]]);
+/**
+* @license lucide-react v0.575.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var ArrowRight = createLucideIcon("arrow-right", [["path", {
 	d: "M5 12h14",
 	key: "1ays0h"
@@ -298,6 +311,43 @@ var ChevronUp = createLucideIcon("chevron-up", [["path", {
 	d: "m18 15-6-6-6 6",
 	key: "153udz"
 }]]);
+/**
+* @license lucide-react v0.575.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
+var ClipboardList = createLucideIcon("clipboard-list", [
+	["rect", {
+		width: "8",
+		height: "4",
+		x: "8",
+		y: "2",
+		rx: "1",
+		ry: "1",
+		key: "tgr4d6"
+	}],
+	["path", {
+		d: "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+		key: "116196"
+	}],
+	["path", {
+		d: "M12 11h4",
+		key: "1jrz19"
+	}],
+	["path", {
+		d: "M12 16h4",
+		key: "n85exb"
+	}],
+	["path", {
+		d: "M8 11h.01",
+		key: "1dfujw"
+	}],
+	["path", {
+		d: "M8 16h.01",
+		key: "18s6g9"
+	}]
+]);
 /**
 * @license lucide-react v0.575.0 - ISC
 *
@@ -693,4 +743,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { ArrowRight as C, CircleCheck as D, CircleX as E, ChartColumn as O, Building2 as S, House as T, CreditCard as _, Settings as a, Check as b, QrCode as c, Menu as d, Megaphone as f, DoorOpen as g, FileText as h, ShieldCheck as i, Plus as l, LayoutDashboard as m, Users as n, Send as o, LogOut as p, TrendingUp as r, Repeat2 as s, X as t, MessageSquareWarning as u, ChevronUp as v, LoaderCircle as w, CalendarClock as x, ChevronDown as y };
+export { ChartColumn as A, Building2 as C, House as D, LoaderCircle as E, CircleX as O, CalendarClock as S, ArrowLeft as T, CreditCard as _, Settings as a, ChevronDown as b, QrCode as c, Menu as d, Megaphone as f, DoorOpen as g, FileText as h, ShieldCheck as i, CircleCheck as k, Plus as l, LayoutDashboard as m, Users as n, Send as o, LogOut as p, TrendingUp as r, Repeat2 as s, X as t, MessageSquareWarning as u, ClipboardList as v, ArrowRight as w, Check as x, ChevronUp as y };

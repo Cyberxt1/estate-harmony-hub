@@ -1,7 +1,7 @@
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as Button } from "./button-DRsC1qZi.mjs";
 import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
-import { C as ArrowRight, D as CircleCheck, S as Building2, _ as CreditCard, g as DoorOpen, i as ShieldCheck, n as Users, x as CalendarClock } from "../_libs/lucide-react.mjs";
+import { C as Building2, S as CalendarClock, _ as CreditCard, g as DoorOpen, i as ShieldCheck, k as CircleCheck, n as Users, w as ArrowRight } from "../_libs/lucide-react.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/routes-CB2VM_HO.js
 var import_jsx_runtime = require_jsx_runtime();
 var roleCards = [

@@ -3,9 +3,9 @@ import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { n as cn, t as Button } from "./button-DRsC1qZi.mjs";
 import { P as useNavigate, f as Outlet, g as Link, l as useRouterState } from "../_libs/@tanstack/react-router+[...].mjs";
-import { O as ChartColumn, S as Building2, T as House, _ as CreditCard, a as Settings, c as QrCode, d as Menu, f as Megaphone, h as FileText, i as ShieldCheck, m as LayoutDashboard, n as Users, p as LogOut, t as X, u as MessageSquareWarning } from "../_libs/lucide-react.mjs";
+import { A as ChartColumn, C as Building2, D as House, _ as CreditCard, a as Settings, c as QrCode, d as Menu, f as Megaphone, h as FileText, i as ShieldCheck, m as LayoutDashboard, n as Users, p as LogOut, t as X, u as MessageSquareWarning } from "../_libs/lucide-react.mjs";
 import { n as useAuth, t as signOut } from "./use-auth-CP7XOnjs.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard-DPmlUe8U.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard-D94hHNbg.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var nav = [
@@ -14,6 +14,11 @@ var nav = [
 		label: "Overview",
 		icon: LayoutDashboard,
 		exact: true
+	},
+	{
+		to: "/dashboard/onboarding",
+		label: "Resident Form",
+		icon: Users
 	},
 	{
 		to: "/dashboard/residents",

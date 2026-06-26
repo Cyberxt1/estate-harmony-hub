@@ -1,6 +1,6 @@
 import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
-import { O as ChartColumn } from "../_libs/lucide-react.mjs";
+import { A as ChartColumn } from "../_libs/lucide-react.mjs";
 import { n as PageHeader } from "./page-header-CGNtK6Vg.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/dashboard.reports-9_fZy6So.js
