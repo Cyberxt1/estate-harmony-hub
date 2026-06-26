@@ -1,18 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarClock, CreditCard, Loader2, Repeat2, Send } from "lucide-react";
+import { CalendarClock, CreditCard, Loader2, Plus, Repeat2, Send } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/dashboard/payments")({
   component: PaymentsPage,
 });
 
 type Invoice = Tables<"invoices">;
+type ResidentProfile = Pick<Tables<"profiles">, "id" | "estate_id" | "full_name" | "email" | "resident_type">;
+type PaymentTarget = "tenant" | "landlord";
+type PaymentFrequency = "one_time" | "monthly" | "quarterly" | "yearly";
 
 declare global {
   interface Window {
@@ -34,6 +55,12 @@ declare global {
 function PaymentsPage() {
   const queryClient = useQueryClient();
   const { profile, isAdmin } = useAuth();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [target, setTarget] = useState<PaymentTarget>("tenant");
+  const [frequency, setFrequency] = useState<PaymentFrequency>("monthly");
+  const [dueDate, setDueDate] = useState(() => getDefaultDueDate());
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["invoices", profile?.estate_id],
@@ -47,6 +74,25 @@ function PaymentsPage() {
     },
   });
 
+  const { data: residents } = useQuery({
+    queryKey: ["payment-residents", profile?.estate_id],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, estate_id, full_name, email, resident_type")
+        .in("resident_type", ["tenant", "landlord"])
+        .order("full_name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as ResidentProfile[];
+    },
+  });
+
+  const targetResidents = useMemo(
+    () => (residents ?? []).filter((resident) => resident.resident_type === target),
+    [residents, target],
+  );
+
   const reviewInvoice = useMutation({
     mutationFn: async (invoice: Invoice) => {
       const { error } = await supabase
@@ -58,6 +104,55 @@ function PaymentsPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["invoices"] });
       toast.success("Payment request sent to residents");
+    },
+    onError: (error) => toast.error(error.message),
+  });
+
+  const createPaymentRequest = useMutation({
+    mutationFn: async () => {
+      if (!profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate.");
+      const numericAmount = Number(amount);
+      if (!description.trim()) throw new Error("Enter a payment title.");
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0) throw new Error("Enter a valid amount.");
+      if (targetResidents.length === 0) throw new Error(`No ${target}s found yet.`);
+
+      const period = getPaymentPeriod(dueDate, frequency);
+      const stamp = Date.now().toString().slice(-6);
+      const rows = targetResidents.map((resident, index) => ({
+        estate_id: profile.estate_id!,
+        resident_id: resident.id,
+        invoice_number: `OYE-${target.toUpperCase()}-${stamp}-${String(index + 1).padStart(3, "0")}`,
+        description: description.trim(),
+        amount: numericAmount,
+        currency: "NGN",
+        due_date: dueDate,
+        period_start: period.start,
+        period_end: period.end,
+        status: "draft" as const,
+        line_items: [
+          {
+            title: description.trim(),
+            amount: numericAmount,
+            target,
+            frequency,
+            resident_name: resident.full_name || resident.email || "Resident",
+          },
+        ],
+      }));
+
+      const { error } = await supabase.from("invoices").insert(rows);
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: async (count) => {
+      toast.success(`${count} payment request${count === 1 ? "" : "s"} created as draft`);
+      setCreateOpen(false);
+      setDescription("");
+      setAmount("");
+      setTarget("tenant");
+      setFrequency("monthly");
+      setDueDate(getDefaultDueDate());
+      await queryClient.invalidateQueries({ queryKey: ["invoices"] });
     },
     onError: (error) => toast.error(error.message),
   });
@@ -78,6 +173,21 @@ function PaymentsPage() {
         description="Reviewed dues, repeating estate charges and Paystack payments for Oyesile Estate."
         icon={CreditCard}
       />
+
+      {isAdmin && (
+        <div className="mb-6 flex flex-col gap-3 rounded-md border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="font-display text-lg font-semibold">Create new payment</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create a draft charge for tenants or landlords, set its frequency, then publish it when reviewed.
+            </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Create payment
+          </Button>
+        </div>
+      )}
 
       <div className="mb-6 grid gap-3 md:grid-cols-3">
         <SummaryTile icon={CreditCard} label="Outstanding" value={formatMoney(outstanding)} />
@@ -173,6 +283,97 @@ function PaymentsPage() {
           description="When community admins create monthly dues, service charges or landlord levies, they will appear here for review and payment."
         />
       )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Create new payment</DialogTitle>
+            <DialogDescription>
+              Save as draft first. Use Send to publish the payment to residents.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="payment-title">Payment title</Label>
+              <Input
+                id="payment-title"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="Monthly security dues"
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="payment-amount">Amount</Label>
+                <Input
+                  id="payment-amount"
+                  inputMode="numeric"
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  placeholder="25000"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="payment-due">Due date</Label>
+                <Input
+                  id="payment-due"
+                  type="date"
+                  value={dueDate}
+                  onChange={(event) => setDueDate(event.target.value)}
+                />
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Publish for</Label>
+                <Select value={target} onValueChange={(value) => setTarget(value as PaymentTarget)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tenant">Tenants</SelectItem>
+                    <SelectItem value="landlord">Landlords</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Frequency</Label>
+                <Select value={frequency} onValueChange={(value) => setFrequency(value as PaymentFrequency)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="one_time">One-time</SelectItem>
+                    <SelectItem value="monthly">Monthly</SelectItem>
+                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                    <SelectItem value="yearly">Yearly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Summary</Label>
+              <Textarea
+                readOnly
+                value={`${targetResidents.length} ${targetResidents.length === 1 ? target : `${target}s`} will receive this ${formatFrequency(frequency)} payment request.`}
+                className="resize-none"
+              />
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => createPaymentRequest.mutate()}
+                disabled={createPaymentRequest.isPending}
+              >
+                {createPaymentRequest.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Save draft
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -233,6 +434,31 @@ function formatPeriod(start?: string | null, end?: string | null) {
   if (!start && !end) return "Repeating";
   if (start && end) return `${formatDate(start)} - ${formatDate(end)}`;
   return formatDate(start ?? end);
+}
+
+function getDefaultDueDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  return date.toISOString().slice(0, 10);
+}
+
+function getPaymentPeriod(dueDate: string, frequency: PaymentFrequency) {
+  if (frequency === "one_time") return { start: dueDate, end: dueDate };
+
+  const start = new Date(dueDate);
+  const end = new Date(start);
+  const monthStep = frequency === "monthly" ? 1 : frequency === "quarterly" ? 3 : 12;
+  end.setMonth(end.getMonth() + monthStep);
+  end.setDate(end.getDate() - 1);
+
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
+}
+
+function formatFrequency(frequency: PaymentFrequency) {
+  return frequency === "one_time" ? "one-time" : frequency;
 }
 
 async function startPaystackPayment(invoice: Invoice) {

@@ -19,43 +19,32 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, signOut } from "@/hooks/use-auth";
+import type { AppRole } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async () => {
     if (typeof window === "undefined") return;
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth" });
-
-    if (location.pathname !== "/dashboard/onboarding") {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("id", data.user.id)
-        .maybeSingle();
-
-      if (profile && !profile.onboarding_completed) {
-        throw redirect({ to: "/dashboard/onboarding" });
-      }
-    }
   },
   component: DashboardLayout,
 });
 
 const nav = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true },
-  { to: "/dashboard/onboarding", label: "Resident Form", icon: Users },
-  { to: "/dashboard/residents", label: "Residents", icon: Users },
-  { to: "/dashboard/properties", label: "Properties", icon: Home },
-  { to: "/dashboard/visitors", label: "Visitors", icon: QrCode },
-  { to: "/dashboard/payments", label: "Payments", icon: CreditCard },
-  { to: "/dashboard/announcements", label: "Announcements", icon: Megaphone },
-  { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning },
-  { to: "/dashboard/security", label: "Security", icon: ShieldCheck },
-  { to: "/dashboard/documents", label: "Documents", icon: FileText },
-  { to: "/dashboard/reports", label: "Reports", icon: BarChart3 },
-  { to: "/dashboard/settings", label: "Settings", icon: SettingsIcon },
+  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true, groups: ["resident", "secretary", "cso"] },
+  { to: "/dashboard/onboarding", label: "Resident Form", icon: Users, groups: ["resident"] },
+  { to: "/dashboard/residents", label: "Residents", icon: Users, groups: ["secretary"] },
+  { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["secretary"] },
+  { to: "/dashboard/visitors", label: "Visitors", icon: QrCode, groups: ["resident", "cso"] },
+  { to: "/dashboard/payments", label: "Payments", icon: CreditCard, groups: ["resident", "secretary", "cso"] },
+  { to: "/dashboard/announcements", label: "Announcements", icon: Megaphone, groups: ["resident", "secretary", "cso"] },
+  { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning, groups: ["resident", "secretary"] },
+  { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso"] },
+  { to: "/dashboard/documents", label: "Documents", icon: FileText, groups: ["resident", "secretary"] },
+  { to: "/dashboard/reports", label: "Reports", icon: BarChart3, groups: ["secretary", "cso"] },
+  { to: "/dashboard/settings", label: "Settings", icon: SettingsIcon, groups: ["resident", "secretary", "cso"] },
 ];
 
 function DashboardLayout() {
@@ -63,8 +52,15 @@ function DashboardLayout() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const workspace = getWorkspace(primaryRole);
 
   useEffect(() => setMobileOpen(false), [pathname]);
+
+  useEffect(() => {
+    if (!loading && profile && !profile.onboarding_completed && pathname !== "/dashboard/onboarding") {
+      void navigate({ to: "/dashboard/onboarding", replace: true });
+    }
+  }, [loading, navigate, pathname, profile]);
 
   if (loading) {
     return (
@@ -102,7 +98,10 @@ function DashboardLayout() {
           </button>
         </div>
         <nav className="flex flex-col gap-0.5 p-3">
-          {nav.map((item) => {
+          <div className="px-3 pb-2 pt-1 text-xs font-medium uppercase text-sidebar-foreground/50">
+            {workspace.label}
+          </div>
+          {nav.filter((item) => item.groups.includes(workspace.key)).map((item) => {
             const active = item.exact
               ? pathname === item.to
               : pathname.startsWith(item.to);
@@ -168,7 +167,10 @@ function DashboardLayout() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex-1" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{workspace.title}</p>
+            <p className="hidden truncate text-xs text-muted-foreground sm:block">{workspace.description}</p>
+          </div>
           <div className="hidden text-sm text-muted-foreground md:block">
             {profile?.full_name || profile?.email}
           </div>
@@ -179,6 +181,39 @@ function DashboardLayout() {
       </div>
     </div>
   );
+}
+
+function getWorkspace(role: AppRole) {
+  if (role === "chief_security_officer" || role === "security_officer") {
+    return {
+      key: "cso",
+      label: "CSO view",
+      title: "Security workspace",
+      description: "Visitors, incidents and security reports.",
+    } as const;
+  }
+
+  if (
+    role === "community_secretary" ||
+    role === "community_chairman" ||
+    role === "treasurer" ||
+    role === "estate_admin" ||
+    role === "super_admin"
+  ) {
+    return {
+      key: "secretary",
+      label: role === "treasurer" ? "Treasurer view" : "Secretary view",
+      title: "Estate operations workspace",
+      description: "Residents, properties, payments and estate records.",
+    } as const;
+  }
+
+  return {
+    key: "resident",
+    label: "Resident view",
+    title: "Resident workspace",
+    description: "Your dues, visitors, notices and household records.",
+  } as const;
 }
 
 function formatRole(role: string) {

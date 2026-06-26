@@ -10,6 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: search.tab === "signup" ? "signup" : "signin",
+  }),
   head: () => ({
     meta: [
       { title: "Sign in - Oyesile Estate" },
@@ -21,7 +24,8 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<"signin" | "signup">("signin");
+  const search = Route.useSearch();
+  const [tab, setTab] = useState<"signin" | "signup">(search.tab);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -32,6 +36,10 @@ function AuthPage() {
       if (data.user) navigate({ to: "/dashboard" });
     });
   }, [navigate]);
+
+  useEffect(() => {
+    setTab(search.tab);
+  }, [search.tab]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,7 +58,7 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: { full_name: fullName },
       },
     });
@@ -62,7 +70,7 @@ function AuthPage() {
   const handleGoogle = async () => {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/auth`,
     });
     if (result.error) {
       setLoading(false);
