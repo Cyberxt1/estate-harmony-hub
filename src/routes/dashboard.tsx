@@ -33,18 +33,18 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const nav = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true, groups: ["resident", "secretary", "cso"] },
+  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true, groups: ["resident", "operations", "cso"] },
   { to: "/dashboard/onboarding", label: "Resident Form", icon: Users, groups: ["resident"] },
-  { to: "/dashboard/residents", label: "Residents", icon: Users, groups: ["secretary"] },
-  { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["secretary"] },
+  { to: "/dashboard/residents", label: "Residents", icon: Users, groups: ["operations"] },
+  { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations"] },
   { to: "/dashboard/visitors", label: "Visitors", icon: QrCode, groups: ["resident", "cso"] },
-  { to: "/dashboard/payments", label: "Payments", icon: CreditCard, groups: ["resident", "secretary", "cso"] },
-  { to: "/dashboard/announcements", label: "Announcements", icon: Megaphone, groups: ["resident", "secretary", "cso"] },
-  { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning, groups: ["resident", "secretary"] },
+  { to: "/dashboard/payments", label: "Payments", icon: CreditCard, groups: ["resident", "operations", "cso"] },
+  { to: "/dashboard/announcements", label: "Announcements", icon: Megaphone, groups: ["resident", "operations", "cso"] },
+  { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning, groups: ["resident", "operations"] },
   { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso"] },
-  { to: "/dashboard/documents", label: "Documents", icon: FileText, groups: ["resident", "secretary"] },
-  { to: "/dashboard/reports", label: "Reports", icon: BarChart3, groups: ["secretary", "cso"] },
-  { to: "/dashboard/settings", label: "Settings", icon: SettingsIcon, groups: ["resident", "secretary", "cso"] },
+  { to: "/dashboard/documents", label: "Documents", icon: FileText, groups: ["resident", "operations"] },
+  { to: "/dashboard/reports", label: "Reports", icon: BarChart3, groups: ["operations", "cso"] },
+  { to: "/dashboard/settings", label: "Settings", icon: SettingsIcon, groups: ["resident", "operations", "cso"] },
 ];
 
 function DashboardLayout() {
@@ -200,10 +200,26 @@ function getWorkspace(role: AppRole) {
     role === "estate_admin" ||
     role === "super_admin"
   ) {
+    const labels: Record<string, string> = {
+      community_chairman: "Chairman view",
+      community_secretary: "Secretary view",
+      treasurer: "Treasurer view",
+      estate_admin: "Estate admin view",
+      super_admin: "Super admin view",
+    };
+
+    const titles: Record<string, string> = {
+      community_chairman: "Chairman workspace",
+      community_secretary: "Secretary workspace",
+      treasurer: "Treasurer workspace",
+      estate_admin: "Estate operations workspace",
+      super_admin: "Estate operations workspace",
+    };
+
     return {
-      key: "secretary",
-      label: role === "treasurer" ? "Treasurer view" : "Secretary view",
-      title: "Estate operations workspace",
+      key: "operations",
+      label: labels[role] ?? "Estate operations view",
+      title: titles[role] ?? "Estate operations workspace",
       description: "Residents, properties, payments and estate records.",
     } as const;
   }
