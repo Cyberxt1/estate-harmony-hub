@@ -26,6 +26,19 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+function getBrowserStorage() {
+  if (typeof window === 'undefined') return undefined;
+
+  try {
+    const testKey = '__oyesile_storage_check__';
+    window.localStorage.setItem(testKey, testKey);
+    window.localStorage.removeItem(testKey);
+    return window.localStorage;
+  } catch {
+    return undefined;
+  }
+}
+
 
 function createSupabaseClient() {
   // Use import.meta.env for client-side (Vite build-time replacement)
@@ -48,7 +61,7 @@ function createSupabaseClient() {
       fetch: createSupabaseFetch(SUPABASE_PUBLISHABLE_KEY),
     },
     auth: {
-      storage: typeof window !== 'undefined' ? localStorage : undefined,
+      storage: getBrowserStorage(),
       persistSession: true,
       autoRefreshToken: true,
     }

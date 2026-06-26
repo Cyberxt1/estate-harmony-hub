@@ -27,19 +27,25 @@ function SplashScreen() {
 
   useEffect(() => {
     let cancelled = false;
+    let redirectTimer: number | undefined;
 
     const boot = async () => {
-      const [{ data }] = await Promise.all([
-        supabase.auth.getUser(),
-        new Promise((resolve) => window.setTimeout(resolve, 950)),
+      const userResult = await Promise.race([
+        supabase.auth.getUser().catch(() => null),
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 1800)),
       ]);
+
+      await new Promise((resolve) => window.setTimeout(resolve, 650));
 
       if (cancelled) return;
       setLeaving(true);
 
-      window.setTimeout(() => {
+      redirectTimer = window.setTimeout(() => {
         if (cancelled) return;
-        void navigate({ to: data.user ? "/dashboard" : "/auth", replace: true });
+        void navigate({
+          to: userResult?.data.user ? "/dashboard" : "/auth",
+          replace: true,
+        });
       }, 280);
     };
 
@@ -47,6 +53,7 @@ function SplashScreen() {
 
     return () => {
       cancelled = true;
+      if (redirectTimer) window.clearTimeout(redirectTimer);
     };
   }, [navigate]);
 
