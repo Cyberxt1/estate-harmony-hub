@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MessageSquareWarning, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -28,6 +30,7 @@ import {
 
 const STATUSES = ["open", "assigned", "in_progress", "resolved", "closed"] as const;
 type Status = typeof STATUSES[number];
+type Complaint = Tables<"complaints">;
 
 export const Route = createFileRoute("/dashboard/complaints")({
   component: ComplaintsPage,
@@ -40,6 +43,7 @@ function ComplaintsPage() {
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("medium");
+  const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
 
   const { data } = useQuery({
     queryKey: ["complaints"],
@@ -126,13 +130,17 @@ function ComplaintsPage() {
       {data && data.length > 0 ? (
         <div className="space-y-3">
           {data.map((c) => (
-            <div key={c.id} className="rounded-2xl border border-border bg-card p-5">
+            <div
+              key={c.id}
+              className="cursor-pointer rounded-md border border-border bg-card p-5 transition hover:bg-secondary/30"
+              onClick={() => setSelectedComplaint(c)}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">{c.subject}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{c.description}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2" onClick={(event) => event.stopPropagation()}>
                   <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize text-muted-foreground">{c.priority}</span>
                   {isAdmin ? (
                     <Select
@@ -159,6 +167,43 @@ function ComplaintsPage() {
       ) : (
         <EmptyState title="No complaints" description="Residents can raise complaints and track their progress here." />
       )}
+
+      <Dialog open={!!selectedComplaint} onOpenChange={(nextOpen) => !nextOpen && setSelectedComplaint(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedComplaint?.subject || "Complaint"}</DialogTitle>
+            <DialogDescription>Expanded complaint record.</DialogDescription>
+          </DialogHeader>
+          {selectedComplaint && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Detail label="Subject" value={selectedComplaint.subject} wide />
+              <Detail label="Status" value={selectedComplaint.status.replace("_", " ")} />
+              <Detail label="Priority" value={selectedComplaint.priority} />
+              <Detail label="Category" value={selectedComplaint.category} />
+              <Detail label="Created" value={new Date(selectedComplaint.created_at).toLocaleString()} />
+              <Detail label="Description" value={selectedComplaint.description} wide />
+              <Detail label="Resolution notes" value={selectedComplaint.resolution_notes} wide />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Detail({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
     </div>
   );
 }

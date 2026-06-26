@@ -61,6 +61,7 @@ function PaymentsPage() {
   const [target, setTarget] = useState<PaymentTarget>("tenant");
   const [frequency, setFrequency] = useState<PaymentFrequency>("monthly");
   const [dueDate, setDueDate] = useState(() => getDefaultDueDate());
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["invoices", profile?.estate_id],
@@ -234,7 +235,11 @@ function PaymentsPage() {
               {invoices.map((invoice) => {
                 const balance = Math.max(Number(invoice.amount) - Number(invoice.amount_paid ?? 0), 0);
                 return (
-                  <tr key={invoice.id} className="border-t border-border">
+                  <tr
+                    key={invoice.id}
+                    className="cursor-pointer border-t border-border transition hover:bg-secondary/30"
+                    onClick={() => setSelectedInvoice(invoice)}
+                  >
                     <td className="px-4 py-3 font-medium">{invoice.invoice_number}</td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {invoice.description || "Estate dues"}
@@ -252,7 +257,10 @@ function PaymentsPage() {
                         {isAdmin && invoice.status === "draft" ? (
                           <Button
                             size="sm"
-                            onClick={() => reviewInvoice.mutate(invoice)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              reviewInvoice.mutate(invoice);
+                            }}
                             disabled={reviewInvoice.isPending}
                           >
                             <Send className="mr-2 h-4 w-4" />
@@ -262,7 +270,10 @@ function PaymentsPage() {
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => void startPaystackPayment(invoice)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void startPaystackPayment(invoice);
+                            }}
                             disabled={balance <= 0 || invoice.status === "draft"}
                           >
                             <CreditCard className="mr-2 h-4 w-4" />
@@ -374,6 +385,31 @@ function PaymentsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!selectedInvoice} onOpenChange={(open) => !open && setSelectedInvoice(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedInvoice?.invoice_number || "Payment request"}</DialogTitle>
+            <DialogDescription>Expanded payment, period and publishing details.</DialogDescription>
+          </DialogHeader>
+          {selectedInvoice && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Detail label="Invoice" value={selectedInvoice.invoice_number} />
+              <Detail label="Status" value={selectedInvoice.status} />
+              <Detail label="Charge" value={selectedInvoice.description || "Estate dues"} wide />
+              <Detail label="Amount" value={formatMoney(Number(selectedInvoice.amount), selectedInvoice.currency)} />
+              <Detail
+                label="Paid"
+                value={formatMoney(Number(selectedInvoice.amount_paid ?? 0), selectedInvoice.currency)}
+              />
+              <Detail label="Outstanding" value={formatMoney(Math.max(Number(selectedInvoice.amount) - Number(selectedInvoice.amount_paid ?? 0), 0), selectedInvoice.currency)} />
+              <Detail label="Due date" value={formatDate(selectedInvoice.due_date)} />
+              <Detail label="Period" value={formatPeriod(selectedInvoice.period_start, selectedInvoice.period_end)} wide />
+              <Detail label="Line items" value={formatLineItems(selectedInvoice.line_items)} wide />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -411,6 +447,43 @@ function StatusPill({ status }: { status: string }) {
         : "bg-accent text-accent-foreground";
 
   return <span className={`rounded-md px-2 py-1 text-xs capitalize ${tone}`}>{status}</span>;
+}
+
+function Detail({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
+    </div>
+  );
+}
+
+function formatLineItems(value: unknown) {
+  if (!value) return "Not provided";
+  if (Array.isArray(value)) {
+    return value
+      .map((item) =>
+        typeof item === "object" && item
+          ? Object.entries(item as Record<string, unknown>)
+              .map(([key, entry]) => `${formatKey(key)}: ${entry || "Not provided"}`)
+              .join("\n")
+          : String(item),
+      )
+      .join("\n\n");
+  }
+  return typeof value === "object" ? JSON.stringify(value, null, 2) : String(value);
+}
+
+function formatKey(key: string) {
+  return key.replace(/_/g, " ").replace(/^./, (char) => char.toUpperCase());
 }
 
 function formatMoney(amount: number, currency = "NGN") {

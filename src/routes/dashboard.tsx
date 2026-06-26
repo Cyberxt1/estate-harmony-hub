@@ -26,8 +26,8 @@ import { cn } from "@/lib/utils";
 export const Route = createFileRoute("/dashboard")({
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
-    const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/auth" });
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/auth" });
   },
   component: DashboardLayout,
 });

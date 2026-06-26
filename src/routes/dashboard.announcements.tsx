@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Megaphone, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -23,10 +25,13 @@ export const Route = createFileRoute("/dashboard/announcements")({
   component: AnnouncementsPage,
 });
 
+type Announcement = Tables<"announcements">;
+
 function AnnouncementsPage() {
   const { user, profile, isAdmin } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
@@ -96,7 +101,11 @@ function AnnouncementsPage() {
       {data && data.length > 0 ? (
         <div className="space-y-3">
           {data.map((a) => (
-            <article key={a.id} className="rounded-2xl border border-border bg-card p-5">
+            <article
+              key={a.id}
+              className="cursor-pointer rounded-md border border-border bg-card p-5 transition hover:bg-secondary/30"
+              onClick={() => setSelectedAnnouncement(a)}
+            >
               <div className="flex items-center justify-between gap-3">
                 <h3 className="font-display text-lg font-semibold">{a.title}</h3>
                 <span className="rounded-full bg-accent px-2 py-0.5 text-xs capitalize text-accent-foreground">{a.priority}</span>
@@ -111,6 +120,33 @@ function AnnouncementsPage() {
       ) : (
         <EmptyState title="No announcements yet" description="Admins can post estate-wide notices here." />
       )}
+
+      <Dialog open={!!selectedAnnouncement} onOpenChange={(nextOpen) => !nextOpen && setSelectedAnnouncement(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedAnnouncement?.title || "Announcement"}</DialogTitle>
+            <DialogDescription>Expanded estate announcement.</DialogDescription>
+          </DialogHeader>
+          {selectedAnnouncement && (
+            <div className="space-y-4">
+              <div className="rounded-md border border-border bg-secondary/20 p-3">
+                <p className="text-xs font-medium uppercase text-muted-foreground">Priority</p>
+                <p className="mt-1 text-sm capitalize">{selectedAnnouncement.priority}</p>
+              </div>
+              <div className="rounded-md border border-border bg-secondary/20 p-3">
+                <p className="text-xs font-medium uppercase text-muted-foreground">Message</p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm">{selectedAnnouncement.body}</p>
+              </div>
+              <div className="rounded-md border border-border bg-secondary/20 p-3">
+                <p className="text-xs font-medium uppercase text-muted-foreground">Published</p>
+                <p className="mt-1 text-sm">
+                  {selectedAnnouncement.published_at ? new Date(selectedAnnouncement.published_at).toLocaleString() : "Not provided"}
+                </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

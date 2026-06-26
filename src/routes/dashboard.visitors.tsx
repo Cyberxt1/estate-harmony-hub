@@ -4,6 +4,7 @@ import { useState } from "react";
 import { QrCode, Plus, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,6 +24,8 @@ export const Route = createFileRoute("/dashboard/visitors")({
   component: VisitorsPage,
 });
 
+type Visitor = Tables<"visitors">;
+
 function VisitorsPage() {
   const { user, profile, isSecurity, isAdmin } = useAuth();
   const qc = useQueryClient();
@@ -30,6 +34,7 @@ function VisitorsPage() {
   const [phone, setPhone] = useState("");
   const [purpose, setPurpose] = useState("");
   const [expectedAt, setExpectedAt] = useState("");
+  const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["visitors"],
@@ -138,8 +143,8 @@ function VisitorsPage() {
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : data && data.length > 0 ? (
-        <div className="overflow-hidden rounded-2xl border border-border bg-card">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-md border border-border bg-card">
+          <table className="w-full min-w-[820px] text-sm">
             <thead className="bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="px-4 py-3">Name</th>
@@ -152,7 +157,11 @@ function VisitorsPage() {
             </thead>
             <tbody>
               {data.map((v) => (
-                <tr key={v.id} className="border-t border-border">
+                <tr
+                  key={v.id}
+                  className="cursor-pointer border-t border-border transition hover:bg-secondary/30"
+                  onClick={() => setSelectedVisitor(v)}
+                >
                   <td className="px-4 py-3 font-medium">{v.full_name}</td>
                   <td className="px-4 py-3 text-muted-foreground">{v.purpose || "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
@@ -166,12 +175,26 @@ function VisitorsPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     {(isSecurity || isAdmin) && v.status === "expected" && (
-                      <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: v.id, status: "checked_in" })}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          updateStatus.mutate({ id: v.id, status: "checked_in" });
+                        }}
+                      >
                         <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Check in
                       </Button>
                     )}
                     {(isSecurity || isAdmin) && v.status === "checked_in" && (
-                      <Button size="sm" variant="outline" onClick={() => updateStatus.mutate({ id: v.id, status: "checked_out" })}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          updateStatus.mutate({ id: v.id, status: "checked_out" });
+                        }}
+                      >
                         <XCircle className="mr-1 h-3.5 w-3.5" /> Check out
                       </Button>
                     )}
@@ -187,6 +210,48 @@ function VisitorsPage() {
           description="Invite a visitor to generate a QR code. Security can scan and check them in at the gate."
         />
       )}
+
+      <Dialog open={!!selectedVisitor} onOpenChange={(open) => !open && setSelectedVisitor(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedVisitor?.full_name || "Visitor"}</DialogTitle>
+            <DialogDescription>Expanded visitor invite and gate activity.</DialogDescription>
+          </DialogHeader>
+          {selectedVisitor && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Detail label="Name" value={selectedVisitor.full_name} />
+              <Detail label="Phone" value={selectedVisitor.phone} />
+              <Detail label="Purpose" value={selectedVisitor.purpose} wide />
+              <Detail label="Expected arrival" value={formatDateTime(selectedVisitor.expected_at)} />
+              <Detail label="Status" value={selectedVisitor.status.replace("_", " ")} />
+              <Detail label="QR code" value={selectedVisitor.qr_code} wide />
+              <Detail label="Checked in" value={formatDateTime(selectedVisitor.checked_in_at)} />
+              <Detail label="Checked out" value={formatDateTime(selectedVisitor.checked_out_at)} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function Detail({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
+    </div>
+  );
+}
+
+function formatDateTime(value?: string | null) {
+  return value ? new Date(value).toLocaleString() : "Not provided";
 }

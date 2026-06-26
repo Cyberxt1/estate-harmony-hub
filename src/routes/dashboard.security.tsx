@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ShieldCheck, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -30,6 +32,8 @@ export const Route = createFileRoute("/dashboard/security")({
   component: SecurityPage,
 });
 
+type SecurityIncident = Tables<"security_incidents">;
+
 function SecurityPage() {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
@@ -38,6 +42,7 @@ function SecurityPage() {
   const [severity, setSeverity] = useState("low");
   const [location, setLocation] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedIncident, setSelectedIncident] = useState<SecurityIncident | null>(null);
 
   const { data } = useQuery({
     queryKey: ["incidents"],
@@ -123,7 +128,11 @@ function SecurityPage() {
       {data && data.length > 0 ? (
         <div className="space-y-3">
           {data.map((i) => (
-            <div key={i.id} className="rounded-2xl border border-border bg-card p-5">
+            <div
+              key={i.id}
+              className="cursor-pointer rounded-md border border-border bg-card p-5 transition hover:bg-secondary/30"
+              onClick={() => setSelectedIncident(i)}
+            >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">{i.type}</h3>
@@ -141,6 +150,44 @@ function SecurityPage() {
       ) : (
         <EmptyState title="No incidents reported" description="Security can log incidents, patrol activity and suspicious events here." />
       )}
+
+      <Dialog open={!!selectedIncident} onOpenChange={(nextOpen) => !nextOpen && setSelectedIncident(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedIncident?.type || "Security incident"}</DialogTitle>
+            <DialogDescription>Expanded security incident record.</DialogDescription>
+          </DialogHeader>
+          {selectedIncident && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Detail label="Type" value={selectedIncident.type} />
+              <Detail label="Status" value={selectedIncident.status} />
+              <Detail label="Severity" value={selectedIncident.severity} />
+              <Detail label="Location" value={selectedIncident.location} />
+              <Detail label="Occurred" value={selectedIncident.occurred_at ? new Date(selectedIncident.occurred_at).toLocaleString() : null} />
+              <Detail label="Resolved" value={selectedIncident.resolved_at ? new Date(selectedIncident.resolved_at).toLocaleString() : null} />
+              <Detail label="Description" value={selectedIncident.description} wide />
+              <Detail label="Resolution notes" value={selectedIncident.resolution_notes} wide />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Detail({
+  label,
+  value,
+  wide = false,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+  wide?: boolean;
+}) {
+  return (
+    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
     </div>
   );
 }

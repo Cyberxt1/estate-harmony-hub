@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Home, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,10 +24,13 @@ export const Route = createFileRoute("/dashboard/properties")({
   component: PropertiesPage,
 });
 
+type Property = Tables<"properties">;
+
 function PropertiesPage() {
   const { profile, isAdmin } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [houseNumber, setHouseNumber] = useState("");
   const [street, setStreet] = useState("");
 
@@ -96,22 +101,27 @@ function PropertiesPage() {
       </PageHeader>
 
       {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+        <p className="text-sm text-muted-foreground">Loading...</p>
       ) : data && data.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {data.map((p) => (
-            <div key={p.id} className="rounded-2xl border border-border bg-card p-5">
-              <p className="font-display text-lg font-semibold">{p.house_number}</p>
-              <p className="text-sm text-muted-foreground">{p.street || "—"}</p>
+          {data.map((property) => (
+            <button
+              key={property.id}
+              type="button"
+              className="rounded-md border border-border bg-card p-5 text-left transition hover:bg-secondary/30"
+              onClick={() => setSelectedProperty(property)}
+            >
+              <p className="font-display text-lg font-semibold">{property.house_number}</p>
+              <p className="text-sm text-muted-foreground">{property.street || "-"}</p>
               <div className="mt-3 flex items-center gap-2 text-xs">
                 <span className="rounded-full bg-accent px-2 py-0.5 capitalize text-accent-foreground">
-                  {p.status}
+                  {property.status}
                 </span>
                 <span className="rounded-full bg-muted px-2 py-0.5 capitalize text-muted-foreground">
-                  {p.property_type}
+                  {property.property_type}
                 </span>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       ) : (
@@ -120,6 +130,42 @@ function PropertiesPage() {
           description={isAdmin ? "Add the houses in Oyesile Estate to start managing occupancy." : "Properties will appear here once an admin adds them."}
         />
       )}
+
+      <Dialog open={!!selectedProperty} onOpenChange={(nextOpen) => !nextOpen && setSelectedProperty(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{selectedProperty?.house_number || "Property"}</DialogTitle>
+            <DialogDescription>Expanded property record.</DialogDescription>
+          </DialogHeader>
+          {selectedProperty && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Detail label="House number" value={selectedProperty.house_number} />
+              <Detail label="Street" value={selectedProperty.street} />
+              <Detail label="Type" value={selectedProperty.property_type} />
+              <Detail label="Status" value={selectedProperty.status} />
+              <Detail label="Bedrooms" value={selectedProperty.bedrooms} />
+              <Detail label="Bathrooms" value={selectedProperty.bathrooms} />
+              <Detail label="Electricity meter" value={selectedProperty.electricity_meter} />
+              <Detail label="Water meter" value={selectedProperty.water_meter} />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Detail({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | number | boolean | null;
+}) {
+  return (
+    <div className="rounded-md border border-border bg-secondary/20 p-3">
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
     </div>
   );
 }

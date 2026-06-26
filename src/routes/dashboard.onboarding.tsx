@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, CheckCircle2, ClipboardList } from "lucide-react";
@@ -24,11 +24,12 @@ const steps = ["Identity", "Home", "Household", "Review"];
 
 function ResidentOnboardingPage() {
   const { user, profile } = useAuth();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const saved = (profile?.onboarding_data ?? {}) as Record<string, string | boolean | number | undefined>;
 
   const [step, setStep] = useState(0);
+  const [editing, setEditing] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [residentType, setResidentType] = useState<ResidentType>("tenant");
@@ -107,9 +108,11 @@ function ResidentOnboardingPage() {
       if (error) throw error;
     },
     onSuccess: async () => {
-      toast.success("Resident form submitted");
+      toast.success(profile?.onboarding_completed || submitted ? "Resident form updated" : "Resident form submitted");
+      setSubmitted(true);
+      setEditing(false);
+      setStep(0);
       await queryClient.invalidateQueries();
-      navigate({ to: "/dashboard" });
     },
     onError: (error) => toast.error(error.message),
   });
@@ -125,13 +128,58 @@ function ResidentOnboardingPage() {
           ? Boolean(householdSize && occupants && emergencyName && emergencyPhone)
           : true;
 
+  const completed = (profile?.onboarding_completed || submitted) && !editing;
+
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader
         title="Resident Form"
-        description="Complete this before using the Oyesile Estate dashboard."
+        description={completed ? "Your submitted resident information for Oyesile Estate." : "Complete this before using the Oyesile Estate dashboard."}
         icon={ClipboardList}
       />
+
+      {completed ? (
+        <section className="rounded-md border border-border bg-card p-5 shadow-sm">
+          <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <div className="mb-2 inline-flex items-center gap-2 rounded-md bg-success/15 px-2 py-1 text-xs font-medium text-success">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Submitted
+              </div>
+              <h2 className="font-display text-xl font-semibold">Your resident details</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Last saved {profile?.onboarding_completed_at ? new Date(profile.onboarding_completed_at).toLocaleString() : "recently"}.
+              </p>
+            </div>
+            <Button onClick={() => setEditing(true)}>Edit</Button>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <Detail label="Full name" value={fullName} />
+            <Detail label="Phone number" value={phone} />
+            <Detail label="Resident type" value={residentType} />
+            <Detail label="House number" value={residentType === "landlord" ? currentHouseNumber || ownedHouses : tenantHouseNumber} />
+            <Detail label="Street" value={currentStreet} />
+            <Detail label="Lives in estate" value={residentType === "landlord" ? (livesInEstate ? "Yes" : "No") : "Yes"} />
+            <Detail label="Owned houses" value={residentType === "landlord" ? ownedHouses : "Not applicable"} wide />
+            <Detail label="Landlord" value={residentType === "tenant" ? landlordName : "Not applicable"} />
+            <Detail label="Landlord phone" value={residentType === "tenant" ? landlordPhone : "Not applicable"} />
+            <Detail label="Household size" value={householdSize} />
+            <Detail label="Occupants" value={occupants} wide />
+            <Detail label="Vehicles" value={vehicles || "None"} wide />
+            <Detail label="Emergency contact" value={`${emergencyName}${emergencyPhone ? ` - ${emergencyPhone}` : ""}`} wide />
+            <Detail label="Notes" value={notes || "None"} wide />
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button onClick={() => setEditing(true)}>Edit</Button>
+            <Button asChild variant="outline">
+              <Link to="/dashboard">Go to dashboard</Link>
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <>
 
       <div className="mb-6 rounded-md border border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between text-sm">
@@ -293,11 +341,13 @@ function ResidentOnboardingPage() {
           ) : (
             <Button onClick={() => save.mutate()} disabled={save.isPending || !canMoveNext}>
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              Submit form
+              {profile?.onboarding_completed || submitted ? "Save changes" : "Submit form"}
             </Button>
           )}
         </div>
       </section>
+        </>
+      )}
     </div>
   );
 }
@@ -311,6 +361,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div className="space-y-2">
       <Label>{label}</Label>
       {children}
+    </div>
+  );
+}
+
+function Detail({ label, value, wide = false }: { label: string; value?: string | number | boolean | null; wide?: boolean }) {
+  return (
+    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "md:col-span-2" : ""}`}>
+      <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
+      <p className="mt-1 whitespace-pre-wrap text-sm text-foreground">{value || "Not provided"}</p>
     </div>
   );
 }
