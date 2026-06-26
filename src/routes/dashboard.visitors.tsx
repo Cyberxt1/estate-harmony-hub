@@ -74,13 +74,19 @@ function VisitorsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: "checked_in" | "checked_out" }) => {
-      const patch: Record<string, unknown> = { status };
+      const patch: {
+        status: "checked_in" | "checked_out";
+        checked_in_at?: string;
+        checked_in_by?: string;
+        checked_out_at?: string;
+        checked_out_by?: string;
+      } = { status };
       if (status === "checked_in") {
         patch.checked_in_at = new Date().toISOString();
-        patch.checked_in_by = user?.id;
+        if (user?.id) patch.checked_in_by = user.id;
       } else {
         patch.checked_out_at = new Date().toISOString();
-        patch.checked_out_by = user?.id;
+        if (user?.id) patch.checked_out_by = user.id;
       }
       const { error } = await supabase.from("visitors").update(patch).eq("id", id);
       if (error) throw error;

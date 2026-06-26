@@ -74,7 +74,7 @@ function ComplaintsPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Status }) => {
-      const patch: Record<string, unknown> = { status };
+      const patch: { status: Status; resolved_at?: string } = { status };
       if (status === "resolved") patch.resolved_at = new Date().toISOString();
       const { error } = await supabase.from("complaints").update(patch).eq("id", id);
       if (error) throw error;
