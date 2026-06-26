@@ -32,10 +32,13 @@ export const Route = createFileRoute("/dashboard/payments")({
 });
 
 type Invoice = Tables<"invoices">;
-type ResidentProfile = Pick<Tables<"profiles">, "id" | "estate_id" | "full_name" | "email" | "resident_type">;
+type ResidentProfile = Pick<
+  Tables<"profiles">,
+  "id" | "estate_id" | "full_name" | "email" | "resident_type"
+>;
 type PaymentTarget = "tenant" | "landlord";
 type PaymentFrequency = "one_time" | "monthly" | "quarterly" | "yearly";
-type PaymentTab = "due" | "created" | "history";
+type PaymentTab = "pending" | "created" | "history";
 type PaymentGroup = {
   id: string;
   title: string;
@@ -73,7 +76,7 @@ declare global {
 function PaymentsPage() {
   const queryClient = useQueryClient();
   const { user, profile, isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState<PaymentTab>("due");
+  const [activeTab, setActiveTab] = useState<PaymentTab>("pending");
   const [createOpen, setCreateOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -85,10 +88,7 @@ function PaymentsPage() {
   const { data: invoices, isLoading } = useQuery({
     queryKey: ["invoices", profile?.estate_id, user?.id, isAdmin],
     queryFn: async () => {
-      const query = supabase
-        .from("invoices")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const query = supabase.from("invoices").select("*").order("created_at", { ascending: false });
 
       if (!isAdmin && user?.id) query.eq("resident_id", user.id);
 
@@ -112,19 +112,21 @@ function PaymentsPage() {
     },
   });
 
-  const allInvoices = invoices ?? [];
+  const allInvoices = useMemo(() => invoices ?? [], [invoices]);
   const createdInvoices = allInvoices;
   const createdGroups = useMemo(() => groupCreatedPayments(createdInvoices), [createdInvoices]);
-  const dueInvoices = useMemo(
+  const pendingInvoices = useMemo(
     () =>
-      allInvoices.filter((invoice) => {
-        const balance = getBalance(invoice);
-        return balance > 0 && ["sent", "partial", "overdue"].includes(invoice.status);
-      }),
+      allInvoices
+        .filter((invoice) => {
+          const balance = getBalance(invoice);
+          return balance > 0 && ["sent", "partial", "overdue"].includes(invoice.status);
+        })
+        .sort(comparePendingInvoices),
     [allInvoices],
   );
   const residentHistory = useMemo(
-    () => allInvoices.filter((invoice) => invoice.status !== "draft"),
+    () => allInvoices.filter((invoice) => ["paid", "cancelled"].includes(invoice.status)),
     [allInvoices],
   );
   const targetResidents = useMemo(
@@ -137,7 +139,12 @@ function PaymentsPage() {
       if (!profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate.");
       const numericAmount = Number(amount);
       if (!description.trim()) throw new Error("Enter a payment title.");
-      if (!Number.isFinite(numericAmount) || numericAmount <= 0) throw new Error("Enter a valid amount.");
+      if (!Number.isFinite(numericAmount) || numericAmount <= 0)
+        throw new Error("Enter a valid amount.");
+      if (!dueDate) throw new Error("Choose the payment deadline.");
+      if (getDateKey(dueDate) < getDateKey(new Date())) {
+        throw new Error("The payment deadline cannot be in the past.");
+      }
       if (targetResidents.length === 0) throw new Error(`No ${target}s found yet.`);
 
       const period = getPaymentPeriod(dueDate, frequency);
@@ -185,8 +192,8 @@ function PaymentsPage() {
   });
 
   const pendingCount = createdGroups.length;
-  const outstanding = dueInvoices.reduce((sum, invoice) => sum + getBalance(invoice), 0);
-  const nextDue = dueInvoices
+  const outstanding = pendingInvoices.reduce((sum, invoice) => sum + getBalance(invoice), 0);
+  const nextDue = pendingInvoices
     .filter((invoice) => invoice.due_date)
     .sort((a, b) => String(a.due_date).localeCompare(String(b.due_date)))[0]?.due_date;
 
@@ -197,7 +204,7 @@ function PaymentsPage() {
         description={
           isAdmin
             ? "Create, publish and monitor estate charges."
-            : "See your due payments and pay the right charge directly."
+            : "View every pending payment and pay securely before its deadline."
         }
         icon={CreditCard}
       />
@@ -207,7 +214,8 @@ function PaymentsPage() {
           <div>
             <h2 className="font-display text-lg font-semibold">Create new payment</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Create a charge for tenants or landlords. It appears on their dashboard immediately.
+              Set a deadline for tenants or landlords. They can pay immediately or any time before
+              it is due.
             </p>
           </div>
           <Button onClick={() => setCreateOpen(true)}>
@@ -218,14 +226,24 @@ function PaymentsPage() {
       )}
 
       <div className="mb-6 grid gap-3 md:grid-cols-3">
-        <SummaryTile icon={CreditCard} label={isAdmin ? "Due outstanding" : "You owe"} value={formatMoney(outstanding)} />
-        <SummaryTile icon={CalendarClock} label="Next due date" value={formatDate(nextDue)} />
-        <SummaryTile icon={isAdmin ? Repeat2 : ReceiptText} label={isAdmin ? "Created payments" : "Due payments"} value={String(isAdmin ? pendingCount : dueInvoices.length)} />
+        <SummaryTile
+          icon={CreditCard}
+          label={isAdmin ? "Total outstanding" : "Pending total"}
+          value={formatMoney(outstanding)}
+        />
+        <SummaryTile icon={CalendarClock} label="Nearest deadline" value={formatDate(nextDue)} />
+        <SummaryTile
+          icon={isAdmin ? Repeat2 : ReceiptText}
+          label={isAdmin ? "Created payments" : "Pending payments"}
+          value={String(isAdmin ? pendingCount : pendingInvoices.length)}
+        />
       </div>
 
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as PaymentTab)}>
-        <TabsList className={`mb-4 grid w-full ${isAdmin ? "grid-cols-2" : "grid-cols-2"} sm:w-auto`}>
-          <TabsTrigger value="due">Due payments</TabsTrigger>
+        <TabsList
+          className={`mb-4 grid w-full ${isAdmin ? "grid-cols-2" : "grid-cols-2"} sm:w-auto`}
+        >
+          <TabsTrigger value="pending">{isAdmin ? "Outstanding" : "Pending payments"}</TabsTrigger>
           {isAdmin ? (
             <TabsTrigger value="created">Created payments</TabsTrigger>
           ) : (
@@ -233,17 +251,18 @@ function PaymentsPage() {
           )}
         </TabsList>
 
-        <TabsContent value="due">
+        <TabsContent value="pending">
           <PaymentTable
-            invoices={dueInvoices}
+            invoices={pendingInvoices}
             isLoading={isLoading}
             isAdmin={isAdmin}
             onSelect={setSelectedInvoice}
-            emptyTitle={isAdmin ? "No due payments" : "No due payments yet"}
+            onPaymentSubmitted={() => queryClient.invalidateQueries({ queryKey: ["invoices"] })}
+            emptyTitle={isAdmin ? "No outstanding payments" : "No pending payments"}
             emptyDescription={
               isAdmin
-                ? "Published payments with outstanding balances will appear here."
-                : "When management publishes a charge for you, it will appear here with Pay now."
+                ? "Published charges with an outstanding balance will appear here."
+                : "Every unpaid charge from management will appear here with its deadline and a Pay now button."
             }
           />
         </TabsContent>
@@ -265,8 +284,9 @@ function PaymentsPage() {
               isLoading={isLoading}
               isAdmin={false}
               onSelect={setSelectedInvoice}
+              onPaymentSubmitted={() => queryClient.invalidateQueries({ queryKey: ["invoices"] })}
               emptyTitle="No payment history"
-              emptyDescription="Your sent, pending and paid charges will appear here."
+              emptyDescription="Your completed and cancelled payments will appear here."
             />
           </TabsContent>
         )}
@@ -277,7 +297,7 @@ function PaymentsPage() {
           <DialogHeader>
             <DialogTitle>Create new payment</DialogTitle>
             <DialogDescription>
-              Create once. The matching residents see it on their dashboard immediately.
+              The charge appears immediately. Residents may pay ahead of the deadline.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4">
@@ -302,10 +322,12 @@ function PaymentsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="payment-due">Due date</Label>
+                <Label htmlFor="payment-due">Payment deadline</Label>
                 <Input
                   id="payment-due"
                   type="date"
+                  min={getDateKey(new Date())}
+                  required
                   value={dueDate}
                   onChange={(event) => setDueDate(event.target.value)}
                 />
@@ -326,7 +348,10 @@ function PaymentsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Frequency</Label>
-                <Select value={frequency} onValueChange={(value) => setFrequency(value as PaymentFrequency)}>
+                <Select
+                  value={frequency}
+                  onValueChange={(value) => setFrequency(value as PaymentFrequency)}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -355,7 +380,9 @@ function PaymentsPage() {
                 onClick={() => createPaymentRequest.mutate()}
                 disabled={createPaymentRequest.isPending}
               >
-                {createPaymentRequest.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {createPaymentRequest.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
                 Create payment
               </Button>
             </div>
@@ -366,22 +393,37 @@ function PaymentsPage() {
       <Dialog open={!!selectedInvoice} onOpenChange={(open) => !open && setSelectedInvoice(null)}>
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedInvoice?.description || selectedInvoice?.invoice_number || "Payment request"}</DialogTitle>
+            <DialogTitle>
+              {selectedInvoice?.description || selectedInvoice?.invoice_number || "Payment request"}
+            </DialogTitle>
             <DialogDescription>Expanded payment, period and publishing details.</DialogDescription>
           </DialogHeader>
           {selectedInvoice && (
             <div className="grid gap-3 sm:grid-cols-2">
               <Detail label="Invoice" value={selectedInvoice.invoice_number} />
-              <Detail label="Status" value={selectedInvoice.status} />
+              <Detail label="Status" value={getPaymentStatus(selectedInvoice).label} />
               <Detail label="Charge" value={selectedInvoice.description || "Estate dues"} wide />
-              <Detail label="Amount" value={formatMoney(Number(selectedInvoice.amount), selectedInvoice.currency)} />
+              <Detail
+                label="Amount"
+                value={formatMoney(Number(selectedInvoice.amount), selectedInvoice.currency)}
+              />
               <Detail
                 label="Paid"
-                value={formatMoney(Number(selectedInvoice.amount_paid ?? 0), selectedInvoice.currency)}
+                value={formatMoney(
+                  Number(selectedInvoice.amount_paid ?? 0),
+                  selectedInvoice.currency,
+                )}
               />
-              <Detail label="Outstanding" value={formatMoney(getBalance(selectedInvoice), selectedInvoice.currency)} />
+              <Detail
+                label="Outstanding"
+                value={formatMoney(getBalance(selectedInvoice), selectedInvoice.currency)}
+              />
               <Detail label="Due date" value={formatDate(selectedInvoice.due_date)} />
-              <Detail label="Period" value={formatPeriod(selectedInvoice.period_start, selectedInvoice.period_end)} wide />
+              <Detail
+                label="Period"
+                value={formatPeriod(selectedInvoice.period_start, selectedInvoice.period_end)}
+                wide
+              />
               <Detail label="Line items" value={formatLineItems(selectedInvoice.line_items)} wide />
             </div>
           )}
@@ -396,6 +438,7 @@ function PaymentTable({
   isLoading,
   isAdmin,
   onSelect,
+  onPaymentSubmitted,
   emptyTitle,
   emptyDescription,
 }: {
@@ -403,6 +446,7 @@ function PaymentTable({
   isLoading: boolean;
   isAdmin: boolean;
   onSelect: (invoice: Invoice) => void;
+  onPaymentSubmitted: () => void | Promise<unknown>;
   emptyTitle: string;
   emptyDescription: string;
 }) {
@@ -420,64 +464,127 @@ function PaymentTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border border-border bg-card">
-      <table className="w-full min-w-[860px] text-sm">
-        <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
-          <tr>
-            <th className="px-4 py-3">Invoice</th>
-            <th className="px-4 py-3">Charge</th>
-            <th className="px-4 py-3">Period</th>
-            <th className="px-4 py-3">Due</th>
-            <th className="px-4 py-3">Outstanding</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3 text-right">Action</th>
-          </tr>
-        </thead>
-        <tbody>
+    <>
+      {!isAdmin && (
+        <div className="grid gap-3 md:hidden">
           {invoices.map((invoice) => {
             const balance = getBalance(invoice);
+            const paymentStatus = getPaymentStatus(invoice);
+
             return (
-              <tr
+              <article
                 key={invoice.id}
-                className="cursor-pointer border-t border-border transition hover:bg-secondary/30"
-                onClick={() => onSelect(invoice)}
+                className="rounded-md border border-border bg-card p-4 shadow-sm"
               >
-                <td className="px-4 py-3 font-medium">{invoice.invoice_number}</td>
-                <td className="px-4 py-3 text-muted-foreground">{invoice.description || "Estate dues"}</td>
-                <td className="px-4 py-3 text-muted-foreground">{formatPeriod(invoice.period_start, invoice.period_end)}</td>
-                <td className="px-4 py-3 text-muted-foreground">{formatDate(invoice.due_date)}</td>
-                <td className="px-4 py-3">{formatMoney(balance, invoice.currency)}</td>
-                <td className="px-4 py-3">
-                  <StatusPill status={invoice.status} />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    {!isAdmin ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void startPaystackPayment(invoice);
-                        }}
-                        disabled={balance <= 0 || invoice.status === "draft" || invoice.status === "cancelled"}
-                      >
-                        <CreditCard className="mr-2 h-4 w-4" />
-                        Pay now
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline">
-                        View
-                      </Button>
-                    )}
+                <button
+                  className="w-full text-left"
+                  type="button"
+                  onClick={() => onSelect(invoice)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-display text-base font-semibold">
+                        {invoice.description || "Estate dues"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">{invoice.invoice_number}</p>
+                    </div>
+                    <StatusPill status={paymentStatus.tone} label={paymentStatus.label} />
                   </div>
-                </td>
-              </tr>
+                  <p className="mt-5 font-display text-2xl font-semibold">
+                    {formatMoney(balance, invoice.currency)}
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Payment deadline: {formatDate(invoice.due_date)}
+                  </p>
+                </button>
+                {balance > 0 && !["draft", "cancelled"].includes(invoice.status) && (
+                  <Button
+                    className="mt-4 w-full"
+                    onClick={() => void startPaystackPayment(invoice, onPaymentSubmitted)}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" />
+                    Pay now
+                  </Button>
+                )}
+              </article>
             );
           })}
-        </tbody>
-      </table>
-    </div>
+        </div>
+      )}
+      <div
+        className={`${!isAdmin ? "hidden md:block" : ""} overflow-x-auto rounded-md border border-border bg-card`}
+      >
+        <table className="w-full min-w-[860px] text-sm">
+          <thead className="bg-secondary/40 text-left text-xs uppercase text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">Invoice</th>
+              <th className="px-4 py-3">Charge</th>
+              <th className="px-4 py-3">Period</th>
+              <th className="px-4 py-3">Due</th>
+              <th className="px-4 py-3">Outstanding</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoices.map((invoice) => {
+              const balance = getBalance(invoice);
+              return (
+                <tr
+                  key={invoice.id}
+                  className="cursor-pointer border-t border-border transition hover:bg-secondary/30"
+                  onClick={() => onSelect(invoice)}
+                >
+                  <td className="px-4 py-3 font-medium">{invoice.invoice_number}</td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {invoice.description || "Estate dues"}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    {formatPeriod(invoice.period_start, invoice.period_end)}
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground">
+                    <p>{formatDate(invoice.due_date)}</p>
+                    <p className="mt-0.5 text-xs">{getPaymentStatus(invoice).label}</p>
+                  </td>
+                  <td className="px-4 py-3">{formatMoney(balance, invoice.currency)}</td>
+                  <td className="px-4 py-3">
+                    <StatusPill
+                      status={getPaymentStatus(invoice).tone}
+                      label={getPaymentStatus(invoice).label}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      {!isAdmin ? (
+                        <Button
+                          size="sm"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void startPaystackPayment(invoice, onPaymentSubmitted);
+                          }}
+                          disabled={
+                            balance <= 0 ||
+                            invoice.status === "draft" ||
+                            invoice.status === "cancelled"
+                          }
+                        >
+                          <CreditCard className="mr-2 h-4 w-4" />
+                          Pay now
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline">
+                          View
+                        </Button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 
@@ -530,7 +637,9 @@ function CreatedPaymentsTable({
             >
               <td className="px-4 py-3">
                 <p className="font-medium">{group.title}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">{formatPeriod(group.periodStart, group.periodEnd)}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {formatPeriod(group.periodStart, group.periodEnd)}
+                </p>
               </td>
               <td className="px-4 py-3 text-muted-foreground capitalize">{group.target}</td>
               <td className="px-4 py-3">{group.expectedCount}</td>
@@ -577,7 +686,7 @@ function SummaryTile({
   );
 }
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({ status, label }: { status: string; label?: string }) {
   const tone =
     status === "paid"
       ? "bg-success/15 text-success"
@@ -587,7 +696,11 @@ function StatusPill({ status }: { status: string }) {
           ? "bg-destructive/15 text-destructive"
           : "bg-accent text-accent-foreground";
 
-  return <span className={`rounded-md px-2 py-1 text-xs capitalize ${tone}`}>{status}</span>;
+  return (
+    <span className={`shrink-0 rounded-md px-2 py-1 text-xs ${tone}`}>
+      {label ?? formatKey(status)}
+    </span>
+  );
 }
 
 function Detail({
@@ -600,7 +713,9 @@ function Detail({
   wide?: boolean;
 }) {
   return (
-    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}>
+    <div
+      className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}
+    >
       <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
       <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
     </div>
@@ -609,6 +724,27 @@ function Detail({
 
 function getBalance(invoice: Invoice) {
   return Math.max(Number(invoice.amount) - Number(invoice.amount_paid ?? 0), 0);
+}
+
+function comparePendingInvoices(a: Invoice, b: Invoice) {
+  const aDate = a.due_date || "9999-12-31";
+  const bDate = b.due_date || "9999-12-31";
+  return aDate.localeCompare(bDate);
+}
+
+function getPaymentStatus(invoice: Invoice) {
+  if (invoice.status === "paid" || getBalance(invoice) <= 0) {
+    return { tone: "paid", label: "Paid" };
+  }
+  if (invoice.status === "cancelled") return { tone: "cancelled", label: "Cancelled" };
+  if (invoice.status === "partial") return { tone: "partial", label: "Part paid" };
+  if (!invoice.due_date) return { tone: "sent", label: "Pending" };
+
+  const due = getDateKey(invoice.due_date);
+  const today = getDateKey(new Date());
+  if (due < today || invoice.status === "overdue") return { tone: "overdue", label: "Overdue" };
+  if (due === today) return { tone: "sent", label: "Due today" };
+  return { tone: "sent", label: `Due on ${formatDate(invoice.due_date)}` };
 }
 
 function groupCreatedPayments(invoices: Invoice[]): PaymentGroup[] {
@@ -627,7 +763,10 @@ function groupCreatedPayments(invoices: Invoice[]): PaymentGroup[] {
       const expectedCount = groupInvoices.length;
       const paidCount = groupInvoices.filter((invoice) => invoice.status === "paid").length;
       const totalExpected = groupInvoices.reduce((sum, invoice) => sum + Number(invoice.amount), 0);
-      const totalPaid = groupInvoices.reduce((sum, invoice) => sum + Number(invoice.amount_paid ?? 0), 0);
+      const totalPaid = groupInvoices.reduce(
+        (sum, invoice) => sum + Number(invoice.amount_paid ?? 0),
+        0,
+      );
 
       return {
         id,
@@ -700,7 +839,7 @@ function formatDate(value?: string | null) {
     day: "numeric",
     month: "short",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(toLocalDate(value));
 }
 
 function formatPeriod(start?: string | null, end?: string | null) {
@@ -712,29 +851,45 @@ function formatPeriod(start?: string | null, end?: string | null) {
 function getDefaultDueDate() {
   const date = new Date();
   date.setDate(date.getDate() + 7);
-  return date.toISOString().slice(0, 10);
+  return getDateKey(date);
 }
 
 function getPaymentPeriod(dueDate: string, frequency: PaymentFrequency) {
   if (frequency === "one_time") return { start: dueDate, end: dueDate };
 
-  const start = new Date(dueDate);
+  const start = toLocalDate(dueDate);
   const end = new Date(start);
   const monthStep = frequency === "monthly" ? 1 : frequency === "quarterly" ? 3 : 12;
   end.setMonth(end.getMonth() + monthStep);
   end.setDate(end.getDate() - 1);
 
   return {
-    start: start.toISOString().slice(0, 10),
-    end: end.toISOString().slice(0, 10),
+    start: getDateKey(start),
+    end: getDateKey(end),
   };
+}
+
+function toLocalDate(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function getDateKey(value: string | Date) {
+  const date = typeof value === "string" ? toLocalDate(value) : value;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatFrequency(frequency: PaymentFrequency) {
   return frequency === "one_time" ? "one-time" : frequency;
 }
 
-async function startPaystackPayment(invoice: Invoice) {
+async function startPaystackPayment(
+  invoice: Invoice,
+  onPaymentSubmitted: () => void | Promise<unknown>,
+) {
   const key = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
   if (!key) {
     toast.error("Add VITE_PAYSTACK_PUBLIC_KEY to enable Paystack checkout.");
@@ -819,6 +974,7 @@ async function startPaystackPayment(invoice: Invoice) {
       }
 
       toast.success("Payment submitted for admin review");
+      await onPaymentSubmitted();
     },
     onClose: () => toast.info("Payment was not completed"),
   }).openIframe();
@@ -834,7 +990,9 @@ function loadPaystack() {
     const existing = document.querySelector<HTMLScriptElement>("script[data-paystack]");
     if (existing) {
       existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", () => reject(new Error("Paystack failed to load")), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Paystack failed to load")), {
+        once: true,
+      });
       return;
     }
 
