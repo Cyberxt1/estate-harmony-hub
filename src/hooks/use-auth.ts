@@ -5,10 +5,23 @@ import { supabase } from "@/integrations/supabase/client";
 export type AppRole =
   | "super_admin"
   | "estate_admin"
+  | "community_chairman"
+  | "community_secretary"
+  | "treasurer"
+  | "chief_security_officer"
   | "security_officer"
   | "resident"
   | "household_member"
   | "domestic_staff";
+
+const adminRoles: AppRole[] = [
+  "super_admin",
+  "estate_admin",
+  "community_chairman",
+  "community_secretary",
+  "treasurer",
+  "chief_security_officer",
+];
 
 export interface Profile {
   id: string;
@@ -64,10 +77,10 @@ export function useAuth() {
   }, []);
 
   const hasRole = (r: AppRole) => roles.includes(r);
-  const isAdmin = hasRole("estate_admin") || hasRole("super_admin");
-  const isSecurity = hasRole("security_officer");
+  const isAdmin = roles.some((role) => adminRoles.includes(role));
+  const isSecurity = hasRole("security_officer") || hasRole("chief_security_officer");
   const primaryRole: AppRole = isAdmin
-    ? hasRole("super_admin") ? "super_admin" : "estate_admin"
+    ? (roles.find((role) => adminRoles.includes(role)) ?? "estate_admin")
     : isSecurity ? "security_officer" : (roles[0] ?? "resident");
 
   return { user, profile, roles, hasRole, isAdmin, isSecurity, primaryRole, loading };

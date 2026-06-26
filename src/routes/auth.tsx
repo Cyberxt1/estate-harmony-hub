@@ -12,8 +12,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Sign in · EstateOS" },
-      { name: "description", content: "Sign in or create your EstateOS account." },
+      { title: "Sign in - Oyesile Estate" },
+      { name: "description", content: "Sign in or create your Oyesile Estate account." },
     ],
   }),
   component: AuthPage,
@@ -39,7 +39,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
-    toast.success("Welcome back");
+    toast.success("Welcome back to Oyesile Estate");
     navigate({ to: "/dashboard" });
   };
 
@@ -84,19 +84,19 @@ function AuthPage() {
           <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
             <Building2 className="h-4 w-4" />
           </div>
-          <span className="font-display text-lg font-semibold">EstateOS</span>
+          <span className="font-display text-lg font-semibold">Oyesile Estate</span>
         </Link>
         <div>
           <h2 className="font-display text-3xl font-semibold leading-tight">
-            "Our estate finally runs like a modern company."
+            Welcome to the Oyesile Estate community app.
           </h2>
           <p className="mt-4 max-w-md text-muted-foreground">
-            From visitor QR codes to monthly dues, EstateOS replaces a dozen
-            chat groups and spreadsheets with one calm workspace.
+            Sign in to see dues, Paystack-ready payments, visitors, security
+            updates and announcements for your home.
           </p>
         </div>
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()} EstateOS
+          © {new Date().getFullYear()} Oyesile Estate
         </p>
       </div>
 
@@ -107,12 +107,12 @@ function AuthPage() {
             <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
               <Building2 className="h-4 w-4" />
             </div>
-            <span className="font-display text-lg font-semibold">EstateOS</span>
+            <span className="font-display text-lg font-semibold">Oyesile Estate</span>
           </Link>
 
-          <h1 className="font-display text-2xl font-semibold">Welcome</h1>
+          <h1 className="font-display text-2xl font-semibold">Welcome to Oyesile Estate</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Sign in or create your account to continue.
+            Sign in or create your resident account to continue.
           </p>
 
           <Tabs value={tab} onValueChange={(v) => setTab(v as "signin" | "signup")} className="mt-6">

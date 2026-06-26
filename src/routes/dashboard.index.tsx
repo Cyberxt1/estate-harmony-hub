@@ -73,7 +73,7 @@ function DashboardHome() {
           Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
         </h1>
         <p className="mt-1 text-sm text-muted-foreground capitalize">
-          {primaryRole.replace("_", " ")} workspace
+          {formatRole(primaryRole)} workspace for Oyesile Estate
         </p>
       </div>
 
@@ -99,16 +99,15 @@ function DashboardHome() {
         <div className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">
           <h2 className="mb-2 font-display text-lg font-semibold">Getting started</h2>
           <p className="text-sm text-muted-foreground">
-            Your estate is ready. Use the sidebar to manage residents, properties,
-            visitors, payments and more. Each module is fully wired to your
-            database.
+            Oyesile Estate is ready for resident records, properties, visitors,
+            reviewed payments and community announcements.
           </p>
           <ul className="mt-4 space-y-2 text-sm">
             {[
-              "Set up your estate details in Settings",
+              "Confirm Oyesile Estate details in Settings",
               "Add properties and assign households",
-              "Invite residents and security officers",
-              "Create your first announcement",
+              "Assign community officers and security roles",
+              "Create repeating dues for tenants and landlords",
             ].map((s, i) => (
               <li key={s} className="flex items-start gap-3">
                 <span className="mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
@@ -122,7 +121,7 @@ function DashboardHome() {
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="mb-2 font-display text-lg font-semibold">Your role</h2>
           <p className="text-sm text-muted-foreground">
-            You're signed in as <strong className="text-foreground capitalize">{primaryRole.replace("_", " ")}</strong>.
+            You're signed in as <strong className="text-foreground">{formatRole(primaryRole)}</strong>.
             Your dashboard, navigation and permissions adapt automatically to
             this role.
           </p>
@@ -138,4 +137,21 @@ function formatMoney(n: number) {
     currency: "NGN",
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+function formatRole(role: string) {
+  const labels: Record<string, string> = {
+    super_admin: "Super admin",
+    estate_admin: "Estate admin",
+    community_chairman: "Community chairman",
+    community_secretary: "Community secretary",
+    treasurer: "Treasurer",
+    chief_security_officer: "Chief Security Officer",
+    security_officer: "Security officer",
+    resident: "Resident",
+    household_member: "Household member",
+    domestic_staff: "Domestic staff",
+  };
+
+  return labels[role] ?? role.replaceAll("_", " ");
 }

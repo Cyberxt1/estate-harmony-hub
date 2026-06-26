@@ -82,7 +82,7 @@ function DashboardLayout() {
             <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
               <Building2 className="h-4 w-4" />
             </div>
-            <span className="font-display text-lg font-semibold">EstateOS</span>
+            <span className="font-display text-lg font-semibold">Oyesile</span>
           </Link>
           <button className="md:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
             <X className="h-5 w-5" />
@@ -119,7 +119,7 @@ function DashboardLayout() {
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium">{profile?.full_name || profile?.email}</p>
               <p className="truncate text-xs capitalize text-muted-foreground">
-                {primaryRole.replace("_", " ")}
+                {formatRole(primaryRole)}
               </p>
             </div>
             <button
@@ -166,4 +166,21 @@ function DashboardLayout() {
       </div>
     </div>
   );
+}
+
+function formatRole(role: string) {
+  const labels: Record<string, string> = {
+    super_admin: "Super admin",
+    estate_admin: "Estate admin",
+    community_chairman: "Community chairman",
+    community_secretary: "Community secretary",
+    treasurer: "Treasurer",
+    chief_security_officer: "Chief Security Officer",
+    security_officer: "Security officer",
+    resident: "Resident",
+    household_member: "Household member",
+    domestic_staff: "Domestic staff",
+  };
+
+  return labels[role] ?? role.replaceAll("_", " ");
 }

@@ -1,172 +1,140 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  Building2,
-  ShieldCheck,
-  CreditCard,
-  Users,
-  QrCode,
-  MessageSquareWarning,
-  BellRing,
-  FileText,
-  BarChart3,
   ArrowRight,
-  Check,
+  Building2,
+  CalendarClock,
+  CheckCircle2,
+  CreditCard,
+  DoorOpen,
+  ShieldCheck,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "EstateOS — The operating system for residential estates" },
+      { title: "Oyesile Estate" },
       {
         name: "description",
         content:
-          "EstateOS unifies residents, properties, visitors, payments, communication and security in one calm, modern platform.",
+          "The private resident and community officer app for Oyesile Estate.",
       },
-      { property: "og:title", content: "EstateOS — Run your estate from one place" },
+      { property: "og:title", content: "Welcome to Oyesile Estate" },
       {
         property: "og:description",
         content:
-          "From QR-coded visitors to automated dues and incident reports — every workflow your estate runs, in one place.",
+          "Sign in to manage dues, visitors, announcements, complaints, security and community records.",
       },
     ],
   }),
   component: Landing,
 });
 
-const modules = [
-  { icon: Users, title: "Residents & households", desc: "Profiles, household members, vehicles, emergency contacts, move-in/out." },
-  { icon: Building2, title: "Properties", desc: "Houses, ownership, occupancy, meters, maintenance and documents." },
-  { icon: QrCode, title: "Visitors & QR access", desc: "Pre-invite, scan at gate, vehicle access, full check-in history." },
-  { icon: CreditCard, title: "Dues & payments", desc: "Recurring invoices, service charges, receipts and outstanding balances." },
-  { icon: BellRing, title: "Communication", desc: "Announcements, broadcasts, emergency alerts, in-app notifications." },
-  { icon: MessageSquareWarning, title: "Complaints", desc: "Submit, assign, track and resolve with a clear paper trail." },
-  { icon: ShieldCheck, title: "Security", desc: "Incident reports, patrol logs, blacklist/watchlist, lost & found." },
-  { icon: FileText, title: "Documents", desc: "Estate, property and resident files with scoped access." },
-  { icon: BarChart3, title: "Reports", desc: "Revenue, occupancy, complaints and visitor analytics." },
+const roleCards = [
+  {
+    icon: Users,
+    title: "Community officers",
+    desc: "Chairman, secretary, treasurer and approved committee members can manage estate operations.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Security leadership",
+    desc: "The Chief Security Officer and security team can review visitors, incidents and gate activity.",
+  },
+  {
+    icon: Building2,
+    title: "Residents",
+    desc: "Landlords, tenants and household members can see what applies to their homes.",
+  },
 ];
 
-const userTypes = [
-  { name: "Estate admins", desc: "Chairman, manager, secretary, treasurer, committee." },
-  { name: "Security", desc: "Gate, patrol and supervisors with their own dashboard." },
-  { name: "Residents", desc: "Owners and tenants with household, vehicles and dues." },
-  { name: "Household & staff", desc: "Family members, drivers, housekeepers, gardeners." },
+const workflows = [
+  { icon: CreditCard, label: "Reviewed dues", value: "Admin-approved invoices before residents pay" },
+  { icon: CalendarClock, label: "Repeating payments", value: "Monthly, quarterly or yearly estate charges" },
+  { icon: DoorOpen, label: "Visitor access", value: "Invite guests and help security verify entry" },
+  { icon: CheckCircle2, label: "Shared records", value: "Complaints, announcements and receipts in one place" },
 ];
 
 function Landing() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Nav */}
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-        <div className="container mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
-              <Building2 className="h-4 w-4" />
+    <div className="min-h-screen bg-background text-foreground">
+      <section className="relative flex min-h-screen overflow-hidden border-b border-border/60">
+        <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
+        <div className="absolute inset-y-0 right-0 hidden w-1/2 border-l border-border/50 bg-card/45 lg:block">
+          <div className="grid h-full place-items-center p-12">
+            <div className="w-full max-w-md rounded-md border border-border bg-background/80 p-5 shadow-sm backdrop-blur">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase text-muted-foreground">Oyesile Estate</p>
+                  <h2 className="font-display text-xl font-semibold">Today</h2>
+                </div>
+                <div className="grid h-10 w-10 place-items-center rounded-md bg-primary text-primary-foreground">
+                  <Building2 className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="space-y-3">
+                {workflows.map((item) => (
+                  <div key={item.label} className="flex gap-3 rounded-md border border-border bg-card p-3">
+                    <div className="grid h-9 w-9 flex-none place-items-center rounded-md bg-accent text-accent-foreground">
+                      <item.icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{item.label}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <span className="font-display text-lg font-semibold">EstateOS</span>
-          </Link>
-          <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-            <a href="#modules" className="hover:text-foreground">Modules</a>
-            <a href="#who" className="hover:text-foreground">Who it's for</a>
-            <a href="#flows" className="hover:text-foreground">Workflows</a>
-          </nav>
-          <div className="flex items-center gap-2">
+          </div>
+        </div>
+
+        <div className="container relative mx-auto flex max-w-6xl flex-1 flex-col px-6 py-6">
+          <header className="flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
+              <div className="grid h-9 w-9 place-items-center rounded-md bg-primary text-primary-foreground">
+                <Building2 className="h-4 w-4" />
+              </div>
+              <span className="font-display text-lg font-semibold">Oyesile Estate</span>
+            </Link>
             <Button asChild variant="ghost" size="sm">
               <Link to="/auth">Sign in</Link>
             </Button>
-            <Button asChild size="sm">
-              <Link to="/auth">
-                Get started <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Hero */}
-      <section
-        className="relative overflow-hidden border-b border-border/60"
-        style={{ background: "var(--gradient-hero)" }}
-      >
-        <div className="container mx-auto max-w-6xl px-6 py-24 md:py-32">
-          <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold" />
-              The calm operating system for residential estates
-            </div>
-            <h1 className="font-display text-5xl font-semibold tracking-tight text-foreground md:text-6xl">
-              Run your estate from one place.
-            </h1>
-            <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
-              Residents, visitors, dues, security and communication — unified in a
-              modern platform your committee, residents and security team actually
-              enjoy using.
-            </p>
-            <div className="mt-10 flex flex-wrap justify-center gap-3">
-              <Button asChild size="lg">
-                <Link to="/auth">
-                  Start free <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
-                <a href="#modules">Explore modules</a>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Modules grid */}
-      <section id="modules" className="container mx-auto max-w-6xl px-6 py-24">
-        <div className="mx-auto mb-14 max-w-2xl text-center">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">
-            Everything your estate needs
-          </p>
-          <h2 className="font-display text-3xl font-semibold md:text-4xl">
-            Nine modules. One quiet platform.
-          </h2>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {modules.map((m) => (
-            <div
-              key={m.title}
-              className="group rounded-2xl border border-border bg-card p-6 transition hover:border-primary/30"
-              style={{ boxShadow: "var(--shadow-soft)" }}
-            >
-              <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <m.icon className="h-5 w-5" />
+          <div className="grid flex-1 items-center gap-12 py-16 lg:grid-cols-[1fr_0.8fr]">
+            <div className="max-w-2xl">
+              <p className="mb-4 text-sm font-medium text-primary">Private community app</p>
+              <h1 className="font-display text-5xl font-semibold leading-tight md:text-6xl">
+                Welcome to Oyesile Estate.
+              </h1>
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg">
+                One place for residents and community officers to handle dues,
+                visitors, announcements, complaints, security and estate records.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button asChild size="lg">
+                  <Link to="/auth">
+                    Proceed to login <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <Link to="/auth">Create account</Link>
+                </Button>
               </div>
-              <h3 className="mb-1 text-base font-semibold">{m.title}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{m.desc}</p>
             </div>
-          ))}
-        </div>
-      </section>
 
-      {/* Who */}
-      <section id="who" className="border-y border-border/60 bg-secondary/40">
-        <div className="container mx-auto max-w-6xl px-6 py-24">
-          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-            <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">
-                Built for every role
-              </p>
-              <h2 className="font-display text-3xl font-semibold md:text-4xl">
-                One platform, tailored dashboards.
-              </h2>
-              <p className="mt-4 text-muted-foreground">
-                Admins, security and residents each get the tools they need —
-                without seeing the noise they don't.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {userTypes.map((u) => (
-                <div key={u.name} className="rounded-xl border border-border bg-card p-5">
-                  <div className="mb-2 flex items-center gap-2">
-                    <Check className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{u.name}</span>
+            <div className="space-y-3 lg:hidden">
+              {workflows.map((item) => (
+                <div key={item.label} className="flex gap-3 rounded-md border border-border bg-card p-3">
+                  <div className="grid h-9 w-9 flex-none place-items-center rounded-md bg-accent text-accent-foreground">
+                    <item.icon className="h-4 w-4" />
                   </div>
-                  <p className="text-sm text-muted-foreground">{u.desc}</p>
+                  <div>
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">{item.value}</p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -174,73 +142,28 @@ function Landing() {
         </div>
       </section>
 
-      {/* Flows */}
-      <section id="flows" className="container mx-auto max-w-6xl px-6 py-24">
-        <div className="mx-auto mb-14 max-w-2xl text-center">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-primary">
-            Workflows that just work
+      <section className="container mx-auto max-w-6xl px-6 py-14">
+        <div className="mb-8 max-w-2xl">
+          <p className="mb-2 text-xs font-semibold uppercase text-primary">Built around the estate</p>
+          <h2 className="font-display text-3xl font-semibold">Different people, correct access.</h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            The app starts from Oyesile Estate, then assigns access by role so
+            committee officers can review operations while residents see what
+            matters to their household.
           </p>
-          <h2 className="font-display text-3xl font-semibold md:text-4xl">
-            From invite to invoice, fully tracked.
-          </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          {[
-            { title: "Visitor flow", steps: ["Resident invites", "QR generated", "Security verifies at gate", "Check-in & check-out"] },
-            { title: "Billing flow", steps: ["Monthly invoice generated", "Resident notified", "Pays online", "Receipt + dashboard updated"] },
-            { title: "Complaint flow", steps: ["Submitted by resident", "Assigned to committee", "In progress", "Resolved & confirmed"] },
-          ].map((f) => (
-            <div key={f.title} className="rounded-2xl border border-border bg-card p-6">
-              <h3 className="mb-4 font-display text-lg font-semibold">{f.title}</h3>
-              <ol className="space-y-3">
-                {f.steps.map((s, i) => (
-                  <li key={s} className="flex items-start gap-3 text-sm">
-                    <span className="mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                      {i + 1}
-                    </span>
-                    <span className="text-muted-foreground">{s}</span>
-                  </li>
-                ))}
-              </ol>
+          {roleCards.map((role) => (
+            <div key={role.title} className="rounded-md border border-border bg-card p-5 shadow-sm">
+              <div className="mb-4 grid h-10 w-10 place-items-center rounded-md bg-accent text-accent-foreground">
+                <role.icon className="h-5 w-5" />
+              </div>
+              <h3 className="font-display text-lg font-semibold">{role.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{role.desc}</p>
             </div>
           ))}
         </div>
       </section>
-
-      {/* CTA */}
-      <section className="container mx-auto max-w-6xl px-6 pb-24">
-        <div
-          className="rounded-3xl border border-primary/20 bg-card p-12 text-center"
-          style={{ boxShadow: "var(--shadow-lift)" }}
-        >
-          <h2 className="font-display text-3xl font-semibold md:text-4xl">
-            Bring your estate online today.
-          </h2>
-          <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Sign up free, configure your estate, and invite your committee in
-            minutes. No setup calls required.
-          </p>
-          <div className="mt-8">
-            <Button asChild size="lg">
-              <Link to="/auth">
-                Create your estate <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <footer className="border-t border-border/60">
-        <div className="container mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-8 text-sm text-muted-foreground md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="grid h-6 w-6 place-items-center rounded bg-primary text-primary-foreground">
-              <Building2 className="h-3.5 w-3.5" />
-            </div>
-            <span className="font-display font-semibold text-foreground">EstateOS</span>
-          </div>
-          <p>© {new Date().getFullYear()} EstateOS. All rights reserved.</p>
-        </div>
-      </footer>
     </div>
   );
 }
