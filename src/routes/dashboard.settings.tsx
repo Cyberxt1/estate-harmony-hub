@@ -19,7 +19,6 @@ function SettingsPage() {
   const qc = useQueryClient();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
-  const [estateName, setEstateName] = useState("");
   const [estateAddress, setEstateAddress] = useState("");
 
   useEffect(() => {
@@ -30,7 +29,7 @@ function SettingsPage() {
   }, [profile]);
 
   const { data: estate } = useQuery({
-    queryKey: ["my-estate", profile?.estate_id],
+    queryKey: ["oyesile-estate", profile?.estate_id],
     enabled: !!profile?.estate_id,
     queryFn: async () => {
       const { data } = await supabase.from("estates").select("*").eq("id", profile!.estate_id!).maybeSingle();
@@ -40,7 +39,6 @@ function SettingsPage() {
 
   useEffect(() => {
     if (estate) {
-      setEstateName(estate.name);
       setEstateAddress(estate.address || "");
     }
   }, [estate]);
@@ -57,28 +55,17 @@ function SettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const createOrUpdateEstate = useMutation({
+  const saveEstateDetails = useMutation({
     mutationFn: async () => {
-      if (profile?.estate_id) {
-        const { error } = await supabase
-          .from("estates")
-          .update({ name: estateName, address: estateAddress })
-          .eq("id", profile.estate_id);
-        if (error) throw error;
-      } else {
-        const { data: e, error } = await supabase
-          .from("estates")
-          .insert({ name: estateName, address: estateAddress })
-          .select()
-          .single();
-        if (error) throw error;
-        // Link this user as admin of the new estate
-        await supabase.from("profiles").update({ estate_id: e.id }).eq("id", user!.id);
-        await supabase.from("user_roles").insert({ user_id: user!.id, estate_id: e.id, role: "estate_admin" });
-      }
+      if (!profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
+      const { error } = await supabase
+        .from("estates")
+        .update({ address: estateAddress })
+        .eq("id", profile.estate_id);
+      if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Estate saved");
+      toast.success("Oyesile Estate details saved");
       qc.invalidateQueries();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -86,7 +73,7 @@ function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Settings" description="Your profile, estate details, roles and preferences." icon={SettingsIcon} />
+      <PageHeader title="Settings" description="Your profile, Oyesile Estate details, roles and preferences." icon={SettingsIcon} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-border bg-card p-6">
@@ -109,29 +96,36 @@ function SettingsPage() {
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-6">
-          <h2 className="mb-1 font-display text-lg font-semibold">
-            {profile?.estate_id ? "Estate details" : "Create your estate"}
-          </h2>
+          <h2 className="mb-1 font-display text-lg font-semibold">Oyesile Estate</h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            {profile?.estate_id
-              ? "Update your estate's name and address."
-              : "Set up your estate to unlock properties, residents, visitors and dues. You'll become the estate admin."}
+            This platform is for Oyesile Estate only. New residents are linked
+            to this estate automatically after signup.
           </p>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Estate name</Label>
-              <Input value={estateName} onChange={(e) => setEstateName(e.target.value)} />
+              <Input value={estate?.name || "Oyesile Estate"} disabled />
             </div>
             <div className="space-y-2">
               <Label>Address</Label>
-              <Input value={estateAddress} onChange={(e) => setEstateAddress(e.target.value)} />
+              <Input
+                value={estateAddress}
+                onChange={(e) => setEstateAddress(e.target.value)}
+                disabled={!isAdmin}
+              />
             </div>
             <Button
-              onClick={() => createOrUpdateEstate.mutate()}
-              disabled={!estateName || createOrUpdateEstate.isPending || (!!profile?.estate_id && !isAdmin)}
+              onClick={() => saveEstateDetails.mutate()}
+              disabled={!isAdmin || !profile?.estate_id || saveEstateDetails.isPending}
             >
-              {profile?.estate_id ? "Save estate" : "Create estate"}
+              Save Oyesile details
             </Button>
+            {!profile?.estate_id && (
+              <p className="text-xs text-muted-foreground">
+                Your account is not linked to Oyesile Estate yet. Ask an admin
+                to review the account or run the fixed-estate migration.
+              </p>
+            )}
           </div>
         </section>
       </div>

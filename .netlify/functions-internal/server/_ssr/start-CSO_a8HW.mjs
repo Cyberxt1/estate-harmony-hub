@@ -1,7 +1,7 @@
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { n as createStart, t as createMiddleware } from "./createStart-Dt05N14y.mjs";
 import { t as renderErrorPage } from "./ssr.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/start-B7nzfoNP.js
+//#region node_modules/.nitro/vite/services/ssr/assets/start-CSO_a8HW.js
 var attachSupabaseAuth = createMiddleware({ type: "function" }).client(async ({ next }) => {
 	const { data } = await supabase.auth.getSession();
 	const token = data.session?.access_token;

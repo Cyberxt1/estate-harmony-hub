@@ -1,12 +1,12 @@
 import { r as __toESM } from "../_runtime.mjs";
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { F as useRouter, O as redirect, c as HeadContent, d as createRouter, f as Outlet, g as Link, h as createRootRouteWithContext, m as createFileRoute, p as lazyRouteComponent, s as Scripts } from "../_libs/@tanstack/react-router+[...].mjs";
 import { t as Toaster } from "../_libs/sonner.mjs";
 import { n as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { r as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-SrdX1Yf1.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-DmaXYRi3.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var styles_default = "/assets/styles-BKMLB_ZF.css";
@@ -110,18 +110,18 @@ var Route$14 = createRootRouteWithContext()({
 				name: "viewport",
 				content: "width=device-width, initial-scale=1"
 			},
-			{ title: "EstateOS — The operating system for residential estates" },
+			{ title: "Oyesile Estate" },
 			{
 				name: "description",
-				content: "EstateOS unifies residents, properties, visitors, payments and security for modern residential estates."
+				content: "The private resident and community officer app for Oyesile Estate."
 			},
 			{
 				property: "og:title",
-				content: "EstateOS — Run your estate from one place"
+				content: "Oyesile Estate"
 			},
 			{
 				property: "og:description",
-				content: "Digitize residents, automate dues, manage visitors with QR codes, and give security real-time tools."
+				content: "Manage residents, dues, visitors, announcements, complaints and security for Oyesile Estate."
 			},
 			{
 				property: "og:type",
@@ -173,7 +173,7 @@ function RootComponent() {
 		})]
 	});
 }
-var $$splitComponentImporter$13 = () => import("./dashboard-Br0hX8YU.mjs");
+var $$splitComponentImporter$13 = () => import("./dashboard-DPmlUe8U.mjs");
 var Route$13 = createFileRoute("/dashboard")({
 	beforeLoad: async () => {
 		if (typeof window === "undefined") return;
@@ -182,7 +182,7 @@ var Route$13 = createFileRoute("/dashboard")({
 	},
 	component: lazyRouteComponent($$splitComponentImporter$13, "component")
 });
-var $$splitComponentImporter$12 = () => import("./auth-Bw46V5SW.mjs");
+var $$splitComponentImporter$12 = () => import("./auth-DtFQvn7M.mjs");
 var Route$12 = createFileRoute("/auth")({
 	head: () => ({ meta: [{ title: "Sign in - Oyesile Estate" }, {
 		name: "description",
@@ -209,27 +209,27 @@ var Route$11 = createFileRoute("/")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$11, "component")
 });
-var $$splitComponentImporter$10 = () => import("./dashboard.index-BKtSX6C-.mjs");
+var $$splitComponentImporter$10 = () => import("./dashboard.index-Jib0GCd1.mjs");
 var Route$10 = createFileRoute("/dashboard/")({ component: lazyRouteComponent($$splitComponentImporter$10, "component") });
-var $$splitComponentImporter$9 = () => import("./dashboard.visitors-YazhqSxV.mjs");
+var $$splitComponentImporter$9 = () => import("./dashboard.visitors-B5hH8yb6.mjs");
 var Route$9 = createFileRoute("/dashboard/visitors")({ component: lazyRouteComponent($$splitComponentImporter$9, "component") });
-var $$splitComponentImporter$8 = () => import("./dashboard.settings-ByiMA3rw.mjs");
+var $$splitComponentImporter$8 = () => import("./dashboard.settings-CXVCeXg_.mjs");
 var Route$8 = createFileRoute("/dashboard/settings")({ component: lazyRouteComponent($$splitComponentImporter$8, "component") });
-var $$splitComponentImporter$7 = () => import("./dashboard.security-DokeiL5a.mjs");
+var $$splitComponentImporter$7 = () => import("./dashboard.security-Dk6Ex6KZ.mjs");
 var Route$7 = createFileRoute("/dashboard/security")({ component: lazyRouteComponent($$splitComponentImporter$7, "component") });
-var $$splitComponentImporter$6 = () => import("./dashboard.residents-Dhcq9ZJi.mjs");
+var $$splitComponentImporter$6 = () => import("./dashboard.residents-COCAyI0F.mjs");
 var Route$6 = createFileRoute("/dashboard/residents")({ component: lazyRouteComponent($$splitComponentImporter$6, "component") });
-var $$splitComponentImporter$5 = () => import("./dashboard.reports-9Oo7wztj.mjs");
+var $$splitComponentImporter$5 = () => import("./dashboard.reports-9_fZy6So.mjs");
 var Route$5 = createFileRoute("/dashboard/reports")({ component: lazyRouteComponent($$splitComponentImporter$5, "component") });
-var $$splitComponentImporter$4 = () => import("./dashboard.properties-DuUsssDq.mjs");
+var $$splitComponentImporter$4 = () => import("./dashboard.properties-Cofu3A42.mjs");
 var Route$4 = createFileRoute("/dashboard/properties")({ component: lazyRouteComponent($$splitComponentImporter$4, "component") });
-var $$splitComponentImporter$3 = () => import("./dashboard.payments-CJ762ZmK.mjs");
+var $$splitComponentImporter$3 = () => import("./dashboard.payments-B_CeXvBO.mjs");
 var Route$3 = createFileRoute("/dashboard/payments")({ component: lazyRouteComponent($$splitComponentImporter$3, "component") });
 var $$splitComponentImporter$2 = () => import("./dashboard.documents-EkXFxxF_.mjs");
 var Route$2 = createFileRoute("/dashboard/documents")({ component: lazyRouteComponent($$splitComponentImporter$2, "component") });
-var $$splitComponentImporter$1 = () => import("./dashboard.complaints-B0DofGyT.mjs");
+var $$splitComponentImporter$1 = () => import("./dashboard.complaints-zhRVc6h2.mjs");
 var Route$1 = createFileRoute("/dashboard/complaints")({ component: lazyRouteComponent($$splitComponentImporter$1, "component") });
-var $$splitComponentImporter = () => import("./dashboard.announcements-CsHll9Ae.mjs");
+var $$splitComponentImporter = () => import("./dashboard.announcements-D8S3zgtR.mjs");
 var Route = createFileRoute("/dashboard/announcements")({ component: lazyRouteComponent($$splitComponentImporter, "component") });
 var DashboardRoute = Route$13.update({
 	id: "/dashboard",

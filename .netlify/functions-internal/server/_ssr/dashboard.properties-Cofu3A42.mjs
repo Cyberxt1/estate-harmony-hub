@@ -1,16 +1,16 @@
 import { r as __toESM } from "../_runtime.mjs";
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as Button } from "./button-DRsC1qZi.mjs";
 import { n as Label, t as Input } from "./label-CmIE8x5o.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
 import { T as House, l as Plus } from "../_libs/lucide-react.mjs";
-import { n as useAuth } from "./use-auth-DEi8cmgE.mjs";
+import { n as useAuth } from "./use-auth-CP7XOnjs.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-CGNtK6Vg.mjs";
 import { a as DialogTitle, i as DialogHeader, n as DialogContent, o as DialogTrigger, r as DialogFooter, t as Dialog } from "./dialog-DFjnKMNx.mjs";
 import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.properties-DuUsssDq.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.properties-Cofu3A42.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function PropertiesPage() {
@@ -29,7 +29,7 @@ function PropertiesPage() {
 	});
 	const create = useMutation({
 		mutationFn: async () => {
-			if (!profile?.estate_id) throw new Error("You're not assigned to an estate yet. Configure it in Settings.");
+			if (!profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
 			const { error } = await supabase.from("properties").insert({
 				estate_id: profile.estate_id,
 				house_number: houseNumber,
@@ -112,7 +112,7 @@ function PropertiesPage() {
 		}, p.id))
 	}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, {
 		title: "No properties yet",
-		description: isAdmin ? "Add the houses in your estate to start managing occupancy." : "Properties will appear here once your admin adds them."
+		description: isAdmin ? "Add the houses in Oyesile Estate to start managing occupancy." : "Properties will appear here once an admin adds them."
 	})] });
 }
 //#endregion

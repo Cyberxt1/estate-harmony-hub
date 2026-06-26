@@ -41,7 +41,7 @@ function AnnouncementsPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      if (!user || !profile?.estate_id) throw new Error("Your estate isn't configured yet.");
+      if (!user || !profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
       const { error } = await supabase.from("announcements").insert({
         estate_id: profile.estate_id,
         author_id: user.id,

@@ -78,17 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "EstateOS — The operating system for residential estates" },
+      { title: "Oyesile Estate" },
       {
         name: "description",
-        content:
-          "EstateOS unifies residents, properties, visitors, payments and security for modern residential estates.",
+        content: "The private resident and community officer app for Oyesile Estate.",
       },
-      { property: "og:title", content: "EstateOS — Run your estate from one place" },
+      { property: "og:title", content: "Oyesile Estate" },
       {
         property: "og:description",
         content:
-          "Digitize residents, automate dues, manage visitors with QR codes, and give security real-time tools.",
+          "Manage residents, dues, visitors, announcements, complaints and security for Oyesile Estate.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

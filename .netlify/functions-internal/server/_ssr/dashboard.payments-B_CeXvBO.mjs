@@ -1,12 +1,12 @@
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as Button } from "./button-DRsC1qZi.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
 import { _ as CreditCard, o as Send, s as Repeat2, w as LoaderCircle, x as CalendarClock } from "../_libs/lucide-react.mjs";
-import { n as useAuth } from "./use-auth-DEi8cmgE.mjs";
+import { n as useAuth } from "./use-auth-CP7XOnjs.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-CGNtK6Vg.mjs";
 import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-CJ762ZmK.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-B_CeXvBO.js
 var import_jsx_runtime = require_jsx_runtime();
 function PaymentsPage() {
 	const queryClient = useQueryClient();

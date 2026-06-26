@@ -1,18 +1,18 @@
 import { r as __toESM } from "../_runtime.mjs";
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { t as Button } from "./button-DRsC1qZi.mjs";
 import { n as Label, t as Input } from "./label-CmIE8x5o.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
 import { l as Plus, u as MessageSquareWarning } from "../_libs/lucide-react.mjs";
-import { n as useAuth } from "./use-auth-DEi8cmgE.mjs";
+import { n as useAuth } from "./use-auth-CP7XOnjs.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-CGNtK6Vg.mjs";
 import { t as Textarea } from "./textarea-DBn9CRiI.mjs";
 import { a as DialogTitle, i as DialogHeader, n as DialogContent, o as DialogTrigger, r as DialogFooter, t as Dialog } from "./dialog-DFjnKMNx.mjs";
 import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
 import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectItem, t as Select } from "./select-DUy71i1r.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.complaints-B0DofGyT.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.complaints-zhRVc6h2.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var STATUSES = [
@@ -39,7 +39,7 @@ function ComplaintsPage() {
 	});
 	const create = useMutation({
 		mutationFn: async () => {
-			if (!user || !profile?.estate_id) throw new Error("Your estate isn't configured yet.");
+			if (!user || !profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
 			const { error } = await supabase.from("complaints").insert({
 				estate_id: profile.estate_id,
 				reporter_id: user.id,

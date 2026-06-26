@@ -43,7 +43,7 @@ function PropertiesPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      if (!profile?.estate_id) throw new Error("You're not assigned to an estate yet. Configure it in Settings.");
+      if (!profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
       const { error } = await supabase.from("properties").insert({
         estate_id: profile.estate_id,
         house_number: houseNumber,
@@ -117,7 +117,7 @@ function PropertiesPage() {
       ) : (
         <EmptyState
           title="No properties yet"
-          description={isAdmin ? "Add the houses in your estate to start managing occupancy." : "Properties will appear here once your admin adds them."}
+          description={isAdmin ? "Add the houses in Oyesile Estate to start managing occupancy." : "Properties will appear here once an admin adds them."}
         />
       )}
     </div>

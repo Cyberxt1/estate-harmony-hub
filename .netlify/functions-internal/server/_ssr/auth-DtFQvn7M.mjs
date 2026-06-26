@@ -1,5 +1,5 @@
 import { r as __toESM } from "../_runtime.mjs";
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { n as cn, t as Button } from "./button-DRsC1qZi.mjs";
@@ -9,7 +9,7 @@ import { n as toast } from "../_libs/sonner.mjs";
 import { S as Building2, w as LoaderCircle } from "../_libs/lucide-react.mjs";
 import { t as createLovableAuth } from "../_libs/lovable.dev__cloud-auth-js.mjs";
 import { i as Trigger, n as List, r as Root2, t as Content } from "../_libs/radix-ui__react-tabs.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/auth-Bw46V5SW.js
+//#region node_modules/.nitro/vite/services/ssr/assets/auth-DtFQvn7M.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var lovableAuth = createLovableAuth();

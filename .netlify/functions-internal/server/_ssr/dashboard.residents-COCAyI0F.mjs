@@ -1,9 +1,9 @@
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { n as Users } from "../_libs/lucide-react.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-CGNtK6Vg.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-Dhcq9ZJi.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-COCAyI0F.js
 var import_jsx_runtime = require_jsx_runtime();
 function ResidentsPage() {
 	const { data, isLoading } = useQuery({

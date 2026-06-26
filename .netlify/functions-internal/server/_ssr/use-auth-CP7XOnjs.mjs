@@ -1,7 +1,7 @@
 import { r as __toESM } from "../_runtime.mjs";
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/use-auth-DEi8cmgE.js
+//#region node_modules/.nitro/vite/services/ssr/assets/use-auth-CP7XOnjs.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var adminRoles = [
 	"super_admin",

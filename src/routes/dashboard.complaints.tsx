@@ -52,7 +52,7 @@ function ComplaintsPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      if (!user || !profile?.estate_id) throw new Error("Your estate isn't configured yet.");
+      if (!user || !profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
       const { error } = await supabase.from("complaints").insert({
         estate_id: profile.estate_id,
         reporter_id: user.id,

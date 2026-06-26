@@ -4,8 +4,8 @@ import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].m
 import { n as cn, t as Button } from "./button-DRsC1qZi.mjs";
 import { P as useNavigate, f as Outlet, g as Link, l as useRouterState } from "../_libs/@tanstack/react-router+[...].mjs";
 import { O as ChartColumn, S as Building2, T as House, _ as CreditCard, a as Settings, c as QrCode, d as Menu, f as Megaphone, h as FileText, i as ShieldCheck, m as LayoutDashboard, n as Users, p as LogOut, t as X, u as MessageSquareWarning } from "../_libs/lucide-react.mjs";
-import { n as useAuth, t as signOut } from "./use-auth-DEi8cmgE.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard-Br0hX8YU.js
+import { n as useAuth, t as signOut } from "./use-auth-CP7XOnjs.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard-DPmlUe8U.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var nav = [

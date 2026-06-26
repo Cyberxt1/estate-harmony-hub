@@ -46,7 +46,7 @@ function VisitorsPage() {
 
   const invite = useMutation({
     mutationFn: async () => {
-      if (!user || !profile?.estate_id) throw new Error("Your estate isn't configured yet.");
+      if (!user || !profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
       const qr = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
       const { error } = await supabase.from("visitors").insert({
         estate_id: profile.estate_id,

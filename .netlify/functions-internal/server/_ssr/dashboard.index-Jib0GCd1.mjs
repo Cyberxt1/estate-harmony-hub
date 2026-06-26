@@ -1,9 +1,9 @@
-import { t as supabase } from "./client-BnC4vHJN.mjs";
+import { t as supabase } from "./client-DNwKaOJw.mjs";
 import { s as require_jsx_runtime } from "../_libs/@radix-ui/react-arrow+[...].mjs";
 import { T as House, _ as CreditCard, c as QrCode, i as ShieldCheck, n as Users, r as TrendingUp, u as MessageSquareWarning } from "../_libs/lucide-react.mjs";
-import { n as useAuth } from "./use-auth-DEi8cmgE.mjs";
+import { n as useAuth } from "./use-auth-CP7XOnjs.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.index-BKtSX6C-.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.index-Jib0GCd1.js
 var import_jsx_runtime = require_jsx_runtime();
 function DashboardHome() {
 	const { profile, primaryRole, isAdmin, isSecurity } = useAuth();
