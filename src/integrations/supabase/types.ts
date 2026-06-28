@@ -64,6 +64,32 @@ export type Database = {
           },
         ]
       }
+      announcement_recipients: {
+        Row: {
+          announcement_id: string
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_recipients_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -567,6 +593,7 @@ export type Database = {
           resident_type: Database["public"]["Enums"]["resident_type"] | null
           status: string
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -584,6 +611,7 @@ export type Database = {
           resident_type?: Database["public"]["Enums"]["resident_type"] | null
           status?: string
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -601,6 +629,7 @@ export type Database = {
           resident_type?: Database["public"]["Enums"]["resident_type"] | null
           status?: string
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: [
           {
@@ -614,14 +643,17 @@ export type Database = {
       }
       properties: {
         Row: {
+          apartment_name: string | null
           bathrooms: number | null
           bedrooms: number | null
+          compound_name: string | null
           created_at: string
           electricity_meter: string | null
           estate_id: string
           house_number: string
           id: string
           notes: string | null
+          occupant_capacity: number | null
           property_type: Database["public"]["Enums"]["property_type"]
           status: Database["public"]["Enums"]["property_status"]
           street: string | null
@@ -629,14 +661,17 @@ export type Database = {
           water_meter: string | null
         }
         Insert: {
+          apartment_name?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
+          compound_name?: string | null
           created_at?: string
           electricity_meter?: string | null
           estate_id: string
           house_number: string
           id?: string
           notes?: string | null
+          occupant_capacity?: number | null
           property_type?: Database["public"]["Enums"]["property_type"]
           status?: Database["public"]["Enums"]["property_status"]
           street?: string | null
@@ -644,14 +679,17 @@ export type Database = {
           water_meter?: string | null
         }
         Update: {
+          apartment_name?: string | null
           bathrooms?: number | null
           bedrooms?: number | null
+          compound_name?: string | null
           created_at?: string
           electricity_meter?: string | null
           estate_id?: string
           house_number?: string
           id?: string
           notes?: string | null
+          occupant_capacity?: number | null
           property_type?: Database["public"]["Enums"]["property_type"]
           status?: Database["public"]["Enums"]["property_status"]
           street?: string | null
@@ -664,6 +702,60 @@ export type Database = {
             columns: ["estate_id"]
             isOneToOne: false
             referencedRelation: "estates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      property_occupants: {
+        Row: {
+          created_at: string
+          estate_id: string
+          full_name: string
+          id: string
+          is_primary: boolean
+          notes: string | null
+          phone: string | null
+          property_id: string
+          updated_at: string
+          whatsapp_number: string | null
+        }
+        Insert: {
+          created_at?: string
+          estate_id: string
+          full_name: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          phone?: string | null
+          property_id: string
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Update: {
+          created_at?: string
+          estate_id?: string
+          full_name?: string
+          id?: string
+          is_primary?: boolean
+          notes?: string | null
+          phone?: string | null
+          property_id?: string
+          updated_at?: string
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "property_occupants_estate_id_fkey"
+            columns: ["estate_id"]
+            isOneToOne: false
+            referencedRelation: "estates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "property_occupants_property_id_fkey"
+            columns: ["property_id"]
+            isOneToOne: false
+            referencedRelation: "properties"
             referencedColumns: ["id"]
           },
         ]

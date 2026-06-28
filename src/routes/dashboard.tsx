@@ -34,13 +34,13 @@ export const Route = createFileRoute("/dashboard")({
 
 const nav = [
   { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true, groups: ["resident", "operations", "cso"] },
-  { to: "/dashboard/onboarding", label: "Resident Form", icon: Users, groups: ["resident"] },
-  { to: "/dashboard/residents", label: "Residents", icon: Users, groups: ["operations"] },
-  { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations"] },
+  { to: "/dashboard/onboarding", label: "My details", icon: Users, groups: ["resident"] },
+  { to: "/dashboard/residents", label: "Community members", icon: Users, groups: ["operations", "cso"] },
+  { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations", "cso"] },
   { to: "/dashboard/visitors", label: "Visitors", icon: QrCode, groups: ["resident", "cso"] },
   { to: "/dashboard/payments", label: "Dues", icon: CreditCard, groups: ["resident", "operations", "cso"] },
   { to: "/dashboard/announcements", label: "Announcements", icon: Megaphone, groups: ["resident", "operations", "cso"] },
-  { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning, groups: ["resident", "operations"] },
+  { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning, groups: ["resident", "operations", "cso"] },
   { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso"] },
   { to: "/dashboard/documents", label: "Documents", icon: FileText, groups: ["resident", "operations"] },
   { to: "/dashboard/reports", label: "Reports", icon: BarChart3, groups: ["operations", "cso"] },

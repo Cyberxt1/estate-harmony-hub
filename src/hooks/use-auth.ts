@@ -29,6 +29,7 @@ export interface Profile {
   full_name: string | null;
   email: string | null;
   phone: string | null;
+  whatsapp_number: string | null;
   avatar_url: string | null;
   resident_type: "landlord" | "tenant" | null;
   onboarding_completed: boolean;
