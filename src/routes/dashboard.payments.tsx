@@ -40,6 +40,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import {
   Select,
   SelectContent,
@@ -111,7 +112,11 @@ function PaymentsPage() {
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [note, setNote] = useState("");
 
-  const { data: invoices = [], isLoading } = useQuery({
+  const {
+    data: invoices = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["dues", profile?.estate_id, user?.id, isAdmin],
     enabled: Boolean(user?.id),
     queryFn: async () => {
@@ -123,7 +128,11 @@ function PaymentsPage() {
     },
   });
 
-  const { data: residents = [] } = useQuery({
+  const {
+    data: residents = [],
+    isLoading: residentsLoading,
+    isError: residentsError,
+  } = useQuery({
     queryKey: ["due-members", profile?.estate_id],
     enabled: isAdmin && Boolean(profile?.estate_id),
     queryFn: async () => {
@@ -300,8 +309,10 @@ function PaymentsPage() {
           <Stat icon={CreditCard} label="Total expected" value={formatMoney(totalExpected)} />
         </div>
 
-        {isLoading ? (
-          <Loading />
+        {isError || residentsError ? (
+          <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
+        ) : isLoading || residentsLoading ? (
+          <PageLoading label="Loading dues" onRetry={() => void queryClient.refetchQueries()} />
         ) : groups.length === 0 ? (
           <EmptyState
             title="No dues created"
@@ -449,8 +460,10 @@ function PaymentsPage() {
         <Stat icon={CheckCircle2} label="Payments made" value={String(paidDues.length)} />
       </div>
 
-      {isLoading ? (
-        <Loading />
+      {isError ? (
+        <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
+      ) : isLoading ? (
+        <PageLoading label="Loading your dues" onRetry={() => void queryClient.refetchQueries()} />
       ) : pendingDues.length === 0 ? (
         <EmptyState title="No dues to pay" description="You are all caught up." />
       ) : (
@@ -765,15 +778,6 @@ function DueStatus({ paid, total }: { paid: number; total: number }) {
     >
       {complete ? "Fully paid" : `${total - paid} to pay`}
     </span>
-  );
-}
-
-function Loading() {
-  return (
-    <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      Loading dues
-    </div>
   );
 }
 

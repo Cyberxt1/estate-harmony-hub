@@ -18,6 +18,7 @@ import type { Tables } from "@/integrations/supabase/types";
 import { removeCommunityMember } from "@/lib/members.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +69,12 @@ function ResidentsPage() {
   const [compoundName, setCompoundName] = useState("");
   const [houseOrApartment, setHouseOrApartment] = useState("");
 
-  const { data: residents = [], isLoading } = useQuery({
+  const {
+    data: residents = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["residents"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -191,8 +197,10 @@ function ResidentsPage() {
         />
       </div>
 
-      {isLoading ? (
-        <Loading />
+      {isError ? (
+        <PageLoadError onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <PageLoading label="Loading community members" onRetry={() => void refetch()} />
       ) : filteredResidents.length > 0 ? (
         <div className="space-y-3">
           {filteredResidents.map((resident) => {
@@ -455,15 +463,6 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="rounded-xl border border-border bg-card p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 font-display text-2xl font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function Loading() {
-  return (
-    <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      Loading members
     </div>
   );
 }

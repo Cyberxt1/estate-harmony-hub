@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,11 +29,20 @@ function SettingsPage() {
     }
   }, [profile]);
 
-  const { data: estate } = useQuery({
+  const {
+    data: estate,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["oyesile-estate", profile?.estate_id],
     enabled: !!profile?.estate_id,
     queryFn: async () => {
-      const { data } = await supabase.from("estates").select("*").eq("id", profile!.estate_id!).maybeSingle();
+      const { data } = await supabase
+        .from("estates")
+        .select("*")
+        .eq("id", profile!.estate_id!)
+        .maybeSingle();
       return data;
     },
   });
@@ -74,9 +84,20 @@ function SettingsPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  if (isLoading) {
+    return <PageLoading label="Loading settings" onRetry={() => void refetch()} />;
+  }
+  if (isError) {
+    return <PageLoadError onRetry={() => void refetch()} />;
+  }
+
   return (
     <div>
-      <PageHeader title="Settings" description="Your profile, Oyesile Estate details, roles and preferences." icon={SettingsIcon} />
+      <PageHeader
+        title="Settings"
+        description="Your profile, Oyesile Estate details, roles and preferences."
+        icon={SettingsIcon}
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-2xl border border-border bg-card p-6">
@@ -94,15 +115,17 @@ function SettingsPage() {
               <Label>Phone</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
-            <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending}>Save profile</Button>
+            <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending}>
+              Save profile
+            </Button>
           </div>
         </section>
 
         <section className="rounded-2xl border border-border bg-card p-6">
           <h2 className="mb-1 font-display text-lg font-semibold">Oyesile Estate</h2>
           <p className="mb-4 text-sm text-muted-foreground">
-            This platform is for Oyesile Estate only. New residents are linked
-            to this estate automatically after signup.
+            This platform is for Oyesile Estate only. New residents are linked to this estate
+            automatically after signup.
           </p>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -125,8 +148,8 @@ function SettingsPage() {
             </Button>
             {!profile?.estate_id && (
               <p className="text-xs text-muted-foreground">
-                Your account is not linked to Oyesile Estate yet. Ask an admin
-                to review the account or run the fixed-estate migration.
+                Your account is not linked to Oyesile Estate yet. Ask an admin to review the account
+                or run the fixed-estate migration.
               </p>
             )}
           </div>

@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -57,7 +58,11 @@ function AnnouncementsPage() {
   const [audience, setAudience] = useState<Audience>("all");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
-  const { data: announcements = [], isLoading } = useQuery({
+  const {
+    data: announcements = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["announcements", profile?.estate_id, user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -69,7 +74,11 @@ function AnnouncementsPage() {
     },
   });
 
-  const { data: members = [] } = useQuery({
+  const {
+    data: members = [],
+    isLoading: membersLoading,
+    isError: membersError,
+  } = useQuery({
     queryKey: ["announcement-members", profile?.estate_id],
     enabled: isAdmin,
     queryFn: async () => {
@@ -163,8 +172,13 @@ function AnnouncementsPage() {
         )}
       </PageHeader>
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading announcements...</p>
+      {isError || (isAdmin && membersError) ? (
+        <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
+      ) : isLoading || (isAdmin && membersLoading) ? (
+        <PageLoading
+          label="Loading announcements"
+          onRetry={() => void queryClient.refetchQueries()}
+        />
       ) : announcements.length > 0 ? (
         <div className="space-y-3">
           {announcements.map((announcement) => (

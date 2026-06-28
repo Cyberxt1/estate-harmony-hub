@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,7 +59,11 @@ function ComplaintsPage() {
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [resolutionNotes, setResolutionNotes] = useState("");
 
-  const { data: complaints = [], isLoading } = useQuery({
+  const {
+    data: complaints = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["complaints", profile?.estate_id, user?.id, isAdmin],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -70,7 +75,11 @@ function ComplaintsPage() {
     },
   });
 
-  const { data: complainants = [] } = useQuery({
+  const {
+    data: complainants = [],
+    isLoading: complainantsLoading,
+    isError: complainantsError,
+  } = useQuery({
     queryKey: ["complaint-people", profile?.estate_id],
     enabled: isAdmin,
     queryFn: async () => {
@@ -177,8 +186,10 @@ function ComplaintsPage() {
         </div>
       )}
 
-      {isLoading ? (
-        <Loading />
+      {isError || (isAdmin && complainantsError) ? (
+        <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
+      ) : isLoading || (isAdmin && complainantsLoading) ? (
+        <PageLoading label="Loading complaints" onRetry={() => void queryClient.refetchQueries()} />
       ) : isAdmin ? (
         <Tabs defaultValue="open">
           <TabsList className="mb-4 grid w-full grid-cols-2 sm:w-96">
@@ -479,15 +490,6 @@ function Detail({ label, value }: { label: string; value?: string | number | boo
     <div className="rounded-lg border border-border bg-card p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 capitalize">{value || "Not provided"}</p>
-    </div>
-  );
-}
-
-function Loading() {
-  return (
-    <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      Loading complaints
     </div>
   );
 }

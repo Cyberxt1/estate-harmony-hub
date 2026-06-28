@@ -1,4 +1,11 @@
-import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  Link,
+  useRouterState,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Building2,
@@ -21,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth, signOut } from "@/hooks/use-auth";
 import type { AppRole } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { PageLoading } from "@/components/page-loading";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/dashboard")({
@@ -33,18 +41,54 @@ export const Route = createFileRoute("/dashboard")({
 });
 
 const nav = [
-  { to: "/dashboard", label: "Overview", icon: LayoutDashboard, exact: true, groups: ["resident", "operations", "cso"] },
+  {
+    to: "/dashboard",
+    label: "Overview",
+    icon: LayoutDashboard,
+    exact: true,
+    groups: ["resident", "operations", "cso"],
+  },
   { to: "/dashboard/onboarding", label: "My details", icon: Users, groups: ["resident"] },
-  { to: "/dashboard/residents", label: "Community members", icon: Users, groups: ["operations", "cso"] },
+  {
+    to: "/dashboard/residents",
+    label: "Community members",
+    icon: Users,
+    groups: ["operations", "cso"],
+  },
   { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations", "cso"] },
   { to: "/dashboard/visitors", label: "Visitors", icon: QrCode, groups: ["resident", "cso"] },
-  { to: "/dashboard/payments", label: "Dues", icon: CreditCard, groups: ["resident", "operations", "cso"] },
-  { to: "/dashboard/announcements", label: "Announcements", icon: Megaphone, groups: ["resident", "operations", "cso"] },
-  { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning, groups: ["resident", "operations", "cso"] },
+  {
+    to: "/dashboard/payments",
+    label: "Dues",
+    icon: CreditCard,
+    groups: ["resident", "operations", "cso"],
+  },
+  {
+    to: "/dashboard/announcements",
+    label: "Announcements",
+    icon: Megaphone,
+    groups: ["resident", "operations", "cso"],
+  },
+  {
+    to: "/dashboard/complaints",
+    label: "Complaints",
+    icon: MessageSquareWarning,
+    groups: ["resident", "operations", "cso"],
+  },
   { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso"] },
-  { to: "/dashboard/documents", label: "Documents", icon: FileText, groups: ["resident", "operations"] },
+  {
+    to: "/dashboard/documents",
+    label: "Documents",
+    icon: FileText,
+    groups: ["resident", "operations"],
+  },
   { to: "/dashboard/reports", label: "Reports", icon: BarChart3, groups: ["operations", "cso"] },
-  { to: "/dashboard/settings", label: "Settings", icon: SettingsIcon, groups: ["resident", "operations", "cso"] },
+  {
+    to: "/dashboard/settings",
+    label: "Settings",
+    icon: SettingsIcon,
+    groups: ["resident", "operations", "cso"],
+  },
 ];
 
 function DashboardLayout() {
@@ -57,17 +101,18 @@ function DashboardLayout() {
   useEffect(() => setMobileOpen(false), [pathname]);
 
   useEffect(() => {
-    if (!loading && profile && !profile.onboarding_completed && pathname !== "/dashboard/onboarding") {
+    if (
+      !loading &&
+      profile &&
+      !profile.onboarding_completed &&
+      pathname !== "/dashboard/onboarding"
+    ) {
       void navigate({ to: "/dashboard/onboarding", replace: true });
     }
   }, [loading, navigate, pathname, profile]);
 
   if (loading) {
-    return (
-      <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">
-        Loading…
-      </div>
-    );
+    return <PageLoading fullScreen label="Preparing your dashboard" />;
   }
 
   const initials = (profile?.full_name || profile?.email || "U")
@@ -93,7 +138,11 @@ function DashboardLayout() {
             </div>
             <span className="font-display text-lg font-semibold">Oyesile</span>
           </Link>
-          <button className="md:hidden" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+          <button
+            className="md:hidden"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -101,26 +150,26 @@ function DashboardLayout() {
           <div className="px-3 pb-2 pt-1 text-xs font-medium uppercase text-sidebar-foreground/50">
             {workspace.label}
           </div>
-          {nav.filter((item) => item.groups.includes(workspace.key)).map((item) => {
-            const active = item.exact
-              ? pathname === item.to
-              : pathname.startsWith(item.to);
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-              </Link>
-            );
-          })}
+          {nav
+            .filter((item) => item.groups.includes(workspace.key))
+            .map((item) => {
+              const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition",
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                      : "text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
         </nav>
 
         <div className="absolute inset-x-3 bottom-3 rounded-xl border border-sidebar-border bg-card p-3">
@@ -169,7 +218,9 @@ function DashboardLayout() {
           </Button>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{workspace.title}</p>
-            <p className="hidden truncate text-xs text-muted-foreground sm:block">{workspace.description}</p>
+            <p className="hidden truncate text-xs text-muted-foreground sm:block">
+              {workspace.description}
+            </p>
           </div>
           <div className="hidden text-sm text-muted-foreground md:block">
             {profile?.full_name || profile?.email}

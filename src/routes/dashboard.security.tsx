@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,7 +45,7 @@ function SecurityPage() {
   const [description, setDescription] = useState("");
   const [selectedIncident, setSelectedIncident] = useState<SecurityIncident | null>(null);
 
-  const { data } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["incidents"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -58,7 +59,8 @@ function SecurityPage() {
 
   const create = useMutation({
     mutationFn: async () => {
-      if (!user || !profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
+      if (!user || !profile?.estate_id)
+        throw new Error("Your account is not linked to Oyesile Estate yet.");
       const { error } = await supabase.from("security_incidents").insert({
         estate_id: profile.estate_id,
         reporter_id: user.id,
@@ -82,7 +84,11 @@ function SecurityPage() {
 
   return (
     <div>
-      <PageHeader title="Security" description="Incident reports, patrol logs, blacklist and watchlist." icon={ShieldCheck}>
+      <PageHeader
+        title="Security"
+        description="Incident reports, patrol logs, blacklist and watchlist."
+        icon={ShieldCheck}
+      >
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -96,15 +102,23 @@ function SecurityPage() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Input value={type} onChange={(e) => setType(e.target.value)} placeholder="e.g. Trespass, theft, suspicious activity" />
+                <Input
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  placeholder="e.g. Trespass, theft, suspicious activity"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Severity</Label>
                 <Select value={severity} onValueChange={setSeverity}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {["low", "medium", "high", "critical"].map((s) => (
-                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                      <SelectItem key={s} value={s} className="capitalize">
+                        {s}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -115,17 +129,27 @@ function SecurityPage() {
               </div>
               <div className="space-y-2">
                 <Label>Description</Label>
-                <Textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
+                <Textarea
+                  rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => create.mutate()} disabled={!type || create.isPending}>Report</Button>
+              <Button onClick={() => create.mutate()} disabled={!type || create.isPending}>
+                Report
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </PageHeader>
 
-      {data && data.length > 0 ? (
+      {isError ? (
+        <PageLoadError onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <PageLoading label="Loading security records" onRetry={() => void refetch()} />
+      ) : data && data.length > 0 ? (
         <div className="space-y-3">
           {data.map((i) => (
             <div
@@ -137,21 +161,33 @@ function SecurityPage() {
                 <div>
                   <h3 className="font-semibold">{i.type}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">{i.description}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{i.location} · {i.occurred_at ? new Date(i.occurred_at).toLocaleString() : ""}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {i.location} · {i.occurred_at ? new Date(i.occurred_at).toLocaleString() : ""}
+                  </p>
                 </div>
                 <div className="flex gap-2">
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize text-muted-foreground">{i.severity}</span>
-                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs capitalize text-accent-foreground">{i.status}</span>
+                  <span className="rounded-full bg-muted px-2 py-0.5 text-xs capitalize text-muted-foreground">
+                    {i.severity}
+                  </span>
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs capitalize text-accent-foreground">
+                    {i.status}
+                  </span>
                 </div>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <EmptyState title="No incidents reported" description="Security can log incidents, patrol activity and suspicious events here." />
+        <EmptyState
+          title="No incidents reported"
+          description="Security can log incidents, patrol activity and suspicious events here."
+        />
       )}
 
-      <Dialog open={!!selectedIncident} onOpenChange={(nextOpen) => !nextOpen && setSelectedIncident(null)}>
+      <Dialog
+        open={!!selectedIncident}
+        onOpenChange={(nextOpen) => !nextOpen && setSelectedIncident(null)}
+      >
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{selectedIncident?.type || "Security incident"}</DialogTitle>
@@ -163,8 +199,22 @@ function SecurityPage() {
               <Detail label="Status" value={selectedIncident.status} />
               <Detail label="Severity" value={selectedIncident.severity} />
               <Detail label="Location" value={selectedIncident.location} />
-              <Detail label="Occurred" value={selectedIncident.occurred_at ? new Date(selectedIncident.occurred_at).toLocaleString() : null} />
-              <Detail label="Resolved" value={selectedIncident.resolved_at ? new Date(selectedIncident.resolved_at).toLocaleString() : null} />
+              <Detail
+                label="Occurred"
+                value={
+                  selectedIncident.occurred_at
+                    ? new Date(selectedIncident.occurred_at).toLocaleString()
+                    : null
+                }
+              />
+              <Detail
+                label="Resolved"
+                value={
+                  selectedIncident.resolved_at
+                    ? new Date(selectedIncident.resolved_at).toLocaleString()
+                    : null
+                }
+              />
               <Detail label="Description" value={selectedIncident.description} wide />
               <Detail label="Resolution notes" value={selectedIncident.resolution_notes} wide />
             </div>
@@ -185,7 +235,9 @@ function Detail({
   wide?: boolean;
 }) {
   return (
-    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}>
+    <div
+      className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}
+    >
       <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
       <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
     </div>

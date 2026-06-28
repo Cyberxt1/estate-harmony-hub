@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,7 +37,7 @@ function VisitorsPage() {
   const [expectedAt, setExpectedAt] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["visitors"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -51,7 +52,8 @@ function VisitorsPage() {
 
   const invite = useMutation({
     mutationFn: async () => {
-      if (!user || !profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
+      if (!user || !profile?.estate_id)
+        throw new Error("Your account is not linked to Oyesile Estate yet.");
       const qr = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
       const { error } = await supabase.from("visitors").insert({
         estate_id: profile.estate_id,
@@ -102,7 +104,11 @@ function VisitorsPage() {
 
   return (
     <div>
-      <PageHeader title="Visitors" description="Invite, generate QR codes, check in and out." icon={QrCode}>
+      <PageHeader
+        title="Visitors"
+        description="Invite, generate QR codes, check in and out."
+        icon={QrCode}
+      >
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -128,7 +134,11 @@ function VisitorsPage() {
               </div>
               <div className="space-y-2">
                 <Label>Expected arrival</Label>
-                <Input type="datetime-local" value={expectedAt} onChange={(e) => setExpectedAt(e.target.value)} />
+                <Input
+                  type="datetime-local"
+                  value={expectedAt}
+                  onChange={(e) => setExpectedAt(e.target.value)}
+                />
               </div>
             </div>
             <DialogFooter>
@@ -140,8 +150,10 @@ function VisitorsPage() {
         </Dialog>
       </PageHeader>
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading…</p>
+      {isError ? (
+        <PageLoadError onRetry={() => void refetch()} />
+      ) : isLoading ? (
+        <PageLoading label="Loading visitors" onRetry={() => void refetch()} />
       ) : data && data.length > 0 ? (
         <div className="overflow-x-auto rounded-md border border-border bg-card">
           <table className="w-full min-w-[820px] text-sm">
@@ -222,7 +234,10 @@ function VisitorsPage() {
               <Detail label="Name" value={selectedVisitor.full_name} />
               <Detail label="Phone" value={selectedVisitor.phone} />
               <Detail label="Purpose" value={selectedVisitor.purpose} wide />
-              <Detail label="Expected arrival" value={formatDateTime(selectedVisitor.expected_at)} />
+              <Detail
+                label="Expected arrival"
+                value={formatDateTime(selectedVisitor.expected_at)}
+              />
               <Detail label="Status" value={selectedVisitor.status.replace("_", " ")} />
               <Detail label="QR code" value={selectedVisitor.qr_code} wide />
               <Detail label="Checked in" value={formatDateTime(selectedVisitor.checked_in_at)} />
@@ -245,7 +260,9 @@ function Detail({
   wide?: boolean;
 }) {
   return (
-    <div className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}>
+    <div
+      className={`rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`}
+    >
       <p className="text-xs font-medium uppercase text-muted-foreground">{label}</p>
       <p className="mt-1 whitespace-pre-wrap break-words text-sm">{value || "Not provided"}</p>
     </div>

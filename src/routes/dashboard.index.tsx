@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 
 export const Route = createFileRoute("/dashboard/")({
   component: DashboardHome,
@@ -39,16 +40,30 @@ function DashboardHome() {
     }
   }, []);
 
-  const { data: stats } = useQuery({
+  const {
+    data: stats,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["dashboard-stats", profile?.estate_id, primaryRole],
     queryFn: async () => {
       const [residents, properties, visitors, invoices, complaints, incidents] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("properties").select("id", { count: "exact", head: true }),
-        supabase.from("visitors").select("id", { count: "exact", head: true }).eq("status", "expected"),
+        supabase
+          .from("visitors")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "expected"),
         supabase.from("invoices").select("amount, amount_paid, status"),
-        supabase.from("complaints").select("id", { count: "exact", head: true }).in("status", ["open", "assigned", "in_progress"]),
-        supabase.from("security_incidents").select("id", { count: "exact", head: true }).in("status", ["reported", "investigating"]),
+        supabase
+          .from("complaints")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["open", "assigned", "in_progress"]),
+        supabase
+          .from("security_incidents")
+          .select("id", { count: "exact", head: true })
+          .in("status", ["reported", "investigating"]),
       ]);
       const outstanding = (invoices.data ?? []).reduce(
         (sum, i) => sum + (Number(i.amount) - Number(i.amount_paid ?? 0)),
@@ -83,7 +98,11 @@ function DashboardHome() {
           { label: "Residents", value: stats?.residents ?? 0, icon: Users },
           { label: "Properties", value: stats?.properties ?? 0, icon: Home },
           { label: "Open complaints", value: stats?.complaints ?? 0, icon: MessageSquareWarning },
-          { label: "Outstanding dues", value: formatMoney(stats?.outstanding ?? 0), icon: CreditCard },
+          {
+            label: "Outstanding dues",
+            value: formatMoney(stats?.outstanding ?? 0),
+            icon: CreditCard,
+          },
         ]
       : [
           { label: "Expected visitors", value: stats?.visitors ?? 0, icon: QrCode },
@@ -91,6 +110,13 @@ function DashboardHome() {
           { label: "Open complaints", value: stats?.complaints ?? 0, icon: MessageSquareWarning },
           { label: "Announcements", value: "—", icon: TrendingUp },
         ];
+
+  if (isLoading) {
+    return <PageLoading label="Loading your overview" onRetry={() => void refetch()} />;
+  }
+  if (isError) {
+    return <PageLoadError onRetry={() => void refetch()} />;
+  }
 
   return (
     <div className="space-y-8">
@@ -134,8 +160,8 @@ function DashboardHome() {
         <div className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">
           <h2 className="mb-2 font-display text-lg font-semibold">Getting started</h2>
           <p className="text-sm text-muted-foreground">
-            Oyesile Estate is ready for resident records, properties, visitors,
-            dues and community announcements.
+            Oyesile Estate is ready for resident records, properties, visitors, dues and community
+            announcements.
           </p>
           <ul className="mt-4 space-y-2 text-sm">
             {[
@@ -156,9 +182,9 @@ function DashboardHome() {
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="mb-2 font-display text-lg font-semibold">Your role</h2>
           <p className="text-sm text-muted-foreground">
-            You're signed in as <strong className="text-foreground">{formatRole(primaryRole)}</strong>.
-            Your dashboard, navigation and permissions adapt automatically to
-            this role.
+            You're signed in as{" "}
+            <strong className="text-foreground">{formatRole(primaryRole)}</strong>. Your dashboard,
+            navigation and permissions adapt automatically to this role.
           </p>
         </div>
       </div>

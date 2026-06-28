@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,7 +57,11 @@ function PropertiesPage() {
   const [notes, setNotes] = useState("");
   const [occupants, setOccupants] = useState<NewOccupant[]>([emptyOccupant()]);
 
-  const { data: properties = [], isLoading } = useQuery({
+  const {
+    data: properties = [],
+    isLoading,
+    isError,
+  } = useQuery({
     queryKey: ["properties", profile?.estate_id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -69,7 +74,11 @@ function PropertiesPage() {
     },
   });
 
-  const { data: allOccupants = [] } = useQuery({
+  const {
+    data: allOccupants = [],
+    isLoading: occupantsLoading,
+    isError: occupantsError,
+  } = useQuery({
     queryKey: ["property-occupants", profile?.estate_id],
     enabled: Boolean(profile?.estate_id),
     queryFn: async () => {
@@ -195,8 +204,10 @@ function PropertiesPage() {
         <Stat label="Known occupants" value={allOccupants.length} />
       </div>
 
-      {isLoading ? (
-        <Loading />
+      {isError || occupantsError ? (
+        <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
+      ) : isLoading || occupantsLoading ? (
+        <PageLoading label="Loading properties" onRetry={() => void queryClient.refetchQueries()} />
       ) : properties.length > 0 ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {properties.map((property) => {
@@ -587,15 +598,6 @@ function Stat({ label, value }: { label: string; value: number }) {
     <div className="rounded-xl border border-border bg-card p-4">
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 font-display text-2xl font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function Loading() {
-  return (
-    <div className="flex min-h-48 items-center justify-center text-sm text-muted-foreground">
-      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      Loading properties
     </div>
   );
 }

@@ -1,4 +1,11 @@
-import { useEffect, useState } from "react";
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -38,7 +45,20 @@ export interface Profile {
   status: string;
 }
 
-export function useAuth() {
+type AuthContextValue = {
+  user: User | null;
+  profile: Profile | null;
+  roles: AppRole[];
+  hasRole: (role: AppRole) => boolean;
+  isAdmin: boolean;
+  isSecurity: boolean;
+  primaryRole: AppRole;
+  loading: boolean;
+};
+
+const AuthContext = createContext<AuthContextValue | null>(null);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
@@ -86,9 +106,23 @@ export function useAuth() {
   const isSecurity = hasRole("security_officer") || hasRole("chief_security_officer");
   const primaryRole: AppRole = isAdmin
     ? (roles.find((role) => adminRoles.includes(role)) ?? "estate_admin")
-    : isSecurity ? "security_officer" : (roles[0] ?? "resident");
+    : isSecurity
+      ? "security_officer"
+      : (roles[0] ?? "resident");
 
-  return { user, profile, roles, hasRole, isAdmin, isSecurity, primaryRole, loading };
+  return createElement(
+    AuthContext.Provider,
+    {
+      value: { user, profile, roles, hasRole, isAdmin, isSecurity, primaryRole, loading },
+    },
+    children,
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used inside AuthProvider");
+  return context;
 }
 
 export async function signOut() {
