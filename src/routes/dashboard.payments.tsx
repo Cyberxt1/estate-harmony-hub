@@ -78,18 +78,18 @@ type DueGroup = {
 
 declare global {
   interface Window {
-    PaystackPop?: {
-      setup: (options: {
+    PaystackPop?: new () => {
+      newTransaction: (options: {
         key: string;
         email: string;
         amount: number;
         currency: string;
-        ref: string;
-        label?: string;
+        reference: string;
         metadata?: Record<string, unknown>;
-        callback: (response: { reference: string }) => void;
-        onClose: () => void;
-      }) => { openIframe: () => void };
+        onSuccess: (transaction: { reference: string }) => void;
+        onCancel: () => void;
+        onError: (error: { message?: string }) => void;
+      }) => void;
     };
   }
 }
@@ -892,35 +892,31 @@ async function startOnlinePayment(invoice: Invoice) {
   try {
     await loadPaymentWindow();
     const { data } = await supabase.auth.getUser();
-    if (!data.user?.email || !window.PaystackPop) {
+    const Paystack = window.PaystackPop;
+    if (!data.user?.email || typeof Paystack !== "function") {
       throw new Error("Online payment is temporarily unavailable.");
     }
 
     const balance = getBalance(invoice);
-    window.PaystackPop.setup({
+    const popup = new Paystack();
+    popup.newTransaction({
       key,
       email: data.user.email,
       amount: Math.round(balance * 100),
       currency: invoice.currency,
-      ref: `due-${invoice.id}-${Date.now()}`,
-      label: invoice.description || "Estate due",
+      reference: `due-${invoice.id}-${Date.now()}`,
       metadata: {
         invoice_id: invoice.id,
         resident_id: invoice.resident_id,
       },
-      callback: async ({ reference }) => {
-        try {
-          const receipt = await verifyDuePayment({
-            data: { invoiceId: invoice.id, reference },
-          });
-          sessionStorage.setItem("duePaymentReceipt", JSON.stringify(receipt));
-          window.location.href = "/dashboard";
-        } catch (error) {
-          toast.error(error instanceof Error ? error.message : "Payment could not be confirmed.");
-        }
+      onSuccess: ({ reference }) => {
+        void confirmCompletedPayment(invoice, reference);
       },
-      onClose: () => undefined,
-    }).openIframe();
+      onCancel: () => undefined,
+      onError: (paymentError) => {
+        toast.error(paymentError.message || "Payment could not be started.");
+      },
+    });
   } catch (error) {
     toast.error(
       error instanceof Error ? error.message : "Online payment is temporarily unavailable.",
@@ -930,11 +926,14 @@ async function startOnlinePayment(invoice: Invoice) {
 
 function loadPaymentWindow() {
   return new Promise<void>((resolve, reject) => {
-    if (window.PaystackPop) {
+    if (
+      typeof window.PaystackPop === "function" &&
+      "newTransaction" in window.PaystackPop.prototype
+    ) {
       resolve();
       return;
     }
-    const existing = document.querySelector<HTMLScriptElement>("script[data-payment-window]");
+    const existing = document.querySelector<HTMLScriptElement>("script[data-payment-window='v2']");
     if (existing) {
       existing.addEventListener("load", () => resolve(), { once: true });
       existing.addEventListener(
@@ -946,12 +945,26 @@ function loadPaymentWindow() {
       );
       return;
     }
+    document.querySelector<HTMLScriptElement>("script[data-payment-window]")?.remove();
+    window.PaystackPop = undefined;
     const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
+    script.src = "https://js.paystack.co/v2/inline.js";
     script.async = true;
-    script.dataset.paymentWindow = "true";
+    script.dataset.paymentWindow = "v2";
     script.onload = () => resolve();
     script.onerror = () => reject(new Error("Payment window failed to load."));
     document.head.appendChild(script);
   });
+}
+
+async function confirmCompletedPayment(invoice: Invoice, reference: string) {
+  try {
+    const receipt = await verifyDuePayment({
+      data: { invoiceId: invoice.id, reference },
+    });
+    sessionStorage.setItem("duePaymentReceipt", JSON.stringify(receipt));
+    window.location.href = "/dashboard";
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : "Payment could not be confirmed.");
+  }
 }
