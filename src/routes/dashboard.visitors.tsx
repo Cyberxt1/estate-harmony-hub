@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { QrCode, Plus, CheckCircle2, XCircle } from "lucide-react";
+import { QrCode, Plus, CheckCircle2, Download, Share2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -36,6 +36,7 @@ function VisitorsPage() {
   const [purpose, setPurpose] = useState("");
   const [expectedAt, setExpectedAt] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
+  const [shareVisitor, setShareVisitor] = useState<Visitor | null>(null);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["visitors"],
@@ -52,29 +53,41 @@ function VisitorsPage() {
 
   const invite = useMutation({
     mutationFn: async () => {
-      if (!user || !profile?.estate_id)
+      if (!user || !profile?.estate_id) {
         throw new Error("Your account is not linked to Oyesile Estate yet.");
+      }
+      if (!fullName.trim()) throw new Error("Enter the visitor's full name.");
+      if (!phone.trim()) throw new Error("Enter the visitor's phone number.");
+
       const qr = crypto.randomUUID().replace(/-/g, "").slice(0, 12).toUpperCase();
-      const { error } = await supabase.from("visitors").insert({
-        estate_id: profile.estate_id,
-        host_id: user.id,
-        full_name: fullName,
-        phone,
-        purpose,
-        expected_at: expectedAt ? new Date(expectedAt).toISOString() : null,
-        qr_code: qr,
-        status: "expected",
-      });
+      const { data: visitor, error } = await supabase
+        .from("visitors")
+        .insert({
+          estate_id: profile.estate_id,
+          host_id: user.id,
+          full_name: fullName.trim(),
+          phone: phone.trim(),
+          purpose: purpose.trim() || null,
+          expected_at: expectedAt ? new Date(expectedAt).toISOString() : null,
+          qr_code: qr,
+          status: "expected",
+        })
+        .select("*")
+        .single();
+
       if (error) throw error;
+      return visitor;
     },
-    onSuccess: () => {
-      toast.success("Visitor invited. Share the QR code with them.");
+    onSuccess: async (visitor) => {
+      toast.success("Visitor invite created.");
+      setShareVisitor(visitor);
       setOpen(false);
       setFullName("");
       setPhone("");
       setPurpose("");
       setExpectedAt("");
-      qc.invalidateQueries({ queryKey: ["visitors"] });
+      await qc.invalidateQueries({ queryKey: ["visitors"] });
+      openWhatsAppShare(visitor, profile?.full_name || "Resident");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -118,6 +131,9 @@ function VisitorsPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Invite a visitor</DialogTitle>
+              <DialogDescription>
+                Create the invite, download the QR, and send it straight to the visitor.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -125,8 +141,12 @@ function VisitorsPage() {
                 <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
               </div>
               <div className="space-y-2">
-                <Label>Phone</Label>
-                <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Label>Visitor phone</Label>
+                <Input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="08012345678"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Purpose</Label>
@@ -142,7 +162,10 @@ function VisitorsPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => invite.mutate()} disabled={!fullName || invite.isPending}>
+              <Button
+                onClick={() => invite.mutate()}
+                disabled={!fullName.trim() || !phone.trim() || invite.isPending}
+              >
                 Generate QR
               </Button>
             </DialogFooter>
@@ -175,9 +198,9 @@ function VisitorsPage() {
                   onClick={() => setSelectedVisitor(v)}
                 >
                   <td className="px-4 py-3 font-medium">{v.full_name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{v.purpose || "—"}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{v.purpose || "-"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {v.expected_at ? new Date(v.expected_at).toLocaleString() : "—"}
+                    {v.expected_at ? new Date(v.expected_at).toLocaleString() : "-"}
                   </td>
                   <td className="px-4 py-3 font-mono text-xs">{v.qr_code}</td>
                   <td className="px-4 py-3">
@@ -186,30 +209,32 @@ function VisitorsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {(isSecurity || isAdmin) && v.status === "expected" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          updateStatus.mutate({ id: v.id, status: "checked_in" });
-                        }}
-                      >
-                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Check in
+                    <div
+                      className="flex flex-wrap justify-end gap-2"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Button size="sm" variant="outline" onClick={() => setShareVisitor(v)}>
+                        <Share2 className="mr-1 h-3.5 w-3.5" /> Share
                       </Button>
-                    )}
-                    {(isSecurity || isAdmin) && v.status === "checked_in" && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          updateStatus.mutate({ id: v.id, status: "checked_out" });
-                        }}
-                      >
-                        <XCircle className="mr-1 h-3.5 w-3.5" /> Check out
-                      </Button>
-                    )}
+                      {(isSecurity || isAdmin) && v.status === "expected" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateStatus.mutate({ id: v.id, status: "checked_in" })}
+                        >
+                          <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Check in
+                        </Button>
+                      )}
+                      {(isSecurity || isAdmin) && v.status === "checked_in" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => updateStatus.mutate({ id: v.id, status: "checked_out" })}
+                        >
+                          <XCircle className="mr-1 h-3.5 w-3.5" /> Check out
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -246,6 +271,51 @@ function VisitorsPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!shareVisitor} onOpenChange={(open) => !open && setShareVisitor(null)}>
+        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{shareVisitor?.full_name || "Visitor invite"}</DialogTitle>
+            <DialogDescription>
+              Download the QR code or send the invite straight to the visitor.
+            </DialogDescription>
+          </DialogHeader>
+          {shareVisitor && (
+            <div className="space-y-4">
+              <div className="rounded-2xl border border-border bg-secondary/20 p-4">
+                <img
+                  src={getVisitorQrImageUrl(shareVisitor)}
+                  alt={`QR code for ${shareVisitor.full_name}`}
+                  className="mx-auto h-64 w-64 rounded-xl bg-white p-3"
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Detail label="Code" value={shareVisitor.qr_code} />
+                <Detail label="Phone" value={shareVisitor.phone} />
+                <Detail label="Purpose" value={shareVisitor.purpose} wide />
+                <Detail label="Expected arrival" value={formatDateTime(shareVisitor.expected_at)} wide />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Button
+                  className="flex-1"
+                  variant="outline"
+                  onClick={() => void downloadQrCode(shareVisitor)}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download QR
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={() => openWhatsAppShare(shareVisitor, profile?.full_name || "Resident")}
+                >
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share on WhatsApp
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -271,4 +341,82 @@ function Detail({
 
 function formatDateTime(value?: string | null) {
   return value ? new Date(value).toLocaleString() : "Not provided";
+}
+
+function getVisitorInvitePayload(visitor: Visitor) {
+  return [
+    `Estate visitor invite for ${visitor.full_name}`,
+    `Gate code: ${visitor.qr_code || "Not available"}`,
+    `Purpose: ${visitor.purpose || "Visitor entry"}`,
+    `Expected time: ${formatDateTime(visitor.expected_at)}`,
+  ].join("\n");
+}
+
+function getVisitorQrImageUrl(visitor: Visitor) {
+  const payload = getVisitorInvitePayload(visitor);
+  return `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(payload)}`;
+}
+
+function getVisitorWhatsAppLink(visitor: Visitor, hostName: string) {
+  const phone = normalizeWhatsAppPhone(visitor.phone);
+  if (!phone) return null;
+
+  const text = [
+    `Hello ${visitor.full_name},`,
+    `${hostName} invited you to Oyesile Estate.`,
+    "",
+    `Gate code: ${visitor.qr_code || "Not available"}`,
+    `Purpose: ${visitor.purpose || "Visitor entry"}`,
+    `Expected time: ${formatDateTime(visitor.expected_at)}`,
+    "",
+    `QR code: ${getVisitorQrImageUrl(visitor)}`,
+    "Please show the QR code or gate code at the entrance.",
+  ].join("\n");
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+}
+
+function normalizeWhatsAppPhone(value?: string | null) {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith("+")) {
+    return trimmed.slice(1).replace(/\D/g, "");
+  }
+
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("234")) return digits;
+  if (digits.length === 11 && digits.startsWith("0")) return `234${digits.slice(1)}`;
+  return digits;
+}
+
+function openWhatsAppShare(visitor: Visitor, hostName: string) {
+  const link = getVisitorWhatsAppLink(visitor, hostName);
+  if (!link) {
+    toast.error("Enter a valid visitor phone number with country code or a working mobile number.");
+    return;
+  }
+
+  window.open(link, "_blank", "noopener,noreferrer");
+}
+
+async function downloadQrCode(visitor: Visitor) {
+  try {
+    const response = await fetch(getVisitorQrImageUrl(visitor));
+    if (!response.ok) throw new Error("QR download failed");
+    const blob = await response.blob();
+    const fileUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = `${visitor.full_name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "visitor"}-qr.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(fileUrl);
+  } catch {
+    toast.error("QR code could not be downloaded right now.");
+  }
 }
