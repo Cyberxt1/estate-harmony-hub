@@ -99,7 +99,7 @@ function AuthPage() {
             Welcome to the Oyesile Estate community app.
           </h2>
           <p className="mt-4 max-w-md text-muted-foreground">
-            Sign in to see dues, Paystack-ready payments, visitors, security
+            Sign in to manage payments, visitors, security
             updates and announcements for your home.
           </p>
         </div>

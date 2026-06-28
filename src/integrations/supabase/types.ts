@@ -893,6 +893,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_verified_due_payment: {
+        Args: { _amount: number; _invoice_id: string; _reference: string }
+        Returns: undefined
+      }
       current_estate_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {

@@ -15,12 +15,12 @@ export type AppRole =
   | "domestic_staff";
 
 const adminRoles: AppRole[] = [
-  "super_admin",
-  "estate_admin",
   "community_chairman",
   "community_secretary",
-  "treasurer",
   "chief_security_officer",
+  "super_admin",
+  "estate_admin",
+  "treasurer",
 ];
 
 export interface Profile {

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Megaphone, Plus } from "lucide-react";
+import { Megaphone, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -20,6 +20,16 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/dashboard/announcements")({
   component: AnnouncementsPage,
@@ -32,6 +42,7 @@ function AnnouncementsPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
 
@@ -63,6 +74,20 @@ function AnnouncementsPage() {
       qc.invalidateQueries({ queryKey: ["announcements"] });
     },
     onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (announcement: Announcement) => {
+      const { error } = await supabase.from("announcements").delete().eq("id", announcement.id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Announcement deleted");
+      setAnnouncementToDelete(null);
+      setSelectedAnnouncement(null);
+      await qc.invalidateQueries({ queryKey: ["announcements"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   return (
@@ -143,10 +168,45 @@ function AnnouncementsPage() {
                   {selectedAnnouncement.published_at ? new Date(selectedAnnouncement.published_at).toLocaleString() : "Not provided"}
                 </p>
               </div>
+              {isAdmin && (
+                <div className="flex justify-end border-t border-border pt-4">
+                  <Button
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => setAnnouncementToDelete(selectedAnnouncement)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete announcement
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(announcementToDelete)}
+        onOpenChange={(open) => !open && setAnnouncementToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this announcement?</AlertDialogTitle>
+            <AlertDialogDescription>
+              It will disappear for everyone in the community. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep announcement</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => announcementToDelete && remove.mutate(announcementToDelete)}
+            >
+              Delete announcement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

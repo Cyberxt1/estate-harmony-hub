@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { toast } from "sonner";
 import {
   Users,
   Home,
@@ -19,6 +21,24 @@ export const Route = createFileRoute("/dashboard/")({
 function DashboardHome() {
   const { profile, primaryRole, isAdmin, isSecurity } = useAuth();
 
+  useEffect(() => {
+    const rawReceipt = sessionStorage.getItem("duePaymentReceipt");
+    if (!rawReceipt) return;
+    sessionStorage.removeItem("duePaymentReceipt");
+    try {
+      const receipt = JSON.parse(rawReceipt) as {
+        title: string;
+        amount: number;
+        currency: string;
+      };
+      toast.success(`You paid ${receipt.title}`, {
+        description: formatMoney(receipt.amount, receipt.currency),
+      });
+    } catch {
+      toast.success("Your due was paid successfully");
+    }
+  }, []);
+
   const { data: stats } = useQuery({
     queryKey: ["dashboard-stats", profile?.estate_id, primaryRole],
     queryFn: async () => {
@@ -34,6 +54,11 @@ function DashboardHome() {
         (sum, i) => sum + (Number(i.amount) - Number(i.amount_paid ?? 0)),
         0,
       );
+      const duesToPay = (invoices.data ?? []).filter(
+        (invoice) =>
+          Number(invoice.amount) > Number(invoice.amount_paid ?? 0) &&
+          !["draft", "paid", "cancelled"].includes(invoice.status),
+      ).length;
       return {
         residents: residents.count ?? 0,
         properties: properties.count ?? 0,
@@ -41,6 +66,7 @@ function DashboardHome() {
         complaints: complaints.count ?? 0,
         incidents: incidents.count ?? 0,
         outstanding,
+        duesToPay,
       };
     },
   });
@@ -61,7 +87,7 @@ function DashboardHome() {
         ]
       : [
           { label: "Expected visitors", value: stats?.visitors ?? 0, icon: QrCode },
-          { label: "Outstanding dues", value: formatMoney(stats?.outstanding ?? 0), icon: CreditCard },
+          { label: "Dues to pay", value: stats?.duesToPay ?? 0, icon: CreditCard },
           { label: "Open complaints", value: stats?.complaints ?? 0, icon: MessageSquareWarning },
           { label: "Announcements", value: "—", icon: TrendingUp },
         ];
@@ -78,21 +104,30 @@ function DashboardHome() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => (
-          <div
-            key={c.label}
-            className="rounded-2xl border border-border bg-card p-5"
-            style={{ boxShadow: "var(--shadow-soft)" }}
-          >
-            <div className="flex items-start justify-between">
-              <p className="text-sm text-muted-foreground">{c.label}</p>
-              <div className="grid h-8 w-8 place-items-center rounded-md bg-accent text-accent-foreground">
-                <c.icon className="h-4 w-4" />
+        {cards.map((c) => {
+          const card = (
+            <div
+              className="rounded-2xl border border-border bg-card p-5"
+              style={{ boxShadow: "var(--shadow-soft)" }}
+            >
+              <div className="flex items-start justify-between">
+                <p className="text-sm text-muted-foreground">{c.label}</p>
+                <div className="grid h-8 w-8 place-items-center rounded-md bg-accent text-accent-foreground">
+                  <c.icon className="h-4 w-4" />
+                </div>
               </div>
+              <p className="mt-3 font-display text-2xl font-semibold">{c.value}</p>
             </div>
-            <p className="mt-3 font-display text-2xl font-semibold">{c.value}</p>
-          </div>
-        ))}
+          );
+
+          return c.label === "Outstanding dues" || c.label === "Dues to pay" ? (
+            <Link key={c.label} to="/dashboard/payments" className="block">
+              {card}
+            </Link>
+          ) : (
+            <div key={c.label}>{card}</div>
+          );
+        })}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -100,14 +135,14 @@ function DashboardHome() {
           <h2 className="mb-2 font-display text-lg font-semibold">Getting started</h2>
           <p className="text-sm text-muted-foreground">
             Oyesile Estate is ready for resident records, properties, visitors,
-            reviewed payments and community announcements.
+            dues and community announcements.
           </p>
           <ul className="mt-4 space-y-2 text-sm">
             {[
               "Confirm Oyesile Estate details in Settings",
               "Add properties and assign households",
               "Assign community officers and security roles",
-              "Create repeating dues for tenants and landlords",
+              "Create dues for all members or selected residents",
             ].map((s, i) => (
               <li key={s} className="flex items-start gap-3">
                 <span className="mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
@@ -131,10 +166,10 @@ function DashboardHome() {
   );
 }
 
-function formatMoney(n: number) {
+function formatMoney(n: number, currency = "NGN") {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
-    currency: "NGN",
+    currency,
     maximumFractionDigits: 0,
   }).format(n);
 }

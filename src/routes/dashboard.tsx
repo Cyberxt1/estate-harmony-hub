@@ -38,7 +38,7 @@ const nav = [
   { to: "/dashboard/residents", label: "Residents", icon: Users, groups: ["operations"] },
   { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations"] },
   { to: "/dashboard/visitors", label: "Visitors", icon: QrCode, groups: ["resident", "cso"] },
-  { to: "/dashboard/payments", label: "Payments", icon: CreditCard, groups: ["resident", "operations", "cso"] },
+  { to: "/dashboard/payments", label: "Dues", icon: CreditCard, groups: ["resident", "operations", "cso"] },
   { to: "/dashboard/announcements", label: "Announcements", icon: Megaphone, groups: ["resident", "operations", "cso"] },
   { to: "/dashboard/complaints", label: "Complaints", icon: MessageSquareWarning, groups: ["resident", "operations"] },
   { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso"] },
