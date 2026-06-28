@@ -11,11 +11,11 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { verifyDuePayment } from "@/lib/payments.functions";
+import { getDuePaymentAvailability, verifyDuePayment } from "@/lib/payments.functions";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -76,6 +76,14 @@ type DueGroup = {
   totalExpected: number;
   invoices: Invoice[];
 };
+
+type PendingDuePayment = {
+  invoiceId: string;
+  reference: string;
+  savedAt: number;
+};
+
+const PENDING_DUE_PAYMENT_KEY = "pendingDuePayments";
 
 declare global {
   interface Window {
@@ -163,6 +171,30 @@ function PaymentsPage() {
     }
     return residents.filter((resident) => resident.resident_type === audience);
   }, [audience, residents, selectedMemberIds]);
+
+  useEffect(() => {
+    if (isAdmin || isLoading || invoices.length === 0) return;
+    const pendingPayments = readPendingDuePayments();
+    if (pendingPayments.length === 0) return;
+
+    pendingPayments.forEach((payment) => {
+      const invoice = invoices.find((item) => item.id === payment.invoiceId);
+      if (invoice && getBalance(invoice) === 0) {
+        clearPendingDuePayment(payment.invoiceId, payment.reference);
+      }
+    });
+
+    const pendingInvoice = pendingPayments
+      .map((payment) => ({
+        payment,
+        invoice: invoices.find((invoice) => invoice.id === payment.invoiceId),
+      }))
+      .find(({ invoice }) => invoice && getBalance(invoice) > 0);
+
+    if (!pendingInvoice?.invoice) return;
+
+    void confirmCompletedPayment(pendingInvoice.invoice, pendingInvoice.payment.reference, true);
+  }, [invoices, isAdmin, isLoading]);
 
   const resetForm = () => {
     setTitle("");
@@ -894,6 +926,13 @@ async function startOnlinePayment(invoice: Invoice) {
   }
 
   try {
+    const availability = await getDuePaymentAvailability();
+    if (!availability.available) {
+      throw new Error(
+        "Online payment confirmation is not ready yet. Add the Paystack secret key on the server first.",
+      );
+    }
+
     await loadPaymentWindow();
     const { data } = await supabase.auth.getUser();
     const Paystack = window.PaystackPop;
@@ -914,6 +953,7 @@ async function startOnlinePayment(invoice: Invoice) {
         resident_id: invoice.resident_id,
       },
       onSuccess: ({ reference }) => {
+        savePendingDuePayment(invoice.id, reference);
         void confirmCompletedPayment(invoice, reference);
       },
       onCancel: () => undefined,
@@ -961,14 +1001,66 @@ function loadPaymentWindow() {
   });
 }
 
-async function confirmCompletedPayment(invoice: Invoice, reference: string) {
+async function confirmCompletedPayment(invoice: Invoice, reference: string, silent = false) {
   try {
     const receipt = await verifyDuePayment({
       data: { invoiceId: invoice.id, reference },
     });
+    clearPendingDuePayment(invoice.id, reference);
     sessionStorage.setItem("duePaymentReceipt", JSON.stringify(receipt));
     window.location.href = "/dashboard";
   } catch (error) {
-    toast.error(error instanceof Error ? error.message : "Payment could not be confirmed.");
+    const message = error instanceof Error ? error.message : "Payment could not be confirmed.";
+
+    if (message.includes("temporarily unavailable")) {
+      if (!silent) {
+        toast.error("Payment completed but confirmation is waiting", {
+          description:
+            "We saved your payment reference and will retry confirmation when you open Payments again.",
+        });
+      }
+      return;
+    }
+
+    if (!silent) toast.error(message);
   }
+}
+
+function readPendingDuePayments(): PendingDuePayment[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = localStorage.getItem(PENDING_DUE_PAYMENT_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as PendingDuePayment[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writePendingDuePayments(payments: PendingDuePayment[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_DUE_PAYMENT_KEY, JSON.stringify(payments.slice(-10)));
+}
+
+function savePendingDuePayment(invoiceId: string, reference: string) {
+  const others = readPendingDuePayments().filter(
+    (payment) => payment.invoiceId !== invoiceId || payment.reference !== reference,
+  );
+  writePendingDuePayments([
+    ...others,
+    {
+      invoiceId,
+      reference,
+      savedAt: Date.now(),
+    },
+  ]);
+}
+
+function clearPendingDuePayment(invoiceId: string, reference: string) {
+  const next = readPendingDuePayments().filter(
+    (payment) => payment.invoiceId !== invoiceId || payment.reference !== reference,
+  );
+  writePendingDuePayments(next);
 }

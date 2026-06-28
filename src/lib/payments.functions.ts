@@ -15,6 +15,24 @@ type VerifyResponse = {
   };
 };
 
+function getPaystackSecretKey() {
+  return (
+    process.env.PAYSTACK_SECRET_KEY ||
+    process.env.PAYSTACK_SECRET ||
+    process.env.PAYSTACK_SK ||
+    process.env.SECRET_PAYSTACK_KEY ||
+    null
+  );
+}
+
+export const getDuePaymentAvailability = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => {
+    return {
+      available: Boolean(getPaystackSecretKey()),
+    };
+  });
+
 export const verifyDuePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input: { invoiceId: string; reference: string }) => {
@@ -22,7 +40,7 @@ export const verifyDuePayment = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const secretKey = process.env.PAYSTACK_SECRET_KEY;
+    const secretKey = getPaystackSecretKey();
     if (!secretKey) throw new Error("Online payment confirmation is temporarily unavailable.");
 
     const { data: invoice, error: invoiceError } = await context.supabase
