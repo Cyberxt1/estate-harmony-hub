@@ -1,10 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Home, MessageCircle, Phone, Plus, UserPlus, X } from "lucide-react";
+import { Building2, History, Home, MessageCircle, Phone, Plus, UserPlus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import {
+  classifyPropertyOccupants,
+  getPropertyLabel,
+  sortPropertiesByHouse,
+} from "@/lib/property-occupancy";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { PageLoadError, PageLoading } from "@/components/page-loading";
@@ -34,9 +39,14 @@ export const Route = createFileRoute("/dashboard/properties")({
 
 type Property = Tables<"properties">;
 type Occupant = Tables<"property_occupants">;
-type NewOccupant = { fullName: string; phone: string; whatsappNumber: string };
+type NewTenant = { fullName: string; phone: string; whatsappNumber: string; stayDuration: string };
 
-const emptyOccupant = (): NewOccupant => ({ fullName: "", phone: "", whatsappNumber: "" });
+const emptyTenant = (): NewTenant => ({
+  fullName: "",
+  phone: "",
+  whatsappNumber: "",
+  stayDuration: "",
+});
 
 function PropertiesPage() {
   const { profile, isAdmin } = useAuth();
@@ -55,7 +65,9 @@ function PropertiesPage() {
   const [waterMeter, setWaterMeter] = useState("");
   const [occupantCapacity, setOccupantCapacity] = useState("");
   const [notes, setNotes] = useState("");
-  const [occupants, setOccupants] = useState<NewOccupant[]>([emptyOccupant()]);
+  const [landlordName, setLandlordName] = useState("");
+  const [landlordPhone, setLandlordPhone] = useState("");
+  const [tenants, setTenants] = useState<NewTenant[]>([emptyTenant()]);
 
   const {
     data: properties = [],
@@ -70,7 +82,7 @@ function PropertiesPage() {
         .order("compound_name", { ascending: true })
         .order("house_number", { ascending: true });
       if (error) throw error;
-      return data ?? [];
+      return sortPropertiesByHouse(data ?? []);
     },
   });
 
@@ -85,7 +97,8 @@ function PropertiesPage() {
       const { data, error } = await supabase
         .from("property_occupants")
         .select("*")
-        .order("is_primary", { ascending: false })
+        .order("is_current", { ascending: false })
+        .order("occupant_type", { ascending: true })
         .order("full_name", { ascending: true });
       if (error) throw error;
       return data ?? [];
@@ -113,14 +126,17 @@ function PropertiesPage() {
     setWaterMeter("");
     setOccupantCapacity("");
     setNotes("");
-    setOccupants([emptyOccupant()]);
+    setLandlordName("");
+    setLandlordPhone("");
+    setTenants([emptyTenant()]);
   };
 
   const createProperty = useMutation({
     mutationFn: async () => {
       if (!profile?.estate_id) throw new Error("Your account is not linked to the estate.");
       if (!houseNumber.trim()) throw new Error("Enter a house or unit number.");
-      const validOccupants = occupants.filter((occupant) => occupant.fullName.trim());
+
+      const validTenants = tenants.filter((tenant) => tenant.fullName.trim());
 
       const { data: property, error } = await supabase
         .from("properties")
@@ -141,19 +157,44 @@ function PropertiesPage() {
         })
         .select()
         .single();
+
       if (error) throw error;
 
-      if (validOccupants.length > 0) {
-        const { error: occupantError } = await supabase.from("property_occupants").insert(
-          validOccupants.map((occupant, index) => ({
-            estate_id: profile.estate_id!,
-            property_id: property.id,
-            full_name: occupant.fullName.trim(),
-            phone: occupant.phone.trim() || null,
-            whatsapp_number: occupant.whatsappNumber.trim() || occupant.phone.trim() || null,
-            is_primary: index === 0,
-          })),
-        );
+      const occupantRows: Tables<"property_occupants">["Insert"][] = [];
+
+      if (landlordName.trim()) {
+        occupantRows.push({
+          estate_id: profile.estate_id,
+          property_id: property.id,
+          full_name: landlordName.trim(),
+          phone: landlordPhone.trim() || null,
+          whatsapp_number: landlordPhone.trim() || null,
+          occupant_type: "landlord",
+          is_primary: true,
+          is_current: true,
+        });
+      }
+
+      validTenants.forEach((tenant, index) => {
+        occupantRows.push({
+          estate_id: profile.estate_id!,
+          property_id: property.id,
+          full_name: tenant.fullName.trim(),
+          phone: tenant.phone.trim() || null,
+          whatsapp_number: tenant.whatsappNumber.trim() || tenant.phone.trim() || null,
+          occupant_type: "tenant",
+          landlord_name: landlordName.trim() || null,
+          landlord_phone: landlordPhone.trim() || null,
+          stay_duration: tenant.stayDuration.trim() || null,
+          is_primary: !landlordName.trim() && index === 0,
+          is_current: true,
+        });
+      });
+
+      if (occupantRows.length > 0) {
+        const { error: occupantError } = await supabase
+          .from("property_occupants")
+          .insert(occupantRows);
         if (occupantError) {
           await supabase.from("properties").delete().eq("id", property.id);
           throw occupantError;
@@ -172,10 +213,10 @@ function PropertiesPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const updateOccupant = (index: number, patch: Partial<NewOccupant>) => {
-    setOccupants((current) =>
-      current.map((occupant, occupantIndex) =>
-        occupantIndex === index ? { ...occupant, ...patch } : occupant,
+  const updateTenant = (index: number, patch: Partial<NewTenant>) => {
+    setTenants((current) =>
+      current.map((tenant, tenantIndex) =>
+        tenantIndex === index ? { ...tenant, ...patch } : tenant,
       ),
     );
   };
@@ -184,7 +225,7 @@ function PropertiesPage() {
     <div>
       <PageHeader
         title="Properties"
-        description="Every compound, house, apartment and the people living there."
+        description="Every property, the landlord in charge, the tenants there now, and the tenants who have moved out."
         icon={Home}
       >
         {isAdmin && (
@@ -198,10 +239,21 @@ function PropertiesPage() {
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <Stat label="Properties" value={properties.length} />
         <Stat
-          label="Compounds"
-          value={new Set(properties.map((property) => property.compound_name).filter(Boolean)).size}
+          label="Landlords shown"
+          value={
+            allOccupants.filter(
+              (occupant) => occupant.occupant_type === "landlord" && occupant.is_current,
+            ).length
+          }
         />
-        <Stat label="Known occupants" value={allOccupants.length} />
+        <Stat
+          label="Current tenants"
+          value={
+            allOccupants.filter(
+              (occupant) => occupant.occupant_type === "tenant" && occupant.is_current,
+            ).length
+          }
+        />
       </div>
 
       {isError || occupantsError ? (
@@ -209,36 +261,58 @@ function PropertiesPage() {
       ) : isLoading || occupantsLoading ? (
         <PageLoading label="Loading properties" onRetry={() => void queryClient.refetchQueries()} />
       ) : properties.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {properties.map((property) => {
             const propertyOccupants = occupantsByProperty.get(property.id) ?? [];
+            const { currentLandlords, currentTenants, previousTenants } =
+              classifyPropertyOccupants(propertyOccupants);
+            const landlord = currentLandlords[0];
+
             return (
               <button
                 key={property.id}
                 type="button"
-                className="rounded-xl border border-border bg-card p-5 text-left transition hover:border-primary/40"
+                className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40"
                 onClick={() => setSelectedProperty(property)}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-medium uppercase text-muted-foreground">
                       {property.compound_name || "Standalone property"}
                     </p>
-                    <h2 className="mt-1 font-display text-xl font-semibold">
-                      {property.apartment_name || property.house_number}
+                    <h2 className="mt-1 truncate text-base font-semibold">
+                      {getPropertyLabel(property)}
                     </h2>
-                    {property.apartment_name && (
-                      <p className="mt-1 text-sm text-muted-foreground">{property.house_number}</p>
+                    {property.street && (
+                      <p className="mt-1 truncate text-sm text-muted-foreground">
+                        {property.street}
+                      </p>
                     )}
                   </div>
-                  <Building2 className="h-5 w-5 text-primary" />
+                  <Building2 className="h-5 w-5 shrink-0 text-primary" />
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground">
-                  {property.street || "Street not provided"}
-                </p>
-                <div className="mt-4 flex items-center justify-between border-t border-border pt-4 text-sm">
-                  <span>{propertyOccupants.length} living here</span>
-                  <span className="capitalize text-muted-foreground">{property.status}</span>
+
+                <div className="mt-4 space-y-2 text-sm">
+                  <p>
+                    <span className="text-muted-foreground">Landlord:</span>{" "}
+                    <span className="font-medium">{landlord?.full_name || "Not added"}</span>
+                  </p>
+                  <p>
+                    <span className="text-muted-foreground">Current tenants:</span>{" "}
+                    <span className="font-medium">
+                      {currentTenants.length > 0
+                        ? currentTenants.map((tenant) => tenant.full_name).join(", ")
+                        : "None"}
+                    </span>
+                  </p>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                  <span className="capitalize">{property.status.replace("_", " ")}</span>
+                  <span>
+                    {previousTenants.length} previous tenant
+                    {previousTenants.length === 1 ? "" : "s"}
+                  </span>
                 </div>
               </button>
             );
@@ -262,8 +336,7 @@ function PropertiesPage() {
           <DialogHeader>
             <DialogTitle>Add property</DialogTitle>
             <DialogDescription>
-              Each apartment or house is one property. Use the same compound name to group several
-              apartments together.
+              Add the property itself, then record the landlord and any current tenants.
             </DialogDescription>
           </DialogHeader>
 
@@ -385,25 +458,43 @@ function PropertiesPage() {
               </Field>
             </FormSection>
 
-            <FormSection title="People living here">
+            <FormSection title="Landlord">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Landlord name">
+                  <Input
+                    value={landlordName}
+                    onChange={(event) => setLandlordName(event.target.value)}
+                    placeholder="Owner of this property"
+                  />
+                </Field>
+                <Field label="Landlord phone">
+                  <Input
+                    type="tel"
+                    value={landlordPhone}
+                    onChange={(event) => setLandlordPhone(event.target.value)}
+                    placeholder="080..."
+                  />
+                </Field>
+              </div>
+            </FormSection>
+
+            <FormSection title="Current tenants">
               <p className="text-sm text-muted-foreground">
-                Add the name and contact of each known occupant. The first person is treated as the
-                main contact.
+                Tenants do not own the property. Add their stay details here if they are already
+                living in it.
               </p>
               <div className="space-y-3">
-                {occupants.map((occupant, index) => (
+                {tenants.map((tenant, index) => (
                   <div key={index} className="rounded-lg border border-border p-4">
                     <div className="mb-3 flex items-center justify-between">
-                      <p className="text-sm font-medium">
-                        {index === 0 ? "Main contact" : `Occupant ${index + 1}`}
-                      </p>
-                      {occupants.length > 1 && (
+                      <p className="text-sm font-medium">Tenant {index + 1}</p>
+                      {tenants.length > 1 && (
                         <Button
                           type="button"
                           size="icon"
                           variant="ghost"
                           onClick={() =>
-                            setOccupants((current) =>
+                            setTenants((current) =>
                               current.filter((_, itemIndex) => itemIndex !== index),
                             )
                           }
@@ -412,27 +503,32 @@ function PropertiesPage() {
                         </Button>
                       )}
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       <Input
-                        value={occupant.fullName}
-                        onChange={(event) =>
-                          updateOccupant(index, { fullName: event.target.value })
-                        }
+                        value={tenant.fullName}
+                        onChange={(event) => updateTenant(index, { fullName: event.target.value })}
                         placeholder="Full name"
                       />
                       <Input
                         type="tel"
-                        value={occupant.phone}
-                        onChange={(event) => updateOccupant(index, { phone: event.target.value })}
+                        value={tenant.phone}
+                        onChange={(event) => updateTenant(index, { phone: event.target.value })}
                         placeholder="Phone"
                       />
                       <Input
                         type="tel"
-                        value={occupant.whatsappNumber}
+                        value={tenant.whatsappNumber}
                         onChange={(event) =>
-                          updateOccupant(index, { whatsappNumber: event.target.value })
+                          updateTenant(index, { whatsappNumber: event.target.value })
                         }
                         placeholder="WhatsApp"
+                      />
+                      <Input
+                        value={tenant.stayDuration}
+                        onChange={(event) =>
+                          updateTenant(index, { stayDuration: event.target.value })
+                        }
+                        placeholder="Duration of stay"
                       />
                     </div>
                   </div>
@@ -441,10 +537,10 @@ function PropertiesPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setOccupants((current) => [...current, emptyOccupant()])}
+                onClick={() => setTenants((current) => [...current, emptyTenant()])}
               >
                 <UserPlus className="mr-2 h-4 w-4" />
-                Add another person
+                Add another tenant
               </Button>
             </FormSection>
           </div>
@@ -482,13 +578,14 @@ function PropertyDetails({
   occupants: Occupant[];
   onClose: () => void;
 }) {
+  const { currentLandlords, currentTenants, previousTenants } =
+    classifyPropertyOccupants(occupants);
+
   return (
     <Dialog open={Boolean(property)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>
-            {property?.apartment_name || property?.house_number || "Property"}
-          </DialogTitle>
+          <DialogTitle>{property ? getPropertyLabel(property) : "Property"}</DialogTitle>
           <DialogDescription>
             {property
               ? [property.compound_name, property.house_number, property.street]
@@ -497,6 +594,7 @@ function PropertyDetails({
               : ""}
           </DialogDescription>
         </DialogHeader>
+
         {property && (
           <div className="space-y-6">
             <section>
@@ -507,7 +605,6 @@ function PropertyDetails({
                 <Detail label="Bedrooms" value={property.bedrooms} />
                 <Detail label="Bathrooms" value={property.bathrooms} />
                 <Detail label="Occupant capacity" value={property.occupant_capacity} />
-                <Detail label="People recorded" value={occupants.length} />
                 <Detail label="Electricity meter" value={property.electricity_meter} />
                 <Detail label="Water meter" value={property.water_meter} />
               </div>
@@ -518,54 +615,113 @@ function PropertyDetails({
               )}
             </section>
 
+            <OccupantSection
+              title="Landlord"
+              emptyText="No landlord has been added."
+              occupants={currentLandlords}
+            />
+
+            <OccupantSection
+              title="Current tenants"
+              emptyText="No current tenants have been added."
+              occupants={currentTenants}
+            />
+
             <section>
-              <h3 className="font-display text-lg font-semibold">People living here</h3>
-              {occupants.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <h3 className="font-display text-lg font-semibold">Previous tenants</h3>
+              </div>
+              {previousTenants.length > 0 ? (
                 <div className="mt-3 space-y-3">
-                  {occupants.map((occupant) => {
-                    const whatsapp = occupant.whatsapp_number || occupant.phone;
-                    return (
-                      <div
-                        key={occupant.id}
-                        className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
-                      >
-                        <div>
-                          <p className="font-medium">{occupant.full_name}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">
-                            {occupant.is_primary ? "Main contact" : "Occupant"}
-                            {occupant.phone ? ` · ${occupant.phone}` : ""}
-                          </p>
-                        </div>
-                        <div className="flex gap-2">
-                          {whatsapp && (
-                            <Button asChild size="sm" variant="outline">
-                              <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
-                                <MessageCircle className="mr-2 h-4 w-4" />
-                                WhatsApp
-                              </a>
-                            </Button>
-                          )}
-                          {occupant.phone && (
-                            <Button asChild size="sm" variant="outline">
-                              <a href={`tel:${occupant.phone}`}>
-                                <Phone className="mr-2 h-4 w-4" />
-                                Call
-                              </a>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                  {previousTenants.map((occupant) => (
+                    <OccupantRow key={occupant.id} occupant={occupant} previous />
+                  ))}
                 </div>
               ) : (
-                <p className="mt-3 text-sm text-muted-foreground">No occupants have been added.</p>
+                <p className="mt-3 text-sm text-muted-foreground">
+                  No previous tenant history yet.
+                </p>
               )}
             </section>
           </div>
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function OccupantSection({
+  title,
+  occupants,
+  emptyText,
+}: {
+  title: string;
+  occupants: Occupant[];
+  emptyText: string;
+}) {
+  return (
+    <section>
+      <h3 className="font-display text-lg font-semibold">{title}</h3>
+      {occupants.length > 0 ? (
+        <div className="mt-3 space-y-3">
+          {occupants.map((occupant) => (
+            <OccupantRow key={occupant.id} occupant={occupant} />
+          ))}
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-muted-foreground">{emptyText}</p>
+      )}
+    </section>
+  );
+}
+
+function OccupantRow({ occupant, previous = false }: { occupant: Occupant; previous?: boolean }) {
+  const whatsapp = occupant.whatsapp_number || occupant.phone;
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="font-medium">{occupant.full_name}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {occupant.occupant_type === "landlord" ? "Landlord" : "Tenant"}
+          {occupant.phone ? ` · ${occupant.phone}` : ""}
+          {occupant.stay_duration ? ` · ${occupant.stay_duration}` : ""}
+        </p>
+        {occupant.occupant_type === "tenant" &&
+          (occupant.landlord_name || occupant.landlord_phone) && (
+            <p className="mt-1 text-sm text-muted-foreground">
+              Landlord: {occupant.landlord_name || "Not provided"}
+              {occupant.landlord_phone ? ` · ${occupant.landlord_phone}` : ""}
+            </p>
+          )}
+        {previous && occupant.move_out_date && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Moved out: {formatDate(occupant.move_out_date)}
+          </p>
+        )}
+      </div>
+      {!previous && (
+        <div className="flex gap-2">
+          {whatsapp && (
+            <Button asChild size="sm" variant="outline">
+              <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
+                <MessageCircle className="mr-2 h-4 w-4" />
+                WhatsApp
+              </a>
+            </Button>
+          )}
+          {occupant.phone && (
+            <Button asChild size="sm" variant="outline">
+              <a href={`tel:${occupant.phone}`}>
+                <Phone className="mr-2 h-4 w-4" />
+                Call
+              </a>
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -609,4 +765,13 @@ function getWhatsAppLink(number: string) {
   const digits = number.replace(/\D/g, "");
   const international = digits.startsWith("0") ? `234${digits.slice(1)}` : digits;
   return `https://wa.me/${international}`;
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "Not provided";
+  return new Date(value).toLocaleDateString("en-NG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }

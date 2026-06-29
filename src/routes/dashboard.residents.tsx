@@ -15,6 +15,11 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { removeCommunityMember } from "@/lib/members.functions";
+import {
+  getResidentHousingDetails,
+  groupResidentsByHouse,
+  syncResidentPropertyOccupancy,
+} from "@/lib/property-occupancy";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { PageLoadError, PageLoading } from "@/components/page-loading";
@@ -67,6 +72,9 @@ function ResidentsPage() {
   const [residentType, setResidentType] = useState<ResidentType>("tenant");
   const [compoundName, setCompoundName] = useState("");
   const [houseOrApartment, setHouseOrApartment] = useState("");
+  const [landlordName, setLandlordName] = useState("");
+  const [landlordPhone, setLandlordPhone] = useState("");
+  const [stayDuration, setStayDuration] = useState("");
 
   const {
     data: residents = [],
@@ -88,13 +96,26 @@ function ResidentsPage() {
   const filteredResidents = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return residents;
-    return residents.filter((resident) =>
-      [resident.full_name, resident.phone, resident.whatsapp_number, resident.email]
+
+    return residents.filter((resident) => {
+      const housing = getResidentHousingDetails(resident);
+      return [
+        resident.full_name,
+        resident.phone,
+        resident.whatsapp_number,
+        resident.email,
+        housing.compoundName,
+        housing.houseOrApartment,
+      ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term)),
-    );
+        .some((value) => String(value).toLowerCase().includes(term));
+    });
   }, [residents, search]);
 
+  const groupedResidents = useMemo(
+    () => groupResidentsByHouse(filteredResidents),
+    [filteredResidents],
+  );
   const activeCount = residents.filter((resident) => resident.status === "active").length;
   const suspendedCount = residents.filter((resident) => resident.status === "suspended").length;
 
@@ -120,10 +141,21 @@ function ResidentsPage() {
     mutationFn: async () => {
       if (!editingResident) throw new Error("Choose a member to edit.");
       if (!fullName.trim()) throw new Error("Enter the member's name.");
+
       const oldData =
         editingResident.onboarding_data && typeof editingResident.onboarding_data === "object"
           ? editingResident.onboarding_data
           : {};
+
+      const onboardingData = {
+        ...oldData,
+        compoundName: compoundName.trim(),
+        houseOrApartment: houseOrApartment.trim(),
+        landlordName: residentType === "tenant" ? landlordName.trim() : "",
+        landlordPhone: residentType === "tenant" ? landlordPhone.trim() : "",
+        stayDuration: residentType === "tenant" ? stayDuration.trim() : "",
+      };
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -131,19 +163,27 @@ function ResidentsPage() {
           phone: phone.trim() || null,
           whatsapp_number: whatsappNumber.trim() || phone.trim() || null,
           resident_type: residentType,
-          onboarding_data: {
-            ...oldData,
-            compoundName: compoundName.trim(),
-            houseOrApartment: houseOrApartment.trim(),
-          },
+          onboarding_data: onboardingData,
         })
         .eq("id", editingResident.id);
+
       if (error) throw error;
+
+      await syncResidentPropertyOccupancy({
+        id: editingResident.id,
+        estate_id: editingResident.estate_id,
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        whatsapp_number: whatsappNumber.trim() || phone.trim() || null,
+        resident_type: residentType,
+        onboarding_data: onboardingData,
+      });
     },
     onSuccess: async () => {
       toast.success("Member details updated");
       setEditingResident(null);
       await queryClient.invalidateQueries({ queryKey: ["residents"] });
+      await queryClient.invalidateQueries({ queryKey: ["property-occupants"] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -162,21 +202,24 @@ function ResidentsPage() {
   });
 
   const openEditor = (resident: Resident) => {
-    const submitted = getSubmittedData(resident);
+    const housing = getResidentHousingDetails(resident);
     setEditingResident(resident);
     setFullName(resident.full_name || "");
     setPhone(resident.phone || "");
     setWhatsappNumber(resident.whatsapp_number || resident.phone || "");
     setResidentType(resident.resident_type || "tenant");
-    setCompoundName(String(submitted.compoundName || ""));
-    setHouseOrApartment(String(submitted.houseOrApartment || ""));
+    setCompoundName(housing.compoundName);
+    setHouseOrApartment(housing.houseOrApartment);
+    setLandlordName(housing.landlordName);
+    setLandlordPhone(housing.landlordPhone);
+    setStayDuration(housing.stayDuration);
   };
 
   return (
     <div>
       <PageHeader
         title="Community members"
-        description="See every member and contact or manage their account."
+        description="Smaller house-by-house view of everyone in the estate."
         icon={Users}
       />
 
@@ -192,7 +235,7 @@ function ResidentsPage() {
           className="pl-9"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search name or phone"
+          placeholder="Search name, phone or house"
         />
       </div>
 
@@ -201,99 +244,121 @@ function ResidentsPage() {
       ) : isLoading ? (
         <PageLoading label="Loading community members" onRetry={() => void refetch()} />
       ) : filteredResidents.length > 0 ? (
-        <div className="space-y-3">
-          {filteredResidents.map((resident) => {
-            const whatsapp = resident.whatsapp_number || resident.phone;
-            return (
-              <article
-                key={resident.id}
-                className="rounded-xl border border-border bg-card p-4 sm:p-5"
-              >
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                  <button
-                    type="button"
-                    className="min-w-0 text-left"
-                    onClick={() => setSelectedResident(resident)}
-                  >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-display text-lg font-semibold">
-                        {resident.full_name || "Unnamed member"}
-                      </h2>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-xs capitalize ${
-                          resident.status === "suspended"
-                            ? "bg-destructive/15 text-destructive"
-                            : "bg-success/15 text-success"
-                        }`}
-                      >
-                        {resident.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm capitalize text-muted-foreground">
-                      {resident.resident_type || "Details incomplete"}
-                      {resident.phone ? ` · ${resident.phone}` : ""}
-                    </p>
-                  </button>
-
-                  <div className="flex flex-wrap gap-2">
-                    {whatsapp && (
-                      <Button asChild size="sm" variant="outline">
-                        <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
-                          <MessageCircle className="mr-2 h-4 w-4" />
-                          WhatsApp
-                        </a>
-                      </Button>
-                    )}
-                    {resident.phone && (
-                      <Button asChild size="sm" variant="outline">
-                        <a href={`tel:${resident.phone}`}>
-                          <Phone className="mr-2 h-4 w-4" />
-                          Call
-                        </a>
-                      </Button>
-                    )}
-                    <Button size="sm" variant="outline" onClick={() => openEditor(resident)}>
-                      <Edit3 className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        updateStatus.mutate({
-                          resident,
-                          status: resident.status === "suspended" ? "active" : "suspended",
-                        })
-                      }
-                    >
-                      {resident.status === "suspended" ? (
-                        <UserCheck className="mr-2 h-4 w-4" />
-                      ) : (
-                        <ShieldOff className="mr-2 h-4 w-4" />
-                      )}
-                      {resident.status === "suspended" ? "Reactivate" : "Suspend"}
-                    </Button>
-                    {resident.id !== user?.id && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setResidentToRemove(resident)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Remove
-                      </Button>
-                    )}
-                  </div>
+        <div className="space-y-4">
+          {groupedResidents.map((group) => (
+            <section
+              key={group.houseLabel}
+              className="overflow-hidden rounded-xl border border-border bg-card"
+            >
+              <div className="flex items-center justify-between border-b border-border bg-secondary/30 px-4 py-2">
+                <div>
+                  <p className="text-xs uppercase text-muted-foreground">House</p>
+                  <h2 className="text-sm font-semibold">{group.houseLabel}</h2>
                 </div>
-              </article>
-            );
-          })}
+                <span className="text-xs text-muted-foreground">
+                  {group.members.length} {group.members.length === 1 ? "member" : "members"}
+                </span>
+              </div>
+
+              {group.members.map((resident, index) => {
+                const whatsapp = resident.whatsapp_number || resident.phone;
+                return (
+                  <article
+                    key={resident.id}
+                    className={`px-4 py-3 sm:px-5 ${index !== group.members.length - 1 ? "border-b border-border" : ""}`}
+                  >
+                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                      <button
+                        type="button"
+                        className="min-w-0 text-left"
+                        onClick={() => setSelectedResident(resident)}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/80">
+                            {resident.memberNumber}
+                          </span>
+                          <h3 className="text-sm font-semibold sm:text-base">
+                            {resident.full_name || "Unnamed member"}
+                          </h3>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs capitalize ${
+                              resident.status === "suspended"
+                                ? "bg-destructive/15 text-destructive"
+                                : "bg-success/15 text-success"
+                            }`}
+                          >
+                            {resident.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs capitalize text-muted-foreground sm:text-sm">
+                          {resident.resident_type || "Details incomplete"}
+                          {resident.phone ? ` · ${resident.phone}` : ""}
+                        </p>
+                      </button>
+
+                      <div className="flex flex-wrap gap-2">
+                        {whatsapp && (
+                          <Button asChild size="sm" variant="ghost">
+                            <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
+                              <MessageCircle className="mr-2 h-4 w-4" />
+                              WhatsApp
+                            </a>
+                          </Button>
+                        )}
+                        {resident.phone && (
+                          <Button asChild size="sm" variant="ghost">
+                            <a href={`tel:${resident.phone}`}>
+                              <Phone className="mr-2 h-4 w-4" />
+                              Call
+                            </a>
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" onClick={() => openEditor(resident)}>
+                          <Edit3 className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() =>
+                            updateStatus.mutate({
+                              resident,
+                              status: resident.status === "suspended" ? "active" : "suspended",
+                            })
+                          }
+                        >
+                          {resident.status === "suspended" ? (
+                            <UserCheck className="mr-2 h-4 w-4" />
+                          ) : (
+                            <ShieldOff className="mr-2 h-4 w-4" />
+                          )}
+                          {resident.status === "suspended" ? "Reactivate" : "Suspend"}
+                        </Button>
+                        {resident.id !== user?.id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setResidentToRemove(resident)}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+          ))}
         </div>
       ) : (
         <EmptyState
           title={search ? "No matching members" : "No community members"}
-          description={search ? "Try another name or number." : "New members will appear here."}
+          description={
+            search ? "Try another name, number or house." : "New members will appear here."
+          }
         />
       )}
 
@@ -306,7 +371,7 @@ function ResidentsPage() {
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Edit member</DialogTitle>
-            <DialogDescription>Update contact and home details.</DialogDescription>
+            <DialogDescription>Update contact, house and tenant details.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name">
@@ -348,6 +413,29 @@ function ResidentsPage() {
                 onChange={(event) => setHouseOrApartment(event.target.value)}
               />
             </Field>
+            {residentType === "tenant" && (
+              <>
+                <Field label="Landlord name">
+                  <Input
+                    value={landlordName}
+                    onChange={(event) => setLandlordName(event.target.value)}
+                  />
+                </Field>
+                <Field label="Landlord phone">
+                  <Input
+                    type="tel"
+                    value={landlordPhone}
+                    onChange={(event) => setLandlordPhone(event.target.value)}
+                  />
+                </Field>
+                <Field label="Duration of stay">
+                  <Input
+                    value={stayDuration}
+                    onChange={(event) => setStayDuration(event.target.value)}
+                  />
+                </Field>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingResident(null)}>
@@ -393,6 +481,8 @@ function ResidentsPage() {
 
 function MemberDetails({ resident, onClose }: { resident: Resident | null; onClose: () => void }) {
   const submitted = resident ? getSubmittedData(resident) : {};
+  const housing = resident ? getResidentHousingDetails(resident) : emptyHousingDetails();
+
   return (
     <Dialog open={Boolean(resident)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
@@ -409,6 +499,13 @@ function MemberDetails({ resident, onClose }: { resident: Resident | null; onClo
             <Detail label="Email" value={resident.email} />
             <Detail label="Compound" value={String(submitted.compoundName || "")} />
             <Detail label="House or apartment" value={String(submitted.houseOrApartment || "")} />
+            {resident.resident_type === "tenant" && (
+              <>
+                <Detail label="Landlord name" value={housing.landlordName} />
+                <Detail label="Landlord phone" value={housing.landlordPhone} />
+                <Detail label="Duration of stay" value={housing.stayDuration} />
+              </>
+            )}
             <Detail
               label="People living with member"
               value={String(submitted.householdMembers || "")}
@@ -432,6 +529,16 @@ function getSubmittedData(resident: Resident) {
   return resident.onboarding_data && typeof resident.onboarding_data === "object"
     ? (resident.onboarding_data as Record<string, unknown>)
     : {};
+}
+
+function emptyHousingDetails() {
+  return {
+    compoundName: "",
+    houseOrApartment: "",
+    landlordName: "",
+    landlordPhone: "",
+    stayDuration: "",
+  };
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-BYaA2czM.js
+//#region node_modules/.nitro/vite/services/ssr/assets/_tanstack-start-manifest_v-Btf5AGjv.js
 var tsrStartManifest = () => ({ routes: {
 	__root__: {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/__root.tsx",
@@ -9,7 +9,7 @@ var tsrStartManifest = () => ({ routes: {
 			"/signup"
 		],
 		preloads: [
-			"/assets/index-9gQ79xgr.js",
+			"/assets/index-BLGhxJTV.js",
 			"/assets/jsx-runtime-bzQ4Vb5N.js",
 			"/assets/react-dom-DUKFG4MT.js",
 			"/assets/link-BuoN4lgj.js",
@@ -19,19 +19,19 @@ var tsrStartManifest = () => ({ routes: {
 		scripts: [{ attrs: {
 			type: "module",
 			async: !0,
-			src: "/assets/index-9gQ79xgr.js"
+			src: "/assets/index-BLGhxJTV.js"
 		} }]
 	},
 	"/": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/index.tsx",
 		children: void 0,
-		preloads: ["/assets/routes-BiHvtGZ7.js", "/assets/building-2-C36hfAPr.js"]
+		preloads: ["/assets/routes-C0VJ0op-.js", "/assets/building-2-C36hfAPr.js"]
 	},
 	"/auth": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/auth.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/auth-m_AdZd-J.js",
+			"/assets/auth-_7HZXtMa.js",
 			"/assets/building-2-C36hfAPr.js",
 			"/assets/button-nbRIhk2P.js",
 			"/assets/label-0Pns1Lnt.js",
@@ -55,7 +55,7 @@ var tsrStartManifest = () => ({ routes: {
 			"/dashboard/"
 		],
 		preloads: [
-			"/assets/dashboard-BK-NdRRu.js",
+			"/assets/dashboard-Dz212ECA.js",
 			"/assets/createLucideIcon-DeQrcgrh.js",
 			"/assets/chart-column-DZv2trJs.js",
 			"/assets/house-BQon-BxV.js",
@@ -77,35 +77,35 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.announcements.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.announcements-DrUoeRSz.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
-			"/assets/select-CNDYZq2U.js",
+			"/assets/dashboard.announcements-O-GjIQuh.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
+			"/assets/select-CankjCxE.js",
 			"/assets/plus-psvog1OK.js",
-			"/assets/alert-dialog-D7gZjsbD.js",
+			"/assets/alert-dialog-Kh8bHwFU.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/page-header-BXsG6gyj.js",
-			"/assets/checkbox-DfzrouHh.js",
+			"/assets/checkbox-DBNkC5WZ.js",
 			"/assets/textarea-COARNJB8.js",
-			"/assets/dialog-DrRKhbr9.js"
+			"/assets/dialog-CRO_9YwP.js"
 		]
 	},
 	"/dashboard/complaints": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.complaints.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.complaints-CztGv8ZR.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
+			"/assets/dashboard.complaints-B8-v8iXy.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
 			"/assets/circle-check-BMmbSs6l.js",
-			"/assets/select-CNDYZq2U.js",
+			"/assets/select-CankjCxE.js",
 			"/assets/phone-BLR2_FYJ.js",
 			"/assets/plus-psvog1OK.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/tabs-Du5xs_oe.js",
 			"/assets/page-header-BXsG6gyj.js",
 			"/assets/textarea-COARNJB8.js",
-			"/assets/dialog-DrRKhbr9.js"
+			"/assets/dialog-CRO_9YwP.js"
 		]
 	},
 	"/dashboard/documents": {
@@ -117,56 +117,59 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.onboarding.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.onboarding-CFu1alLq.js",
-			"/assets/useMutation-CjRCWPi1.js",
+			"/assets/dashboard.onboarding-MW-5RGjd.js",
+			"/assets/useMutation-D59dtL5k.js",
 			"/assets/circle-check-BMmbSs6l.js",
-			"/assets/select-CNDYZq2U.js",
+			"/assets/select-CankjCxE.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/page-header-BXsG6gyj.js",
-			"/assets/textarea-COARNJB8.js"
+			"/assets/textarea-COARNJB8.js",
+			"/assets/property-occupancy-D5yixXPG.js"
 		]
 	},
 	"/dashboard/payments": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.payments.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.payments-CrwKSycK.js",
-			"/assets/auth-middleware-OSzbgDs0.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
+			"/assets/dashboard.payments-D55I2eRi.js",
+			"/assets/auth-middleware-Ct5mbrWQ.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
 			"/assets/circle-check-BMmbSs6l.js",
-			"/assets/select-CNDYZq2U.js",
+			"/assets/select-CankjCxE.js",
 			"/assets/plus-psvog1OK.js",
-			"/assets/alert-dialog-D7gZjsbD.js",
+			"/assets/alert-dialog-Kh8bHwFU.js",
 			"/assets/label-0Pns1Lnt.js",
+			"/assets/tabs-Du5xs_oe.js",
 			"/assets/page-header-BXsG6gyj.js",
-			"/assets/checkbox-DfzrouHh.js",
+			"/assets/checkbox-DBNkC5WZ.js",
 			"/assets/textarea-COARNJB8.js",
-			"/assets/dialog-DrRKhbr9.js"
+			"/assets/dialog-CRO_9YwP.js"
 		]
 	},
 	"/dashboard/properties": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.properties.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.properties-e3d7D0eL.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
-			"/assets/select-CNDYZq2U.js",
+			"/assets/dashboard.properties-B8MM0Hxx.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
+			"/assets/select-CankjCxE.js",
 			"/assets/phone-BLR2_FYJ.js",
 			"/assets/plus-psvog1OK.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/page-header-BXsG6gyj.js",
 			"/assets/textarea-COARNJB8.js",
-			"/assets/dialog-DrRKhbr9.js"
+			"/assets/dialog-CRO_9YwP.js",
+			"/assets/property-occupancy-D5yixXPG.js"
 		]
 	},
 	"/dashboard/reports": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.reports.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.reports-BBfqq2KM.js",
-			"/assets/useQuery-B3nZLioi.js",
+			"/assets/dashboard.reports-BSLUOclV.js",
+			"/assets/useQuery-Db8bKHJT.js",
 			"/assets/page-header-BXsG6gyj.js"
 		]
 	},
@@ -174,40 +177,41 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.residents.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.residents-HdrwiVSz.js",
-			"/assets/auth-middleware-OSzbgDs0.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
-			"/assets/select-CNDYZq2U.js",
+			"/assets/dashboard.residents-B70VR1Yw.js",
+			"/assets/auth-middleware-Ct5mbrWQ.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
+			"/assets/select-CankjCxE.js",
 			"/assets/phone-BLR2_FYJ.js",
-			"/assets/alert-dialog-D7gZjsbD.js",
+			"/assets/alert-dialog-Kh8bHwFU.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/page-header-BXsG6gyj.js",
-			"/assets/dialog-DrRKhbr9.js"
+			"/assets/dialog-CRO_9YwP.js",
+			"/assets/property-occupancy-D5yixXPG.js"
 		]
 	},
 	"/dashboard/security": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.security.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.security-DU4NRgcU.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
-			"/assets/select-CNDYZq2U.js",
+			"/assets/dashboard.security-7ebTBtW0.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
+			"/assets/select-CankjCxE.js",
 			"/assets/plus-psvog1OK.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/page-header-BXsG6gyj.js",
 			"/assets/textarea-COARNJB8.js",
-			"/assets/dialog-DrRKhbr9.js"
+			"/assets/dialog-CRO_9YwP.js"
 		]
 	},
 	"/dashboard/settings": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.settings.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.settings-Cbn5bUQv.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
+			"/assets/dashboard.settings-BLVhbbIh.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/page-header-BXsG6gyj.js"
 		]
@@ -216,20 +220,20 @@ var tsrStartManifest = () => ({ routes: {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.visitors.tsx",
 		children: void 0,
 		preloads: [
-			"/assets/dashboard.visitors-D-iRoubJ.js",
-			"/assets/useMutation-CjRCWPi1.js",
-			"/assets/useQuery-B3nZLioi.js",
+			"/assets/dashboard.visitors-DvAxiQ9S.js",
+			"/assets/useMutation-D59dtL5k.js",
+			"/assets/useQuery-Db8bKHJT.js",
 			"/assets/circle-check-BMmbSs6l.js",
 			"/assets/plus-psvog1OK.js",
 			"/assets/label-0Pns1Lnt.js",
 			"/assets/page-header-BXsG6gyj.js",
-			"/assets/dialog-DrRKhbr9.js"
+			"/assets/dialog-CRO_9YwP.js"
 		]
 	},
 	"/dashboard/": {
 		filePath: "C:/Users/HPX1/Desktop/estate-harmony-hub/src/routes/dashboard.index.tsx",
 		children: void 0,
-		preloads: ["/assets/dashboard.index-DNSJOe0w.js", "/assets/useQuery-B3nZLioi.js"]
+		preloads: ["/assets/dashboard.index-B8_MDKyI.js", "/assets/useQuery-Db8bKHJT.js"]
 	}
 } });
 //#endregion

@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/dashboard/payments")({
@@ -315,6 +316,8 @@ function PaymentsPage() {
     );
     const totalExpected = invoices.reduce((sum, invoice) => sum + Number(invoice.amount), 0);
     const paidCount = invoices.filter((invoice) => invoice.status === "paid").length;
+    const fullyPaidGroups = groups.filter((group) => group.paidCount === group.peopleCount);
+    const owingGroups = groups.filter((group) => group.paidCount < group.peopleCount);
 
     return (
       <div>
@@ -350,45 +353,43 @@ function PaymentsPage() {
             description="Use Create due to request a payment from residents."
           />
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2">
-            {groups.map((group) => (
-              <article key={group.id} className="rounded-xl border border-border bg-card p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-medium uppercase text-muted-foreground">
-                      {group.category}
-                    </p>
-                    <h2 className="mt-1 font-display text-xl font-semibold">{group.title}</h2>
-                  </div>
-                  <DueStatus paid={group.paidCount} total={group.peopleCount} />
-                </div>
-                <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
-                  <SimpleDetail label="Amount each" value={formatMoney(group.amountEach)} />
-                  <SimpleDetail label="Due date" value={formatDate(group.dueDate)} />
-                  <SimpleDetail
-                    label="People to pay"
-                    value={`${group.peopleCount} ${group.peopleCount === 1 ? "person" : "people"}`}
-                  />
-                  <SimpleDetail label="Paid" value={`${group.paidCount} of ${group.peopleCount}`} />
-                </div>
-                <div className="mt-5 flex gap-2 border-t border-border pt-4">
-                  <Button size="sm" variant="outline" onClick={() => openEditor(group)}>
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => setDeletingGroup(group)}
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
-              </article>
-            ))}
-          </div>
+          <Tabs defaultValue="created">
+            <TabsList className="mb-4 grid h-auto w-full grid-cols-3 gap-1 rounded-xl bg-muted/70 p-1 sm:w-[520px]">
+              <TabsTrigger value="created">Created dues ({groups.length})</TabsTrigger>
+              <TabsTrigger value="paid">Paid ({fullyPaidGroups.length})</TabsTrigger>
+              <TabsTrigger value="owing">Owing ({owingGroups.length})</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="created" className="mt-0">
+              <AdminDueList
+                groups={groups}
+                emptyTitle="No created dues"
+                emptyDescription="Create a due and it will show here."
+                onEdit={openEditor}
+                onDelete={setDeletingGroup}
+              />
+            </TabsContent>
+
+            <TabsContent value="paid" className="mt-0">
+              <AdminDueList
+                groups={fullyPaidGroups}
+                emptyTitle="No paid dues yet"
+                emptyDescription="Fully paid dues will show here."
+                onEdit={openEditor}
+                onDelete={setDeletingGroup}
+              />
+            </TabsContent>
+
+            <TabsContent value="owing" className="mt-0">
+              <AdminDueList
+                groups={owingGroups}
+                emptyTitle="No dues are owing"
+                emptyDescription="Any due with unpaid residents will show here."
+                onEdit={openEditor}
+                onDelete={setDeletingGroup}
+              />
+            </TabsContent>
+          </Tabs>
         )}
 
         <DueFormDialog
@@ -551,6 +552,76 @@ function PaymentsPage() {
       )}
 
       <ResidentDueDialog invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} />
+    </div>
+  );
+}
+
+function AdminDueList({
+  groups,
+  emptyTitle,
+  emptyDescription,
+  onEdit,
+  onDelete,
+}: {
+  groups: DueGroup[];
+  emptyTitle: string;
+  emptyDescription: string;
+  onEdit: (group: DueGroup) => void;
+  onDelete: (group: DueGroup) => void;
+}) {
+  if (groups.length === 0) {
+    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      {groups.map((group, index) => (
+        <article
+          key={group.id}
+          className={`px-4 py-3 sm:px-5 ${index !== groups.length - 1 ? "border-b border-border" : ""}`}
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full bg-secondary px-2 py-1 font-medium text-foreground/80">
+                  {group.category}
+                </span>
+                <span>
+                  {group.paidCount} of {group.peopleCount} paid
+                </span>
+                <span>Due {formatDate(group.dueDate)}</span>
+              </div>
+              <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                <h2 className="truncate text-sm font-semibold text-foreground sm:text-base">
+                  {group.title}
+                </h2>
+                <div className="flex items-center gap-2 sm:shrink-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    {formatMoney(group.totalExpected)}
+                  </p>
+                  <DueStatus paid={group.paidCount} total={group.peopleCount} />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 lg:pl-4">
+              <Button size="sm" variant="ghost" onClick={() => onEdit(group)}>
+                <Edit3 className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive hover:text-destructive"
+                onClick={() => onDelete(group)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </article>
+      ))}
     </div>
   );
 }

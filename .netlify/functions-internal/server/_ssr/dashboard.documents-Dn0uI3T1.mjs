@@ -1,5 +1,5 @@
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
-import { C as FileText } from "../_libs/lucide-react.mjs";
+import { w as FileText } from "../_libs/lucide-react.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/dashboard.documents-Dn0uI3T1.js
 var import_jsx_runtime = require_jsx_runtime();

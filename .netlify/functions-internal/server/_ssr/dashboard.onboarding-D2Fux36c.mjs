@@ -6,13 +6,14 @@ import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+
 import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { D as ClipboardList, I as CircleCheck } from "../_libs/lucide-react.mjs";
+import { L as CircleCheck, O as ClipboardList } from "../_libs/lucide-react.mjs";
 import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
 import { n as PageHeader } from "./page-header-DnpF6lGt.mjs";
 import { t as Textarea } from "./textarea-6e1tF3H-.mjs";
 import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectItem, t as Select } from "./select-BKZRgQX9.mjs";
 import { i as useQueryClient, t as useMutation } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.onboarding-BhBwATaP.js
+import { o as syncResidentPropertyOccupancy, r as getResidentHousingDetails } from "./property-occupancy-9h6ABKMf.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.onboarding-D2Fux36c.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function ResidentFormPage() {
@@ -28,6 +29,9 @@ function ResidentFormPage() {
 	const [compoundName, setCompoundName] = (0, import_react.useState)("");
 	const [houseOrApartment, setHouseOrApartment] = (0, import_react.useState)("");
 	const [householdMembers, setHouseholdMembers] = (0, import_react.useState)("");
+	const [landlordName, setLandlordName] = (0, import_react.useState)("");
+	const [landlordPhone, setLandlordPhone] = (0, import_react.useState)("");
+	const [stayDuration, setStayDuration] = (0, import_react.useState)("");
 	const [emergencyName, setEmergencyName] = (0, import_react.useState)("");
 	const [emergencyPhone, setEmergencyPhone] = (0, import_react.useState)("");
 	(0, import_react.useEffect)(() => {
@@ -36,8 +40,12 @@ function ResidentFormPage() {
 		setPhone(profile.phone || "");
 		setWhatsappNumber(profile.whatsapp_number || profile.phone || "");
 		setResidentType(profile.resident_type || "tenant");
-		setCompoundName(String(saved.compoundName || ""));
-		setHouseOrApartment(String(saved.houseOrApartment || ""));
+		const housing = getResidentHousingDetails(profile);
+		setCompoundName(housing.compoundName);
+		setHouseOrApartment(housing.houseOrApartment);
+		setLandlordName(housing.landlordName);
+		setLandlordPhone(housing.landlordPhone);
+		setStayDuration(housing.stayDuration);
 		setHouseholdMembers(String(saved.householdMembers || ""));
 		setEmergencyName(profile.emergency_contact_name || "");
 		setEmergencyPhone(profile.emergency_contact_phone || "");
@@ -49,6 +57,14 @@ function ResidentFormPage() {
 			if (!phone.trim()) throw new Error("Enter your phone number.");
 			if (!whatsappNumber.trim()) throw new Error("Enter your WhatsApp number.");
 			if (!houseOrApartment.trim()) throw new Error("Enter your house or apartment.");
+			const onboardingData = {
+				compoundName: compoundName.trim(),
+				houseOrApartment: houseOrApartment.trim(),
+				householdMembers: householdMembers.trim(),
+				landlordName: residentType === "tenant" ? landlordName.trim() : "",
+				landlordPhone: residentType === "tenant" ? landlordPhone.trim() : "",
+				stayDuration: residentType === "tenant" ? stayDuration.trim() : ""
+			};
 			const { error } = await supabase.from("profiles").update({
 				full_name: fullName.trim(),
 				phone: phone.trim(),
@@ -58,14 +74,19 @@ function ResidentFormPage() {
 				emergency_contact_phone: emergencyPhone.trim() || null,
 				onboarding_completed: true,
 				onboarding_completed_at: (/* @__PURE__ */ new Date()).toISOString(),
-				onboarding_data: {
-					compoundName: compoundName.trim(),
-					houseOrApartment: houseOrApartment.trim(),
-					householdMembers: householdMembers.trim()
-				},
+				onboarding_data: onboardingData,
 				status: "active"
 			}).eq("id", user.id);
 			if (error) throw error;
+			await syncResidentPropertyOccupancy({
+				id: user.id,
+				estate_id: profile?.estate_id || null,
+				full_name: fullName.trim(),
+				phone: phone.trim(),
+				whatsapp_number: whatsappNumber.trim(),
+				resident_type: residentType,
+				onboarding_data: onboardingData
+			});
 		},
 		onSuccess: async () => {
 			toast.success(profile?.onboarding_completed ? "Details updated" : "Welcome to the community");
@@ -124,6 +145,20 @@ function ResidentFormPage() {
 							label: "House or apartment",
 							value: houseOrApartment
 						}),
+						residentType === "tenant" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Summary, {
+								label: "Landlord name",
+								value: landlordName || "Not provided"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Summary, {
+								label: "Landlord phone",
+								value: landlordPhone || "Not provided"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Summary, {
+								label: "Duration of stay",
+								value: stayDuration || "Not provided"
+							})
+						] }),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Summary, {
 							label: "Emergency contact",
 							value: emergencyName || emergencyPhone ? `${emergencyName}${emergencyPhone ? ` · ${emergencyPhone}` : ""}` : "Not provided"
@@ -206,34 +241,67 @@ function ResidentFormPage() {
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(FormSection, {
 						title: "Your home",
 						description: "Tell us where to find your household.",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "grid gap-4 sm:grid-cols-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
-								label: "Compound name",
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-									value: compoundName,
-									onChange: (event) => setCompoundName(event.target.value),
-									placeholder: "For example, Adebayo Compound"
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 sm:grid-cols-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+									label: "Compound name",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										value: compoundName,
+										onChange: (event) => setCompoundName(event.target.value),
+										placeholder: "For example, Adebayo Compound"
+									})
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+									label: "House or apartment",
+									required: true,
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										value: houseOrApartment,
+										onChange: (event) => setHouseOrApartment(event.target.value),
+										placeholder: "For example, House 4 or Flat B"
+									})
+								})]
+							}),
+							residentType === "tenant" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "grid gap-4 sm:grid-cols-3",
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+										label: "Landlord name",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											value: landlordName,
+											onChange: (event) => setLandlordName(event.target.value),
+											placeholder: "Who owns this property?"
+										})
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+										label: "Landlord phone",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											type: "tel",
+											value: landlordPhone,
+											onChange: (event) => setLandlordPhone(event.target.value),
+											placeholder: "080..."
+										})
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+										label: "Duration of stay",
+										hint: "For example, 1 year or Since March 2026",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+											value: stayDuration,
+											onChange: (event) => setStayDuration(event.target.value)
+										})
+									})
+								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+								label: "Names of people living with you",
+								hint: "Optional",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Textarea, {
+									rows: 3,
+									value: householdMembers,
+									onChange: (event) => setHouseholdMembers(event.target.value),
+									placeholder: "Write their names, separated by commas"
 								})
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
-								label: "House or apartment",
-								required: true,
-								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
-									value: houseOrApartment,
-									onChange: (event) => setHouseOrApartment(event.target.value),
-									placeholder: "For example, House 4 or Flat B"
-								})
-							})]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
-							label: "Names of people living with you",
-							hint: "Optional",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Textarea, {
-								rows: 3,
-								value: householdMembers,
-								onChange: (event) => setHouseholdMembers(event.target.value),
-								placeholder: "Write their names, separated by commas"
 							})
-						})]
+						]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FormSection, {
 						title: "Emergency contact",

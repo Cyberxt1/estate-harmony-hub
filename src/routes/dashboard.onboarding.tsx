@@ -5,6 +5,7 @@ import { CheckCircle2, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { getResidentHousingDetails, syncResidentPropertyOccupancy } from "@/lib/property-occupancy";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,9 @@ function ResidentFormPage() {
   const [compoundName, setCompoundName] = useState("");
   const [houseOrApartment, setHouseOrApartment] = useState("");
   const [householdMembers, setHouseholdMembers] = useState("");
+  const [landlordName, setLandlordName] = useState("");
+  const [landlordPhone, setLandlordPhone] = useState("");
+  const [stayDuration, setStayDuration] = useState("");
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
 
@@ -49,8 +53,12 @@ function ResidentFormPage() {
     setPhone(profile.phone || "");
     setWhatsappNumber(profile.whatsapp_number || profile.phone || "");
     setResidentType(profile.resident_type || "tenant");
-    setCompoundName(String(saved.compoundName || ""));
-    setHouseOrApartment(String(saved.houseOrApartment || ""));
+    const housing = getResidentHousingDetails(profile);
+    setCompoundName(housing.compoundName);
+    setHouseOrApartment(housing.houseOrApartment);
+    setLandlordName(housing.landlordName);
+    setLandlordPhone(housing.landlordPhone);
+    setStayDuration(housing.stayDuration);
     setHouseholdMembers(String(saved.householdMembers || ""));
     setEmergencyName(profile.emergency_contact_name || "");
     setEmergencyPhone(profile.emergency_contact_phone || "");
@@ -64,6 +72,15 @@ function ResidentFormPage() {
       if (!whatsappNumber.trim()) throw new Error("Enter your WhatsApp number.");
       if (!houseOrApartment.trim()) throw new Error("Enter your house or apartment.");
 
+      const onboardingData = {
+        compoundName: compoundName.trim(),
+        houseOrApartment: houseOrApartment.trim(),
+        householdMembers: householdMembers.trim(),
+        landlordName: residentType === "tenant" ? landlordName.trim() : "",
+        landlordPhone: residentType === "tenant" ? landlordPhone.trim() : "",
+        stayDuration: residentType === "tenant" ? stayDuration.trim() : "",
+      };
+
       const { error } = await supabase
         .from("profiles")
         .update({
@@ -75,15 +92,21 @@ function ResidentFormPage() {
           emergency_contact_phone: emergencyPhone.trim() || null,
           onboarding_completed: true,
           onboarding_completed_at: new Date().toISOString(),
-          onboarding_data: {
-            compoundName: compoundName.trim(),
-            houseOrApartment: houseOrApartment.trim(),
-            householdMembers: householdMembers.trim(),
-          },
+          onboarding_data: onboardingData,
           status: "active",
         })
         .eq("id", user.id);
       if (error) throw error;
+
+      await syncResidentPropertyOccupancy({
+        id: user.id,
+        estate_id: profile?.estate_id || null,
+        full_name: fullName.trim(),
+        phone: phone.trim(),
+        whatsapp_number: whatsappNumber.trim(),
+        resident_type: residentType,
+        onboarding_data: onboardingData,
+      });
     },
     onSuccess: async () => {
       toast.success(profile?.onboarding_completed ? "Details updated" : "Welcome to the community");
@@ -127,6 +150,13 @@ function ResidentFormPage() {
             <Summary label="WhatsApp" value={whatsappNumber} />
             <Summary label="Compound" value={compoundName || "Not provided"} />
             <Summary label="House or apartment" value={houseOrApartment} />
+            {residentType === "tenant" && (
+              <>
+                <Summary label="Landlord name" value={landlordName || "Not provided"} />
+                <Summary label="Landlord phone" value={landlordPhone || "Not provided"} />
+                <Summary label="Duration of stay" value={stayDuration || "Not provided"} />
+              </>
+            )}
             <Summary
               label="Emergency contact"
               value={
@@ -203,6 +233,31 @@ function ResidentFormPage() {
                   />
                 </Field>
               </div>
+              {residentType === "tenant" && (
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Landlord name">
+                    <Input
+                      value={landlordName}
+                      onChange={(event) => setLandlordName(event.target.value)}
+                      placeholder="Who owns this property?"
+                    />
+                  </Field>
+                  <Field label="Landlord phone">
+                    <Input
+                      type="tel"
+                      value={landlordPhone}
+                      onChange={(event) => setLandlordPhone(event.target.value)}
+                      placeholder="080..."
+                    />
+                  </Field>
+                  <Field label="Duration of stay" hint="For example, 1 year or Since March 2026">
+                    <Input
+                      value={stayDuration}
+                      onChange={(event) => setStayDuration(event.target.value)}
+                    />
+                  </Field>
+                </div>
+              )}
               <Field label="Names of people living with you" hint="Optional">
                 <Textarea
                   rows={3}

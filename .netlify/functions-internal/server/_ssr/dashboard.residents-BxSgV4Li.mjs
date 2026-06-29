@@ -5,7 +5,7 @@ import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+
 import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { M as PenLine, d as Search, g as Phone, i as UserCheck, n as Users, o as Trash2, s as ShieldOff, v as MessageCircle } from "../_libs/lucide-react.mjs";
+import { N as PenLine, d as Search, g as Phone, i as UserCheck, n as Users, o as Trash2, s as ShieldOff, v as MessageCircle } from "../_libs/lucide-react.mjs";
 import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
@@ -13,10 +13,11 @@ import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectIt
 import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
 import { a as AlertDialogDescription, c as AlertDialogTitle, i as AlertDialogContent, n as AlertDialogAction, o as AlertDialogFooter, r as AlertDialogCancel, s as AlertDialogHeader, t as AlertDialog } from "./alert-dialog-DMNUCmq6.mjs";
 import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
+import { i as groupResidentsByHouse, o as syncResidentPropertyOccupancy, r as getResidentHousingDetails } from "./property-occupancy-9h6ABKMf.mjs";
 import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
 import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
 import { t as createSsrRpc } from "./createSsrRpc-BGkz4J1l.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-x6oX7HAX.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-BxSgV4Li.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var removeCommunityMember = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).validator((input) => {
@@ -36,6 +37,9 @@ function ResidentsPage() {
 	const [residentType, setResidentType] = (0, import_react.useState)("tenant");
 	const [compoundName, setCompoundName] = (0, import_react.useState)("");
 	const [houseOrApartment, setHouseOrApartment] = (0, import_react.useState)("");
+	const [landlordName, setLandlordName] = (0, import_react.useState)("");
+	const [landlordPhone, setLandlordPhone] = (0, import_react.useState)("");
+	const [stayDuration, setStayDuration] = (0, import_react.useState)("");
 	const { data: residents = [], isLoading, isError, refetch } = useQuery({
 		queryKey: ["residents"],
 		queryFn: async () => {
@@ -47,13 +51,19 @@ function ResidentsPage() {
 	const filteredResidents = (0, import_react.useMemo)(() => {
 		const term = search.trim().toLowerCase();
 		if (!term) return residents;
-		return residents.filter((resident) => [
-			resident.full_name,
-			resident.phone,
-			resident.whatsapp_number,
-			resident.email
-		].filter(Boolean).some((value) => String(value).toLowerCase().includes(term)));
+		return residents.filter((resident) => {
+			const housing = getResidentHousingDetails(resident);
+			return [
+				resident.full_name,
+				resident.phone,
+				resident.whatsapp_number,
+				resident.email,
+				housing.compoundName,
+				housing.houseOrApartment
+			].filter(Boolean).some((value) => String(value).toLowerCase().includes(term));
+		});
 	}, [residents, search]);
+	const groupedResidents = (0, import_react.useMemo)(() => groupResidentsByHouse(filteredResidents), [filteredResidents]);
 	const activeCount = residents.filter((resident) => resident.status === "active").length;
 	const suspendedCount = residents.filter((resident) => resident.status === "suspended").length;
 	const updateStatus = useMutation({
@@ -71,24 +81,37 @@ function ResidentsPage() {
 		mutationFn: async () => {
 			if (!editingResident) throw new Error("Choose a member to edit.");
 			if (!fullName.trim()) throw new Error("Enter the member's name.");
-			const oldData = editingResident.onboarding_data && typeof editingResident.onboarding_data === "object" ? editingResident.onboarding_data : {};
+			const onboardingData = {
+				...editingResident.onboarding_data && typeof editingResident.onboarding_data === "object" ? editingResident.onboarding_data : {},
+				compoundName: compoundName.trim(),
+				houseOrApartment: houseOrApartment.trim(),
+				landlordName: residentType === "tenant" ? landlordName.trim() : "",
+				landlordPhone: residentType === "tenant" ? landlordPhone.trim() : "",
+				stayDuration: residentType === "tenant" ? stayDuration.trim() : ""
+			};
 			const { error } = await supabase.from("profiles").update({
 				full_name: fullName.trim(),
 				phone: phone.trim() || null,
 				whatsapp_number: whatsappNumber.trim() || phone.trim() || null,
 				resident_type: residentType,
-				onboarding_data: {
-					...oldData,
-					compoundName: compoundName.trim(),
-					houseOrApartment: houseOrApartment.trim()
-				}
+				onboarding_data: onboardingData
 			}).eq("id", editingResident.id);
 			if (error) throw error;
+			await syncResidentPropertyOccupancy({
+				id: editingResident.id,
+				estate_id: editingResident.estate_id,
+				full_name: fullName.trim(),
+				phone: phone.trim() || null,
+				whatsapp_number: whatsappNumber.trim() || phone.trim() || null,
+				resident_type: residentType,
+				onboarding_data: onboardingData
+			});
 		},
 		onSuccess: async () => {
 			toast.success("Member details updated");
 			setEditingResident(null);
 			await queryClient.invalidateQueries({ queryKey: ["residents"] });
+			await queryClient.invalidateQueries({ queryKey: ["property-occupants"] });
 		},
 		onError: (error) => toast.error(error.message)
 	});
@@ -105,19 +128,22 @@ function ResidentsPage() {
 		onError: (error) => toast.error(error.message)
 	});
 	const openEditor = (resident) => {
-		const submitted = getSubmittedData(resident);
+		const housing = getResidentHousingDetails(resident);
 		setEditingResident(resident);
 		setFullName(resident.full_name || "");
 		setPhone(resident.phone || "");
 		setWhatsappNumber(resident.whatsapp_number || resident.phone || "");
 		setResidentType(resident.resident_type || "tenant");
-		setCompoundName(String(submitted.compoundName || ""));
-		setHouseOrApartment(String(submitted.houseOrApartment || ""));
+		setCompoundName(housing.compoundName);
+		setHouseOrApartment(housing.houseOrApartment);
+		setLandlordName(housing.landlordName);
+		setLandlordPhone(housing.landlordPhone);
+		setStayDuration(housing.stayDuration);
 	};
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PageHeader, {
 			title: "Community members",
-			description: "See every member and contact or manage their account.",
+			description: "Smaller house-by-house view of everyone in the estate.",
 			icon: Users
 		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -143,90 +169,116 @@ function ResidentsPage() {
 				className: "pl-9",
 				value: search,
 				onChange: (event) => setSearch(event.target.value),
-				placeholder: "Search name or phone"
+				placeholder: "Search name, phone or house"
 			})]
 		}),
 		isError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PageLoadError, { onRetry: () => void refetch() }) : isLoading ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PageLoading, {
 			label: "Loading community members",
 			onRetry: () => void refetch()
 		}) : filteredResidents.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-			className: "space-y-3",
-			children: filteredResidents.map((resident) => {
-				const whatsapp = resident.whatsapp_number || resident.phone;
-				return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("article", {
-					className: "rounded-xl border border-border bg-card p-4 sm:p-5",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-							type: "button",
-							className: "min-w-0 text-left",
-							onClick: () => setSelectedResident(resident),
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex flex-wrap items-center gap-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-									className: "font-display text-lg font-semibold",
-									children: resident.full_name || "Unnamed member"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: `rounded-full px-2 py-0.5 text-xs capitalize ${resident.status === "suspended" ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`,
-									children: resident.status
+			className: "space-y-4",
+			children: groupedResidents.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "overflow-hidden rounded-xl border border-border bg-card",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center justify-between border-b border-border bg-secondary/30 px-4 py-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-xs uppercase text-muted-foreground",
+						children: "House"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "text-sm font-semibold",
+						children: group.houseLabel
+					})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+						className: "text-xs text-muted-foreground",
+						children: [
+							group.members.length,
+							" ",
+							group.members.length === 1 ? "member" : "members"
+						]
+					})]
+				}), group.members.map((resident, index) => {
+					const whatsapp = resident.whatsapp_number || resident.phone;
+					return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("article", {
+						className: `px-4 py-3 sm:px-5 ${index !== group.members.length - 1 ? "border-b border-border" : ""}`,
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+								type: "button",
+								className: "min-w-0 text-left",
+								onClick: () => setSelectedResident(resident),
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "flex flex-wrap items-center gap-2",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/80",
+											children: resident.memberNumber
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+											className: "text-sm font-semibold sm:text-base",
+											children: resident.full_name || "Unnamed member"
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: `rounded-full px-2 py-0.5 text-xs capitalize ${resident.status === "suspended" ? "bg-destructive/15 text-destructive" : "bg-success/15 text-success"}`,
+											children: resident.status
+										})
+									]
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+									className: "mt-1 text-xs capitalize text-muted-foreground sm:text-sm",
+									children: [resident.resident_type || "Details incomplete", resident.phone ? ` · ${resident.phone}` : ""]
 								})]
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-								className: "mt-1 text-sm capitalize text-muted-foreground",
-								children: [resident.resident_type || "Details incomplete", resident.phone ? ` · ${resident.phone}` : ""]
-							})]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex flex-wrap gap-2",
-							children: [
-								whatsapp && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									asChild: true,
-									size: "sm",
-									variant: "outline",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
-										href: getWhatsAppLink(whatsapp),
-										target: "_blank",
-										rel: "noreferrer",
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MessageCircle, { className: "mr-2 h-4 w-4" }), "WhatsApp"]
-									})
-								}),
-								resident.phone && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									asChild: true,
-									size: "sm",
-									variant: "outline",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
-										href: `tel:${resident.phone}`,
-										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Phone, { className: "mr-2 h-4 w-4" }), "Call"]
-									})
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-									size: "sm",
-									variant: "outline",
-									onClick: () => openEditor(resident),
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PenLine, { className: "mr-2 h-4 w-4" }), "Edit"]
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-									size: "sm",
-									variant: "outline",
-									onClick: () => updateStatus.mutate({
-										resident,
-										status: resident.status === "suspended" ? "active" : "suspended"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex flex-wrap gap-2",
+								children: [
+									whatsapp && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+										asChild: true,
+										size: "sm",
+										variant: "ghost",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+											href: getWhatsAppLink(whatsapp),
+											target: "_blank",
+											rel: "noreferrer",
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MessageCircle, { className: "mr-2 h-4 w-4" }), "WhatsApp"]
+										})
 									}),
-									children: [resident.status === "suspended" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(UserCheck, { className: "mr-2 h-4 w-4" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldOff, { className: "mr-2 h-4 w-4" }), resident.status === "suspended" ? "Reactivate" : "Suspend"]
-								}),
-								resident.id !== user?.id && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-									size: "sm",
-									variant: "outline",
-									className: "text-destructive hover:text-destructive",
-									onClick: () => setResidentToRemove(resident),
-									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), "Remove"]
-								})
-							]
-						})]
-					})
-				}, resident.id);
-			})
+									resident.phone && /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+										asChild: true,
+										size: "sm",
+										variant: "ghost",
+										children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("a", {
+											href: `tel:${resident.phone}`,
+											children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Phone, { className: "mr-2 h-4 w-4" }), "Call"]
+										})
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+										size: "sm",
+										variant: "ghost",
+										onClick: () => openEditor(resident),
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PenLine, { className: "mr-2 h-4 w-4" }), "Edit"]
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+										size: "sm",
+										variant: "ghost",
+										onClick: () => updateStatus.mutate({
+											resident,
+											status: resident.status === "suspended" ? "active" : "suspended"
+										}),
+										children: [resident.status === "suspended" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(UserCheck, { className: "mr-2 h-4 w-4" }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShieldOff, { className: "mr-2 h-4 w-4" }), resident.status === "suspended" ? "Reactivate" : "Suspend"]
+									}),
+									resident.id !== user?.id && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+										size: "sm",
+										variant: "ghost",
+										className: "text-destructive hover:text-destructive",
+										onClick: () => setResidentToRemove(resident),
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), "Remove"]
+									})
+								]
+							})]
+						})
+					}, resident.id);
+				})]
+			}, group.houseLabel))
 		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, {
 			title: search ? "No matching members" : "No community members",
-			description: search ? "Try another name or number." : "New members will appear here."
+			description: search ? "Try another name, number or house." : "New members will appear here."
 		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MemberDetails, {
 			resident: selectedResident,
@@ -238,7 +290,7 @@ function ResidentsPage() {
 			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 				className: "max-h-[92vh] overflow-y-auto sm:max-w-xl",
 				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Edit member" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Update contact and home details." })] }),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogHeader, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTitle, { children: "Edit member" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogDescription, { children: "Update contact, house and tenant details." })] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "grid gap-4 sm:grid-cols-2",
 						children: [
@@ -292,7 +344,31 @@ function ResidentsPage() {
 									value: houseOrApartment,
 									onChange: (event) => setHouseOrApartment(event.target.value)
 								})
-							})
+							}),
+							residentType === "tenant" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+									label: "Landlord name",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										value: landlordName,
+										onChange: (event) => setLandlordName(event.target.value)
+									})
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+									label: "Landlord phone",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										type: "tel",
+										value: landlordPhone,
+										onChange: (event) => setLandlordPhone(event.target.value)
+									})
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+									label: "Duration of stay",
+									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+										value: stayDuration,
+										onChange: (event) => setStayDuration(event.target.value)
+									})
+								})
+							] })
 						]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogFooter, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
@@ -321,6 +397,7 @@ function ResidentsPage() {
 }
 function MemberDetails({ resident, onClose }) {
 	const submitted = resident ? getSubmittedData(resident) : {};
+	const housing = resident ? getResidentHousingDetails(resident) : emptyHousingDetails();
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
 		open: Boolean(resident),
 		onOpenChange: (open) => !open && onClose(),
@@ -357,6 +434,20 @@ function MemberDetails({ resident, onClose }) {
 						label: "House or apartment",
 						value: String(submitted.houseOrApartment || "")
 					}),
+					resident.resident_type === "tenant" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Detail, {
+							label: "Landlord name",
+							value: housing.landlordName
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Detail, {
+							label: "Landlord phone",
+							value: housing.landlordPhone
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Detail, {
+							label: "Duration of stay",
+							value: housing.stayDuration
+						})
+					] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Detail, {
 						label: "People living with member",
 						value: String(submitted.householdMembers || ""),
@@ -374,6 +465,15 @@ function MemberDetails({ resident, onClose }) {
 }
 function getSubmittedData(resident) {
 	return resident.onboarding_data && typeof resident.onboarding_data === "object" ? resident.onboarding_data : {};
+}
+function emptyHousingDetails() {
+	return {
+		compoundName: "",
+		houseOrApartment: "",
+		landlordName: "",
+		landlordPhone: "",
+		stayDuration: ""
+	};
 }
 function Field({ label, children }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {

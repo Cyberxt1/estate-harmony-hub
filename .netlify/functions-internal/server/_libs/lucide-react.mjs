@@ -390,6 +390,26 @@ var FileText = createLucideIcon("file-text", [
 * This source code is licensed under the ISC license.
 * See the LICENSE file in the root directory of this source tree.
 */
+var History = createLucideIcon("history", [
+	["path", {
+		d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8",
+		key: "1357e3"
+	}],
+	["path", {
+		d: "M3 3v5h5",
+		key: "1xhq8a"
+	}],
+	["path", {
+		d: "M12 7v5l4 2",
+		key: "1fdv2h"
+	}]
+]);
+/**
+* @license lucide-react v0.575.0 - ISC
+*
+* This source code is licensed under the ISC license.
+* See the LICENSE file in the root directory of this source tree.
+*/
 var LayoutDashboard = createLucideIcon("layout-dashboard", [
 	["rect", {
 		width: "7",
@@ -880,4 +900,4 @@ var X = createLucideIcon("x", [["path", {
 	key: "d8bk6v"
 }]]);
 //#endregion
-export { Check as A, FileText as C, ClipboardList as D, Clock3 as E, CircleX as F, CircleCheck as I, ChartColumn as L, PenLine as M, LoaderCircle as N, ChevronUp as O, House as P, LayoutDashboard as S, CreditCard as T, MessageSquareWarning as _, TrendingUp as a, Megaphone as b, ShieldCheck as c, Search as d, RotateCw as f, Phone as g, Plus as h, UserCheck as i, Building2 as j, ChevronDown as k, Share2 as l, QrCode as m, Users as n, Trash2 as o, ReceiptText as p, UserPlus as r, ShieldOff as s, X as t, Settings as u, MessageCircle as v, Download as w, LogOut as x, Menu as y };
+export { ChevronDown as A, History as C, Clock3 as D, CreditCard as E, House as F, CircleX as I, CircleCheck as L, Building2 as M, PenLine as N, ClipboardList as O, LoaderCircle as P, ChartColumn as R, LayoutDashboard as S, Download as T, MessageSquareWarning as _, TrendingUp as a, Megaphone as b, ShieldCheck as c, Search as d, RotateCw as f, Phone as g, Plus as h, UserCheck as i, Check as j, ChevronUp as k, Share2 as l, QrCode as m, Users as n, Trash2 as o, ReceiptText as p, UserPlus as r, ShieldOff as s, X as t, Settings as u, MessageCircle as v, FileText as w, LogOut as x, Menu as y };

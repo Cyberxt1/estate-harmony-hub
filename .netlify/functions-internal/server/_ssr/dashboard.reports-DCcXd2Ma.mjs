@@ -1,6 +1,6 @@
 import { t as supabase } from "./client-yydkHmVi.mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
-import { L as ChartColumn } from "../_libs/lucide-react.mjs";
+import { R as ChartColumn } from "../_libs/lucide-react.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
 import { n as PageHeader } from "./page-header-DnpF6lGt.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";

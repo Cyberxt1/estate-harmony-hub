@@ -27,7 +27,7 @@ var defaultStreamHandler = defineHandlerCallback(({ request, router, responseHea
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-BYaA2czM.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-Btf5AGjv.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -968,7 +968,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-o6UPQGm5.mjs"),
+		import("./router-oN0LZmGU.mjs"),
 		import("./start-mSU0gQm1.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);

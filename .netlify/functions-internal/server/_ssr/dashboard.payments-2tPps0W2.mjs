@@ -4,8 +4,9 @@ import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
+import { i as TabsTrigger, n as TabsContent, r as TabsList, t as Tabs } from "./tabs-C3Tr9JFK.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { I as CircleCheck, M as PenLine, T as CreditCard, h as Plus, n as Users, o as Trash2, p as ReceiptText } from "../_libs/lucide-react.mjs";
+import { E as CreditCard, L as CircleCheck, N as PenLine, h as Plus, n as Users, o as Trash2, p as ReceiptText } from "../_libs/lucide-react.mjs";
 import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
@@ -18,7 +19,7 @@ import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/t
 import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
 import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
 import { t as createSsrRpc } from "./createSsrRpc-BGkz4J1l.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-B6ueXPF9.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-2tPps0W2.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var getDuePaymentAvailability = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(createSsrRpc("653a259b4cd88e3c21eda318568c8894b375f36bb5a4495214446e2c1bb77d9b"));
@@ -198,6 +199,8 @@ function PaymentsPage() {
 		const payablePeople = invoices.filter((invoice) => getBalance(invoice) > 0 && isPayable(invoice));
 		const totalExpected = invoices.reduce((sum, invoice) => sum + Number(invoice.amount), 0);
 		const paidCount = invoices.filter((invoice) => invoice.status === "paid").length;
+		const fullyPaidGroups = groups.filter((group) => group.paidCount === group.peopleCount);
+		const owingGroups = groups.filter((group) => group.paidCount < group.peopleCount);
 		return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PageHeader, {
 				title: "Dues",
@@ -239,62 +242,72 @@ function PaymentsPage() {
 			}) : groups.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, {
 				title: "No dues created",
 				description: "Use Create due to request a payment from residents."
-			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "grid gap-3 lg:grid-cols-2",
-				children: groups.map((group) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("article", {
-					className: "rounded-xl border border-border bg-card p-5",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex items-start justify-between gap-4",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-								className: "text-xs font-medium uppercase text-muted-foreground",
-								children: group.category
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-								className: "mt-1 font-display text-xl font-semibold",
-								children: group.title
-							})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DueStatus, {
-								paid: group.paidCount,
-								total: group.peopleCount
-							})]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "mt-5 grid grid-cols-2 gap-4 text-sm",
-							children: [
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SimpleDetail, {
-									label: "Amount each",
-									value: formatMoney(group.amountEach)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SimpleDetail, {
-									label: "Due date",
-									value: formatDate(group.dueDate)
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SimpleDetail, {
-									label: "People to pay",
-									value: `${group.peopleCount} ${group.peopleCount === 1 ? "person" : "people"}`
-								}),
-								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SimpleDetail, {
-									label: "Paid",
-									value: `${group.paidCount} of ${group.peopleCount}`
-								})
-							]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "mt-5 flex gap-2 border-t border-border pt-4",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								size: "sm",
-								variant: "outline",
-								onClick: () => openEditor(group),
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PenLine, { className: "mr-2 h-4 w-4" }), "Edit"]
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
-								size: "sm",
-								variant: "outline",
-								className: "text-destructive hover:text-destructive",
-								onClick: () => setDeletingGroup(group),
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), "Delete"]
-							})]
+			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Tabs, {
+				defaultValue: "created",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsList, {
+						className: "mb-4 grid h-auto w-full grid-cols-3 gap-1 rounded-xl bg-muted/70 p-1 sm:w-[520px]",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+								value: "created",
+								children: [
+									"Created dues (",
+									groups.length,
+									")"
+								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+								value: "paid",
+								children: [
+									"Paid (",
+									fullyPaidGroups.length,
+									")"
+								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(TabsTrigger, {
+								value: "owing",
+								children: [
+									"Owing (",
+									owingGroups.length,
+									")"
+								]
+							})
+						]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "created",
+						className: "mt-0",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AdminDueList, {
+							groups,
+							emptyTitle: "No created dues",
+							emptyDescription: "Create a due and it will show here.",
+							onEdit: openEditor,
+							onDelete: setDeletingGroup
 						})
-					]
-				}, group.id))
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "paid",
+						className: "mt-0",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AdminDueList, {
+							groups: fullyPaidGroups,
+							emptyTitle: "No paid dues yet",
+							emptyDescription: "Fully paid dues will show here.",
+							onEdit: openEditor,
+							onDelete: setDeletingGroup
+						})
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(TabsContent, {
+						value: "owing",
+						className: "mt-0",
+						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AdminDueList, {
+							groups: owingGroups,
+							emptyTitle: "No dues are owing",
+							emptyDescription: "Any due with unpaid residents will show here.",
+							onEdit: openEditor,
+							onDelete: setDeletingGroup
+						})
+					})
+				]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DueFormDialog, {
 				open: createOpen,
@@ -455,6 +468,69 @@ function PaymentsPage() {
 			onClose: () => setSelectedInvoice(null)
 		})
 	] });
+}
+function AdminDueList({ groups, emptyTitle, emptyDescription, onEdit, onDelete }) {
+	if (groups.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, {
+		title: emptyTitle,
+		description: emptyDescription
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: "overflow-hidden rounded-xl border border-border bg-card",
+		children: groups.map((group, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("article", {
+			className: `px-4 py-3 sm:px-5 ${index !== groups.length - 1 ? "border-b border-border" : ""}`,
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "min-w-0 flex-1",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-wrap items-center gap-2 text-xs text-muted-foreground",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "rounded-full bg-secondary px-2 py-1 font-medium text-foreground/80",
+								children: group.category
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [
+								group.paidCount,
+								" of ",
+								group.peopleCount,
+								" paid"
+							] }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: ["Due ", formatDate(group.dueDate)] })
+						]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-2 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+							className: "truncate text-sm font-semibold text-foreground sm:text-base",
+							children: group.title
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2 sm:shrink-0",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm font-semibold text-foreground",
+								children: formatMoney(group.totalExpected)
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(DueStatus, {
+								paid: group.paidCount,
+								total: group.peopleCount
+							})]
+						})]
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center gap-2 lg:pl-4",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						size: "sm",
+						variant: "ghost",
+						onClick: () => onEdit(group),
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PenLine, { className: "mr-2 h-4 w-4" }), "Edit"]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+						size: "sm",
+						variant: "ghost",
+						className: "text-destructive hover:text-destructive",
+						onClick: () => onDelete(group),
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Trash2, { className: "mr-2 h-4 w-4" }), "Delete"]
+					})]
+				})]
+			})
+		}, group.id))
+	});
 }
 function DueFormDialog({ open, onOpenChange, title, submitLabel, submitting, onSubmit, form, audience, setAudience, residents = [], selectedMemberIds = [], setSelectedMemberIds, targetCount }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {

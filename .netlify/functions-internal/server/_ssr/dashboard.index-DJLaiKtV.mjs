@@ -4,7 +4,7 @@ import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { P as House, T as CreditCard, _ as MessageSquareWarning, a as TrendingUp, c as ShieldCheck, m as QrCode, n as Users } from "../_libs/lucide-react.mjs";
+import { E as CreditCard, F as House, _ as MessageSquareWarning, a as TrendingUp, c as ShieldCheck, m as QrCode, n as Users } from "../_libs/lucide-react.mjs";
 import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";

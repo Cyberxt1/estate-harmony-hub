@@ -8,10 +8,10 @@ import { t as Toaster } from "../_libs/sonner.mjs";
 import { t as AuthProvider } from "./use-auth-CJoPS59J.mjs";
 import { n as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { r as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-o6UPQGm5.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-oN0LZmGU.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-BOKkHwm6.css";
+var styles_default = "/assets/styles-LGjgvJsD.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -202,15 +202,15 @@ var $$splitComponentImporter$9 = () => import("./dashboard.settings-Dy9uFzSk.mjs
 var Route$9 = createFileRoute("/dashboard/settings")({ component: lazyRouteComponent($$splitComponentImporter$9, "component") });
 var $$splitComponentImporter$8 = () => import("./dashboard.security-rDGTragP.mjs");
 var Route$8 = createFileRoute("/dashboard/security")({ component: lazyRouteComponent($$splitComponentImporter$8, "component") });
-var $$splitComponentImporter$7 = () => import("./dashboard.residents-x6oX7HAX.mjs");
+var $$splitComponentImporter$7 = () => import("./dashboard.residents-BxSgV4Li.mjs");
 var Route$7 = createFileRoute("/dashboard/residents")({ component: lazyRouteComponent($$splitComponentImporter$7, "component") });
 var $$splitComponentImporter$6 = () => import("./dashboard.reports-DCcXd2Ma.mjs");
 var Route$6 = createFileRoute("/dashboard/reports")({ component: lazyRouteComponent($$splitComponentImporter$6, "component") });
-var $$splitComponentImporter$5 = () => import("./dashboard.properties-Bfel7HPc.mjs");
+var $$splitComponentImporter$5 = () => import("./dashboard.properties-UdjZaYjw.mjs");
 var Route$5 = createFileRoute("/dashboard/properties")({ component: lazyRouteComponent($$splitComponentImporter$5, "component") });
-var $$splitComponentImporter$4 = () => import("./dashboard.payments-B6ueXPF9.mjs");
+var $$splitComponentImporter$4 = () => import("./dashboard.payments-2tPps0W2.mjs");
 var Route$4 = createFileRoute("/dashboard/payments")({ component: lazyRouteComponent($$splitComponentImporter$4, "component") });
-var $$splitComponentImporter$3 = () => import("./dashboard.onboarding-BhBwATaP.mjs");
+var $$splitComponentImporter$3 = () => import("./dashboard.onboarding-D2Fux36c.mjs");
 var Route$3 = createFileRoute("/dashboard/onboarding")({ component: lazyRouteComponent($$splitComponentImporter$3, "component") });
 var $$splitComponentImporter$2 = () => import("./dashboard.documents-Dn0uI3T1.mjs");
 var Route$2 = createFileRoute("/dashboard/documents")({ component: lazyRouteComponent($$splitComponentImporter$2, "component") });

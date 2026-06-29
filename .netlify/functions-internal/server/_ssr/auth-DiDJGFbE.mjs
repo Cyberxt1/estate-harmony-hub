@@ -8,7 +8,7 @@ import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { i as TabsTrigger, n as TabsContent, r as TabsList, t as Tabs } from "./tabs-C3Tr9JFK.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { j as Building2 } from "../_libs/lucide-react.mjs";
+import { M as Building2 } from "../_libs/lucide-react.mjs";
 import { t as createLovableAuth } from "../_libs/lovable.dev__cloud-auth-js.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/auth-DiDJGFbE.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
