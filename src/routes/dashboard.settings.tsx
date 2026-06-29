@@ -115,7 +115,11 @@ function SettingsPage() {
               <Label>Phone</Label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
             </div>
-            <Button onClick={() => saveProfile.mutate()} disabled={saveProfile.isPending}>
+            <Button
+              onClick={() => saveProfile.mutate()}
+              loading={saveProfile.isPending}
+              loadingLabel="Saving profile"
+            >
               Save profile
             </Button>
           </div>
@@ -142,7 +146,9 @@ function SettingsPage() {
             </div>
             <Button
               onClick={() => saveEstateDetails.mutate()}
-              disabled={!isAdmin || !profile?.estate_id || saveEstateDetails.isPending}
+              disabled={!isAdmin || !profile?.estate_id}
+              loading={saveEstateDetails.isPending}
+              loadingLabel="Saving estate details"
             >
               Save Oyesile details
             </Button>

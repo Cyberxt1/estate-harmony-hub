@@ -119,9 +119,9 @@ function DashboardHome() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div>
-        <h1 className="font-display text-3xl font-semibold">
+        <h1 className="font-display text-2xl font-semibold">
           Welcome back{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}.
         </h1>
         <p className="mt-1 text-sm text-muted-foreground capitalize">
@@ -129,20 +129,17 @@ function DashboardHome() {
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => {
           const card = (
-            <div
-              className="rounded-2xl border border-border bg-card p-5"
-              style={{ boxShadow: "var(--shadow-soft)" }}
-            >
+            <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
               <div className="flex items-start justify-between">
                 <p className="text-sm text-muted-foreground">{c.label}</p>
                 <div className="grid h-8 w-8 place-items-center rounded-md bg-accent text-accent-foreground">
                   <c.icon className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 font-display text-2xl font-semibold">{c.value}</p>
+              <p className="mt-2 font-display text-xl font-semibold">{c.value}</p>
             </div>
           );
 
@@ -156,14 +153,14 @@ function DashboardHome() {
         })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="rounded-2xl border border-border bg-card p-6 lg:col-span-2">
+      <div className="grid gap-3 lg:grid-cols-3">
+        <div className="rounded-lg border border-border bg-card p-4 lg:col-span-2">
           <h2 className="mb-2 font-display text-lg font-semibold">Getting started</h2>
           <p className="text-sm text-muted-foreground">
             Oyesile Estate is ready for resident records, properties, visitors, dues and community
             announcements.
           </p>
-          <ul className="mt-4 space-y-2 text-sm">
+          <ul className="mt-3 space-y-1.5 text-sm">
             {[
               "Confirm Oyesile Estate details in Settings",
               "Add properties and assign households",
@@ -179,7 +176,7 @@ function DashboardHome() {
             ))}
           </ul>
         </div>
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="rounded-lg border border-border bg-card p-4">
           <h2 className="mb-2 font-display text-lg font-semibold">Your role</h2>
           <p className="text-sm text-muted-foreground">
             You're signed in as{" "}

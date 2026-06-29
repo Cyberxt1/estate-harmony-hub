@@ -127,11 +127,11 @@ function DashboardLayout() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 transform border-r border-sidebar-border bg-sidebar transition-transform md:relative md:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 w-56 transform border-r border-sidebar-border bg-sidebar transition-transform md:relative md:translate-x-0",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-5">
+        <div className="flex h-14 items-center justify-between border-b border-sidebar-border px-4">
           <Link to="/dashboard" className="flex items-center gap-2">
             <div className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
               <Building2 className="h-4 w-4" />
@@ -146,7 +146,7 @@ function DashboardLayout() {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="flex flex-col gap-0.5 p-3">
+        <nav className="flex flex-col gap-0.5 p-2.5">
           <div className="px-3 pb-2 pt-1 text-xs font-medium uppercase text-sidebar-foreground/50">
             {workspace.label}
           </div>
@@ -172,7 +172,7 @@ function DashboardLayout() {
             })}
         </nav>
 
-        <div className="absolute inset-x-3 bottom-3 rounded-xl border border-sidebar-border bg-card p-3">
+        <div className="absolute inset-x-2.5 bottom-2.5 rounded-lg border border-sidebar-border bg-card p-2.5">
           <div className="flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-full bg-primary text-primary-foreground text-sm font-semibold">
               {initials}
@@ -206,7 +206,7 @@ function DashboardLayout() {
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur md:px-8">
+        <header className="flex h-14 items-center gap-3 border-b border-border bg-background/90 px-3.5 backdrop-blur md:px-6">
           <Button
             variant="ghost"
             size="icon"
@@ -226,8 +226,10 @@ function DashboardLayout() {
             {profile?.full_name || profile?.email}
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8">
-          <Outlet />
+        <main className="flex-1 p-3.5 sm:p-5 md:p-6">
+          <div className="app-content mx-auto w-full max-w-7xl">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

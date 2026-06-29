@@ -82,10 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles(((r ?? []) as { role: AppRole }[]).map((x) => x.role));
     };
 
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      setUser(data.user);
-      load(data.user).finally(() => mounted && setLoading(false));
+      const initialUser = data.session?.user ?? null;
+      setUser(initialUser);
+      load(initialUser).finally(() => mounted && setLoading(false));
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {

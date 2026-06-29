@@ -1,6 +1,6 @@
 import { n as __require, r as __toESM, t as __commonJSMin } from "../../_runtime.mjs";
 import { l as require_react_dom, u as require_react } from "../@floating-ui/react-dom+[...].mjs";
-import { s as require_jsx_runtime } from "../@radix-ui/react-arrow+[...].mjs";
+import { N as require_jsx_runtime } from "../@radix-ui/react-alert-dialog+[...].mjs";
 import { r as parseHref } from "../tanstack__history.mjs";
 import { PassThrough, Readable } from "node:stream";
 import { ReadableStream as ReadableStream$1 } from "node:stream/web";
@@ -1483,9 +1483,13 @@ function isRedirect(obj) {
 function isResolvedRedirect(obj) {
 	return isRedirect(obj) && !!obj.options.href;
 }
+/** Parse a serialized redirect object back into a redirect Response. */
+/** Parse a serialized redirect object back into a redirect Response. */
+function parseRedirect(obj) {
+	if (obj !== null && typeof obj === "object" && obj.isSerializedRedirect) return redirect(obj);
+}
 //#endregion
 //#region node_modules/@tanstack/router-core/dist/esm/rewrite.js
-var import_react_dom = /* @__PURE__ */ __toESM(require_react_dom(), 1);
 /** Compose multiple rewrite pairs into a single in/out rewrite. */
 function composeRewrites(rewrites) {
 	return {
@@ -4054,6 +4058,7 @@ function useStore(atom, selector, compare = defaultCompare) {
 }
 //#endregion
 //#region node_modules/@tanstack/react-router/dist/esm/link.js
+var import_react_dom = /* @__PURE__ */ __toESM(require_react_dom(), 1);
 /**
 * Build anchor-like props for declarative navigation and preloading.
 *
@@ -14507,4 +14512,4 @@ var renderRouterToStream = async ({ request, router, responseHeaders, children }
 	throw new Error("No renderToReadableStream or renderToPipeableStream found in react-dom/server. Ensure you are using a version of react-dom that supports streaming.");
 };
 //#endregion
-export { isNotFound as A, resolveManifestAssetLink as C, isResolvedRedirect as D, isRedirect as E, useRouter as F, invariant as M, decodePath as N, redirect as O, useNavigate as P, getStylesheetHref as S, executeRewriteInput as T, GLOBAL_TSR as _, replaceSsrResponse as a, createInlineCssStyleAsset as b, HeadContent as c, createRouter as d, Outlet as f, Link as g, createRootRouteWithContext as h, normalizeSsrResponse as i, createLRUCache as j, rootRouteId as k, useRouterState as l, createFileRoute as m, defineHandlerCallback as n, stripSsrResponseBody as o, lazyRouteComponent as p, isSsrResponse as r, Scripts as s, renderRouterToStream as t, RouterProvider as u, TSR_SCRIPT_BARRIER_ID as v, resolveManifestCssLink as w, getScriptPreloadAttrs as x, createInlineCssPlaceholderAsset as y };
+export { rootRouteId as A, resolveManifestAssetLink as C, isResolvedRedirect as D, isRedirect as E, useNavigate as F, useRouter as I, createLRUCache as M, invariant as N, parseRedirect as O, decodePath as P, getStylesheetHref as S, executeRewriteInput as T, GLOBAL_TSR as _, replaceSsrResponse as a, createInlineCssStyleAsset as b, HeadContent as c, createRouter as d, Outlet as f, Link as g, createRootRouteWithContext as h, normalizeSsrResponse as i, isNotFound as j, redirect as k, useRouterState as l, createFileRoute as m, defineHandlerCallback as n, stripSsrResponseBody as o, lazyRouteComponent as p, isSsrResponse as r, Scripts as s, renderRouterToStream as t, RouterProvider as u, TSR_SCRIPT_BARRIER_ID as v, resolveManifestCssLink as w, getScriptPreloadAttrs as x, createInlineCssPlaceholderAsset as y };

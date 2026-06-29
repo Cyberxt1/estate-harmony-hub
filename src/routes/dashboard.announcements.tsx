@@ -288,7 +288,8 @@ function AnnouncementsPage() {
             </Button>
             <Button
               onClick={() => createAnnouncement.mutate()}
-              disabled={createAnnouncement.isPending}
+              loading={createAnnouncement.isPending}
+              loadingLabel="Publishing announcement"
             >
               Publish
             </Button>

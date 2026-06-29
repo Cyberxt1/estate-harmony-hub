@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Edit3,
-  Loader2,
   MessageCircle,
   Phone,
   Search,
@@ -354,8 +353,11 @@ function ResidentsPage() {
             <Button variant="outline" onClick={() => setEditingResident(null)}>
               Cancel
             </Button>
-            <Button onClick={() => saveEdit.mutate()} disabled={saveEdit.isPending}>
-              {saveEdit.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button
+              onClick={() => saveEdit.mutate()}
+              loading={saveEdit.isPending}
+              loadingLabel="Saving member"
+            >
               Save changes
             </Button>
           </DialogFooter>

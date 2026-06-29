@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   Clock3,
-  Loader2,
   MessageCircle,
   MessageSquareWarning,
   Phone,
@@ -267,7 +266,11 @@ function ComplaintsPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => createComplaint.mutate()} disabled={createComplaint.isPending}>
+            <Button
+              onClick={() => createComplaint.mutate()}
+              loading={createComplaint.isPending}
+              loadingLabel="Sending complaint"
+            >
               Send complaint
             </Button>
           </DialogFooter>
@@ -434,8 +437,11 @@ function ComplaintDetails({
                   >
                     Mark in progress
                   </Button>
-                  <Button onClick={() => onStatusChange("resolved")} disabled={updating}>
-                    {updating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button
+                    onClick={() => onStatusChange("resolved")}
+                    loading={updating}
+                    loadingLabel="Updating complaint"
+                  >
                     Mark resolved
                   </Button>
                 </div>

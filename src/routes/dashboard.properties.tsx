@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Home, Loader2, MessageCircle, Phone, Plus, UserPlus, X } from "lucide-react";
+import { Building2, Home, MessageCircle, Phone, Plus, UserPlus, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -453,8 +453,11 @@ function PropertiesPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => createProperty.mutate()} disabled={createProperty.isPending}>
-              {createProperty.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button
+              onClick={() => createProperty.mutate()}
+              loading={createProperty.isPending}
+              loadingLabel="Adding property"
+            >
               Add property
             </Button>
           </DialogFooter>

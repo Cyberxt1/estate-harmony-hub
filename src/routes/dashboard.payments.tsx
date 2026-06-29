@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   CreditCard,
   Edit3,
-  Loader2,
   Plus,
   ReceiptText,
   Trash2,
@@ -721,8 +720,7 @@ function DueFormDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onSubmit} disabled={submitting}>
-            {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button onClick={onSubmit} loading={submitting} loadingLabel={submitLabel}>
             {submitLabel}
           </Button>
         </DialogFooter>

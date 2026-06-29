@@ -137,7 +137,12 @@ function SecurityPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button onClick={() => create.mutate()} disabled={!type || create.isPending}>
+              <Button
+                onClick={() => create.mutate()}
+                disabled={!type}
+                loading={create.isPending}
+                loadingLabel="Reporting incident"
+              >
                 Report
               </Button>
             </DialogFooter>

@@ -164,7 +164,9 @@ function VisitorsPage() {
             <DialogFooter>
               <Button
                 onClick={() => invite.mutate()}
-                disabled={!fullName.trim() || !phone.trim() || invite.isPending}
+                disabled={!fullName.trim() || !phone.trim()}
+                loading={invite.isPending}
+                loadingLabel="Generating visitor QR"
               >
                 Generate QR
               </Button>
@@ -293,7 +295,11 @@ function VisitorsPage() {
                 <Detail label="Code" value={shareVisitor.qr_code} />
                 <Detail label="Phone" value={shareVisitor.phone} />
                 <Detail label="Purpose" value={shareVisitor.purpose} wide />
-                <Detail label="Expected arrival" value={formatDateTime(shareVisitor.expected_at)} wide />
+                <Detail
+                  label="Expected arrival"
+                  value={formatDateTime(shareVisitor.expected_at)}
+                  wide
+                />
               </div>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
