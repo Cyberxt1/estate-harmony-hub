@@ -5,17 +5,17 @@ import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+
 import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { b as Megaphone, h as Plus, o as Trash2 } from "../_libs/lucide-react.mjs";
-import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
+import { S as Megaphone, g as Plus, o as Trash2 } from "../_libs/lucide-react.mjs";
+import { a as useAuth } from "./use-auth-B-LWZl48.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
+import { t as Textarea } from "./textarea-6e1tF3H-.mjs";
+import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
+import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
 import { t as Checkbox } from "./checkbox-JVQXDHxI.mjs";
-import { t as Textarea } from "./textarea-6e1tF3H-.mjs";
 import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectItem, t as Select } from "./select-BKZRgQX9.mjs";
-import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
 import { a as AlertDialogDescription, c as AlertDialogTitle, i as AlertDialogContent, n as AlertDialogAction, o as AlertDialogFooter, r as AlertDialogCancel, s as AlertDialogHeader, t as AlertDialog } from "./alert-dialog-DMNUCmq6.mjs";
-import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.announcements-B8dZnAn2.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.announcements-CEVIjBxs.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function AnnouncementsPage() {

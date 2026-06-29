@@ -244,6 +244,53 @@ export type Database = {
           },
         ];
       };
+      emergency_contacts: {
+        Row: {
+          address: string | null;
+          created_at: string;
+          created_by: string | null;
+          estate_id: string;
+          id: string;
+          label: string;
+          notes: string | null;
+          phone: string;
+          priority: number;
+          updated_at: string;
+        };
+        Insert: {
+          address?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          estate_id: string;
+          id?: string;
+          label: string;
+          notes?: string | null;
+          phone: string;
+          priority?: number;
+          updated_at?: string;
+        };
+        Update: {
+          address?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          estate_id?: string;
+          id?: string;
+          label?: string;
+          notes?: string | null;
+          phone?: string;
+          priority?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "emergency_contacts_estate_id_fkey";
+            columns: ["estate_id"];
+            isOneToOne: false;
+            referencedRelation: "estates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       estates: {
         Row: {
           address: string | null;
@@ -828,6 +875,56 @@ export type Database = {
           },
         ];
       };
+      staff_tasks: {
+        Row: {
+          assigned_role: Database["public"]["Enums"]["app_role"] | null;
+          assigned_user_id: string | null;
+          created_at: string;
+          created_by: string;
+          description: string | null;
+          due_date: string | null;
+          estate_id: string;
+          id: string;
+          status: string;
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          assigned_role?: Database["public"]["Enums"]["app_role"] | null;
+          assigned_user_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          description?: string | null;
+          due_date?: string | null;
+          estate_id: string;
+          id?: string;
+          status?: string;
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          assigned_role?: Database["public"]["Enums"]["app_role"] | null;
+          assigned_user_id?: string | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string | null;
+          due_date?: string | null;
+          estate_id?: string;
+          id?: string;
+          status?: string;
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_tasks_estate_id_fkey";
+            columns: ["estate_id"];
+            isOneToOne: false;
+            referencedRelation: "estates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       user_roles: {
         Row: {
           created_at: string;
@@ -853,6 +950,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "user_roles_estate_id_fkey";
+            columns: ["estate_id"];
+            isOneToOne: false;
+            referencedRelation: "estates";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      admin_invitations: {
+        Row: {
+          accepted_at: string | null;
+          email: string;
+          estate_id: string;
+          id: string;
+          invited_at: string;
+          invited_by: string | null;
+          note: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+          status: string;
+          user_id: string | null;
+        };
+        Insert: {
+          accepted_at?: string | null;
+          email: string;
+          estate_id: string;
+          id?: string;
+          invited_at?: string;
+          invited_by?: string | null;
+          note?: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+          status?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          accepted_at?: string | null;
+          email?: string;
+          estate_id?: string;
+          id?: string;
+          invited_at?: string;
+          invited_by?: string | null;
+          note?: string | null;
+          role?: Database["public"]["Enums"]["app_role"];
+          status?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "admin_invitations_estate_id_fkey";
             columns: ["estate_id"];
             isOneToOne: false;
             referencedRelation: "estates";
@@ -1030,6 +1174,7 @@ export type Database = {
         | "treasurer"
         | "chief_security_officer"
         | "security_officer"
+        | "security_gateman"
         | "resident"
         | "household_member"
         | "domestic_staff";
@@ -1190,6 +1335,7 @@ export const Constants = {
         "treasurer",
         "chief_security_officer",
         "security_officer",
+        "security_gateman",
         "resident",
         "household_member",
         "domestic_staff",

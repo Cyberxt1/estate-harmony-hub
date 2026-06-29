@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { QrCode, Plus, CheckCircle2, Download, Share2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useAuth } from "@/hooks/use-auth";
+import { formatDateTime, getVisitorQrDataUrl, getVisitorWhatsAppLink } from "@/lib/visitor-qr";
 import { PageHeader, EmptyState } from "@/components/page-header";
 import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export const Route = createFileRoute("/dashboard/visitors")({
 type Visitor = Tables<"visitors">;
 
 function VisitorsPage() {
-  const { user, profile, isSecurity, isAdmin } = useAuth();
+  const { user, profile, isSecurity, isAdmin, primaryRole } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [fullName, setFullName] = useState("");
@@ -37,6 +38,9 @@ function VisitorsPage() {
   const [expectedAt, setExpectedAt] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
   const [shareVisitor, setShareVisitor] = useState<Visitor | null>(null);
+  const [shareQrUrl, setShareQrUrl] = useState("");
+
+  const canInvite = primaryRole !== "security_gateman";
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["visitors"],
@@ -50,6 +54,16 @@ function VisitorsPage() {
       return data ?? [];
     },
   });
+
+  useEffect(() => {
+    if (!shareVisitor) {
+      setShareQrUrl("");
+      return;
+    }
+    getVisitorQrDataUrl(shareVisitor)
+      .then(setShareQrUrl)
+      .catch(() => setShareQrUrl(""));
+  }, [shareVisitor]);
 
   const invite = useMutation({
     mutationFn: async () => {
@@ -119,60 +133,62 @@ function VisitorsPage() {
     <div>
       <PageHeader
         title="Visitors"
-        description="Invite, generate QR codes, check in and out."
+        description={
+          canInvite
+            ? "Invite, generate QR codes, check in and out."
+            : "Scan, check in and log visitors at the gate."
+        }
         icon={QrCode}
       >
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-1 h-4 w-4" /> Invite visitor
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Invite a visitor</DialogTitle>
-              <DialogDescription>
-                Create the invite, download the QR, and send it straight to the visitor.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Full name</Label>
-                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Visitor phone</Label>
-                <Input
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="08012345678"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Purpose</Label>
-                <Input value={purpose} onChange={(e) => setPurpose(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>Expected arrival</Label>
-                <Input
-                  type="datetime-local"
-                  value={expectedAt}
-                  onChange={(e) => setExpectedAt(e.target.value)}
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                onClick={() => invite.mutate()}
-                disabled={!fullName.trim() || !phone.trim()}
-                loading={invite.isPending}
-                loadingLabel="Generating visitor QR"
-              >
-                Generate QR
+        {canInvite && (
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-1 h-4 w-4" /> Invite visitor
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite a visitor</DialogTitle>
+                <DialogDescription>
+                  Create the invite, download the QR, and send it straight to the visitor.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Field label="Full name">
+                  <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+                </Field>
+                <Field label="Visitor phone">
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="08012345678"
+                  />
+                </Field>
+                <Field label="Purpose">
+                  <Input value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+                </Field>
+                <Field label="Expected arrival">
+                  <Input
+                    type="datetime-local"
+                    value={expectedAt}
+                    onChange={(e) => setExpectedAt(e.target.value)}
+                  />
+                </Field>
+              </div>
+              <DialogFooter>
+                <Button
+                  onClick={() => invite.mutate()}
+                  disabled={!fullName.trim() || !phone.trim()}
+                  loading={invite.isPending}
+                  loadingLabel="Generating visitor QR"
+                >
+                  Generate QR
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </PageHeader>
 
       {isError ? (
@@ -193,21 +209,21 @@ function VisitorsPage() {
               </tr>
             </thead>
             <tbody>
-              {data.map((v) => (
+              {data.map((visitor) => (
                 <tr
-                  key={v.id}
+                  key={visitor.id}
                   className="cursor-pointer border-t border-border transition hover:bg-secondary/30"
-                  onClick={() => setSelectedVisitor(v)}
+                  onClick={() => setSelectedVisitor(visitor)}
                 >
-                  <td className="px-4 py-3 font-medium">{v.full_name}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{v.purpose || "-"}</td>
+                  <td className="px-4 py-3 font-medium">{visitor.full_name}</td>
+                  <td className="px-4 py-3 text-muted-foreground">{visitor.purpose || "-"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
-                    {v.expected_at ? new Date(v.expected_at).toLocaleString() : "-"}
+                    {visitor.expected_at ? new Date(visitor.expected_at).toLocaleString() : "-"}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">{v.qr_code}</td>
+                  <td className="px-4 py-3 font-mono text-xs">{visitor.qr_code}</td>
                   <td className="px-4 py-3">
                     <span className="rounded-full bg-accent px-2 py-0.5 text-xs capitalize text-accent-foreground">
-                      {v.status.replace("_", " ")}
+                      {visitor.status.replace("_", " ")}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -215,23 +231,27 @@ function VisitorsPage() {
                       className="flex flex-wrap justify-end gap-2"
                       onClick={(event) => event.stopPropagation()}
                     >
-                      <Button size="sm" variant="outline" onClick={() => setShareVisitor(v)}>
+                      <Button size="sm" variant="outline" onClick={() => setShareVisitor(visitor)}>
                         <Share2 className="mr-1 h-3.5 w-3.5" /> Share
                       </Button>
-                      {(isSecurity || isAdmin) && v.status === "expected" && (
+                      {(isSecurity || isAdmin) && visitor.status === "expected" && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateStatus.mutate({ id: v.id, status: "checked_in" })}
+                          onClick={() =>
+                            updateStatus.mutate({ id: visitor.id, status: "checked_in" })
+                          }
                         >
                           <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Check in
                         </Button>
                       )}
-                      {(isSecurity || isAdmin) && v.status === "checked_in" && (
+                      {(isSecurity || isAdmin) && visitor.status === "checked_in" && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateStatus.mutate({ id: v.id, status: "checked_out" })}
+                          onClick={() =>
+                            updateStatus.mutate({ id: visitor.id, status: "checked_out" })
+                          }
                         >
                           <XCircle className="mr-1 h-3.5 w-3.5" /> Check out
                         </Button>
@@ -285,11 +305,17 @@ function VisitorsPage() {
           {shareVisitor && (
             <div className="space-y-4">
               <div className="rounded-2xl border border-border bg-secondary/20 p-4">
-                <img
-                  src={getVisitorQrImageUrl(shareVisitor)}
-                  alt={`QR code for ${shareVisitor.full_name}`}
-                  className="mx-auto h-64 w-64 rounded-xl bg-white p-3"
-                />
+                {shareQrUrl ? (
+                  <img
+                    src={shareQrUrl}
+                    alt={`QR code for ${shareVisitor.full_name}`}
+                    className="mx-auto h-64 w-64 rounded-xl bg-white p-3"
+                  />
+                ) : (
+                  <div className="grid h-64 place-items-center text-sm text-muted-foreground">
+                    Generating QR code...
+                  </div>
+                )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Detail label="Code" value={shareVisitor.qr_code} />
@@ -326,6 +352,15 @@ function VisitorsPage() {
   );
 }
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      {children}
+    </div>
+  );
+}
+
 function Detail({
   label,
   value,
@@ -345,60 +380,6 @@ function Detail({
   );
 }
 
-function formatDateTime(value?: string | null) {
-  return value ? new Date(value).toLocaleString() : "Not provided";
-}
-
-function getVisitorInvitePayload(visitor: Visitor) {
-  return [
-    `Estate visitor invite for ${visitor.full_name}`,
-    `Gate code: ${visitor.qr_code || "Not available"}`,
-    `Purpose: ${visitor.purpose || "Visitor entry"}`,
-    `Expected time: ${formatDateTime(visitor.expected_at)}`,
-  ].join("\n");
-}
-
-function getVisitorQrImageUrl(visitor: Visitor) {
-  const payload = getVisitorInvitePayload(visitor);
-  return `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(payload)}`;
-}
-
-function getVisitorWhatsAppLink(visitor: Visitor, hostName: string) {
-  const phone = normalizeWhatsAppPhone(visitor.phone);
-  if (!phone) return null;
-
-  const text = [
-    `Hello ${visitor.full_name},`,
-    `${hostName} invited you to Oyesile Estate.`,
-    "",
-    `Gate code: ${visitor.qr_code || "Not available"}`,
-    `Purpose: ${visitor.purpose || "Visitor entry"}`,
-    `Expected time: ${formatDateTime(visitor.expected_at)}`,
-    "",
-    `QR code: ${getVisitorQrImageUrl(visitor)}`,
-    "Please show the QR code or gate code at the entrance.",
-  ].join("\n");
-
-  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-}
-
-function normalizeWhatsAppPhone(value?: string | null) {
-  if (!value) return null;
-
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  if (trimmed.startsWith("+")) {
-    return trimmed.slice(1).replace(/\D/g, "");
-  }
-
-  const digits = trimmed.replace(/\D/g, "");
-  if (!digits) return null;
-  if (digits.startsWith("234")) return digits;
-  if (digits.length === 11 && digits.startsWith("0")) return `234${digits.slice(1)}`;
-  return digits;
-}
-
 function openWhatsAppShare(visitor: Visitor, hostName: string) {
   const link = getVisitorWhatsAppLink(visitor, hostName);
   if (!link) {
@@ -411,17 +392,13 @@ function openWhatsAppShare(visitor: Visitor, hostName: string) {
 
 async function downloadQrCode(visitor: Visitor) {
   try {
-    const response = await fetch(getVisitorQrImageUrl(visitor));
-    if (!response.ok) throw new Error("QR download failed");
-    const blob = await response.blob();
-    const fileUrl = URL.createObjectURL(blob);
+    const dataUrl = await getVisitorQrDataUrl(visitor);
     const link = document.createElement("a");
-    link.href = fileUrl;
+    link.href = dataUrl;
     link.download = `${visitor.full_name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "visitor"}-qr.png`;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(fileUrl);
   } catch {
     toast.error("QR code could not be downloaded right now.");
   }

@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { getDuePaymentAvailability, verifyDuePayment } from "@/lib/payments.functions";
+import { downloadDueReceipt } from "@/lib/receipts";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -82,6 +83,7 @@ type PendingDuePayment = {
   reference: string;
   savedAt: number;
 };
+type PaymentRecord = Tables<"payments">;
 
 const PENDING_DUE_PAYMENT_KEY = "pendingDuePayments";
 
@@ -151,6 +153,19 @@ function PaymentsPage() {
         .order("full_name", { ascending: true });
       if (error) throw error;
       return (data ?? []) as ResidentProfile[];
+    },
+  });
+
+  const { data: paymentRecords = [] } = useQuery({
+    queryKey: ["payments-records", user?.id, isAdmin],
+    enabled: Boolean(user?.id) && !isAdmin,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payments")
+        .select("*")
+        .order("paid_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PaymentRecord[];
     },
   });
 
@@ -536,17 +551,49 @@ function PaymentsPage() {
         <section className="mt-8">
           <h2 className="mb-3 font-display text-lg font-semibold">Paid dues</h2>
           <div className="space-y-2">
-            {paidDues.map((invoice) => (
-              <button
-                key={invoice.id}
-                type="button"
-                className="flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-left"
-                onClick={() => setSelectedInvoice(invoice)}
-              >
-                <span className="text-sm font-medium">{invoice.description || "Estate due"}</span>
-                <span className="text-sm text-success">Paid</span>
-              </button>
-            ))}
+            {paidDues.map((invoice) => {
+              const payment = paymentRecords.find(
+                (item) => item.invoice_id === invoice.id && item.status === "completed",
+              );
+              return (
+                <div
+                  key={invoice.id}
+                  className="flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <button
+                    type="button"
+                    className="flex-1 text-left"
+                    onClick={() => setSelectedInvoice(invoice)}
+                  >
+                    <span className="text-sm font-medium">
+                      {invoice.description || "Estate due"}
+                    </span>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {payment?.paid_at ? `Paid ${formatDateTime(payment.paid_at)}` : "Paid"}
+                    </p>
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-success">Paid</span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        downloadDueReceipt({
+                          title: invoice.description || "Estate due",
+                          amount: Number(payment?.amount ?? invoice.amount),
+                          currency: payment?.currency || invoice.currency,
+                          reference: payment?.reference,
+                          paidAt: payment?.paid_at,
+                          residentName: profile?.full_name || profile?.email,
+                        })
+                      }
+                    >
+                      Receipt
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -966,6 +1013,10 @@ function formatDate(value?: string | null) {
     month: "short",
     year: "numeric",
   }).format(toLocalDate(value));
+}
+
+function formatDateTime(value?: string | null) {
+  return value ? new Date(value).toLocaleString() : "Not set";
 }
 
 function getDefaultDueDate() {

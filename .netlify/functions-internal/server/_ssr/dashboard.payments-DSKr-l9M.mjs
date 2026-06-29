@@ -1,4 +1,6 @@
 import { r as __toESM } from "../_runtime.mjs";
+import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
+import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
 import { t as supabase } from "./client-yydkHmVi.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
@@ -6,20 +8,18 @@ import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { i as TabsTrigger, n as TabsContent, r as TabsList, t as Tabs } from "./tabs-C3Tr9JFK.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { E as CreditCard, L as CircleCheck, N as PenLine, h as Plus, n as Users, o as Trash2, p as ReceiptText } from "../_libs/lucide-react.mjs";
-import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
+import { H as CircleCheck, O as CreditCard, R as PenLine, g as Plus, m as ReceiptText, n as Users, o as Trash2 } from "../_libs/lucide-react.mjs";
+import { a as useAuth, n as createSsrRpc } from "./use-auth-B-LWZl48.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
+import { t as Textarea } from "./textarea-6e1tF3H-.mjs";
+import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
+import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
 import { t as Checkbox } from "./checkbox-JVQXDHxI.mjs";
-import { t as Textarea } from "./textarea-6e1tF3H-.mjs";
 import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectItem, t as Select } from "./select-BKZRgQX9.mjs";
-import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
 import { a as AlertDialogDescription, c as AlertDialogTitle, i as AlertDialogContent, n as AlertDialogAction, o as AlertDialogFooter, r as AlertDialogCancel, s as AlertDialogHeader, t as AlertDialog } from "./alert-dialog-DMNUCmq6.mjs";
-import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
-import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
-import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
-import { t as createSsrRpc } from "./createSsrRpc-BGkz4J1l.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-2tPps0W2.js
+import { t as downloadDueReceipt } from "./receipts-C46lC8Qz.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.payments-DSKr-l9M.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var getDuePaymentAvailability = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(createSsrRpc("653a259b4cd88e3c21eda318568c8894b375f36bb5a4495214446e2c1bb77d9b"));
@@ -70,6 +70,19 @@ function PaymentsPage() {
 		enabled: isAdmin && Boolean(profile?.estate_id),
 		queryFn: async () => {
 			const { data, error } = await supabase.from("profiles").select("id, full_name, email, resident_type").eq("estate_id", profile.estate_id).order("full_name", { ascending: true });
+			if (error) throw error;
+			return data ?? [];
+		}
+	});
+	const { data: paymentRecords = [] } = useQuery({
+		queryKey: [
+			"payments-records",
+			user?.id,
+			isAdmin
+		],
+		enabled: Boolean(user?.id) && !isAdmin,
+		queryFn: async () => {
+			const { data, error } = await supabase.from("payments").select("*").order("paid_at", { ascending: false });
 			if (error) throw error;
 			return data ?? [];
 		}
@@ -449,18 +462,42 @@ function PaymentsPage() {
 				children: "Paid dues"
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "space-y-2",
-				children: paidDues.map((invoice) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-					type: "button",
-					className: "flex w-full items-center justify-between rounded-lg border border-border bg-card px-4 py-3 text-left",
-					onClick: () => setSelectedInvoice(invoice),
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "text-sm font-medium",
-						children: invoice.description || "Estate due"
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-						className: "text-sm text-success",
-						children: "Paid"
-					})]
-				}, invoice.id))
+				children: paidDues.map((invoice) => {
+					const payment = paymentRecords.find((item) => item.invoice_id === invoice.id && item.status === "completed");
+					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-col gap-2 rounded-lg border border-border bg-card px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							className: "flex-1 text-left",
+							onClick: () => setSelectedInvoice(invoice),
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-sm font-medium",
+								children: invoice.description || "Estate due"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "mt-1 text-xs text-muted-foreground",
+								children: payment?.paid_at ? `Paid ${formatDateTime(payment.paid_at)}` : "Paid"
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "text-sm text-success",
+								children: "Paid"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								size: "sm",
+								variant: "outline",
+								onClick: () => downloadDueReceipt({
+									title: invoice.description || "Estate due",
+									amount: Number(payment?.amount ?? invoice.amount),
+									currency: payment?.currency || invoice.currency,
+									reference: payment?.reference,
+									paidAt: payment?.paid_at,
+									residentName: profile?.full_name || profile?.email
+								}),
+								children: "Receipt"
+							})]
+						})]
+					}, invoice.id);
+				})
 			})]
 		}),
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResidentDueDialog, {
@@ -831,6 +868,9 @@ function formatDate(value) {
 		month: "short",
 		year: "numeric"
 	}).format(toLocalDate(value));
+}
+function formatDateTime(value) {
+	return value ? new Date(value).toLocaleString() : "Not set";
 }
 function getDefaultDueDate() {
 	const date = /* @__PURE__ */ new Date();

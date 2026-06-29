@@ -1,7 +1,7 @@
-import { E as isRedirect, O as parseRedirect } from "../_libs/@tanstack/react-router+[...].mjs";
-import { a as defaultSerovalPlugins, c as makeSerovalPlugin, i as mergeHeaders } from "../_libs/@tanstack/router-core+[...].mjs";
 import { t as createMiddleware } from "./createStart-Dt05N14y.mjs";
 import { n as toResponse, t as H3Event } from "../_libs/h3-v2.mjs";
+import { A as parseRedirect, O as isRedirect } from "../_libs/@tanstack/react-router+[...].mjs";
+import { a as defaultSerovalPlugins, c as makeSerovalPlugin, i as mergeHeaders } from "../_libs/@tanstack/router-core+[...].mjs";
 import { AsyncLocalStorage } from "node:async_hooks";
 //#region node_modules/.nitro/vite/services/ssr/assets/esm-9EjmF9OT.js
 var GLOBAL_EVENT_STORAGE_KEY = Symbol.for("tanstack-start:event-storage");

@@ -1,25 +1,32 @@
 import { r as __toESM } from "../_runtime.mjs";
+import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { t as supabase } from "./client-yydkHmVi.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { E as CreditCard, F as House, _ as MessageSquareWarning, a as TrendingUp, c as ShieldCheck, m as QrCode, n as Users } from "../_libs/lucide-react.mjs";
-import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
+import { B as House, O as CreditCard, a as TrendingUp, c as ShieldCheck, h as QrCode, n as Users, y as MessageSquareWarning } from "../_libs/lucide-react.mjs";
+import { a as useAuth } from "./use-auth-B-LWZl48.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
 import { n as useQuery } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.index-DJLaiKtV.js
+import { t as downloadDueReceipt } from "./receipts-C46lC8Qz.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.index-CN8u6Bhk.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function DashboardHome() {
-	const { profile, primaryRole, isAdmin, isSecurity } = useAuth();
+	const { profile, primaryRole, isAdmin, isSecurity, user, roles } = useAuth();
 	(0, import_react.useEffect)(() => {
 		const rawReceipt = sessionStorage.getItem("duePaymentReceipt");
 		if (!rawReceipt) return;
 		sessionStorage.removeItem("duePaymentReceipt");
 		try {
 			const receipt = JSON.parse(rawReceipt);
-			toast.success(`You paid ${receipt.title}`, { description: formatMoney(receipt.amount, receipt.currency) });
+			toast.success(`You paid ${receipt.title}`, {
+				description: formatMoney(receipt.amount, receipt.currency),
+				action: {
+					label: "Receipt",
+					onClick: () => downloadDueReceipt(receipt)
+				}
+			});
 		} catch {
 			toast.success("Your due was paid successfully");
 		}
@@ -73,6 +80,19 @@ function DashboardHome() {
 				outstanding,
 				duesToPay
 			};
+		}
+	});
+	const { data: assignedTasks = [] } = useQuery({
+		queryKey: [
+			"assigned-tasks",
+			user?.id,
+			roles.join(",")
+		],
+		enabled: Boolean(user?.id),
+		queryFn: async () => {
+			const { data, error } = await supabase.from("staff_tasks").select("*").in("status", ["pending", "in_progress"]).order("created_at", { ascending: false });
+			if (error) throw error;
+			return (data ?? []).filter((task) => task.assigned_user_id === user?.id || task.assigned_role && roles.includes(task.assigned_role));
 		}
 	});
 	const cards = isSecurity ? [
@@ -233,6 +253,34 @@ function DashboardHome() {
 							". Your dashboard, navigation and permissions adapt automatically to this role."
 						]
 					})]
+				})]
+			}),
+			assignedTasks.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-border bg-card p-4 shadow-sm",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex items-center justify-between gap-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "font-display text-lg font-semibold",
+						children: "Assigned tasks"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-sm text-muted-foreground",
+						children: "Tasks delegated to your role or account."
+					})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground",
+						children: assignedTasks.length
+					})]
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "mt-4 space-y-2",
+					children: assignedTasks.slice(0, 4).map((task) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "rounded-lg border border-border px-3 py-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "text-sm font-medium",
+							children: task.title
+						}), task.description && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "mt-1 text-xs text-muted-foreground",
+							children: task.description
+						})]
+					}, task.id))
 				})]
 			})
 		]

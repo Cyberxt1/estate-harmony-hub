@@ -1,23 +1,22 @@
 import { r as __toESM } from "../_runtime.mjs";
+import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
+import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
 import { t as supabase } from "./client-yydkHmVi.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { N as PenLine, d as Search, g as Phone, i as UserCheck, n as Users, o as Trash2, s as ShieldOff, v as MessageCircle } from "../_libs/lucide-react.mjs";
-import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
+import { R as PenLine, _ as Phone, b as MessageCircle, f as Search, i as UserCheck, n as Users, o as Trash2, s as ShieldOff } from "../_libs/lucide-react.mjs";
+import { a as useAuth, n as createSsrRpc } from "./use-auth-B-LWZl48.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
+import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
+import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
 import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
 import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectItem, t as Select } from "./select-BKZRgQX9.mjs";
-import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
 import { a as AlertDialogDescription, c as AlertDialogTitle, i as AlertDialogContent, n as AlertDialogAction, o as AlertDialogFooter, r as AlertDialogCancel, s as AlertDialogHeader, t as AlertDialog } from "./alert-dialog-DMNUCmq6.mjs";
-import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
 import { i as groupResidentsByHouse, o as syncResidentPropertyOccupancy, r as getResidentHousingDetails } from "./property-occupancy-9h6ABKMf.mjs";
-import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
-import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
-import { t as createSsrRpc } from "./createSsrRpc-BGkz4J1l.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-BxSgV4Li.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.residents-Bv9XA87d.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var removeCommunityMember = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).validator((input) => {

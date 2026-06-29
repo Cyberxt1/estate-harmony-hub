@@ -1,6 +1,6 @@
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { t as Button } from "./button-CelYkufv.mjs";
-import { P as LoaderCircle, f as RotateCw } from "../_libs/lucide-react.mjs";
+import { p as RotateCw, z as LoaderCircle } from "../_libs/lucide-react.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/page-loading-BzoD1xkC.js
 var import_jsx_runtime = require_jsx_runtime();
 function PageLoading({ label = "Loading page", fullScreen = false }) {

@@ -1,7 +1,7 @@
 import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
-import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
 import { t as createServerRpc } from "./createServerRpc-TAUNrjZd.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/payments.functions-DwAYEwCM.js
+import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/payments.functions-D5Rop4at.js
 function getPaystackSecretKey() {
 	return process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET || process.env.PAYSTACK_SK || process.env.SECRET_PAYSTACK_KEY || null;
 }
@@ -40,7 +40,9 @@ var verifyDuePayment = createServerFn({ method: "POST" }).middleware([requireSup
 	return {
 		title: invoice.description || "Estate due",
 		amount: amountDue / 100,
-		currency: invoice.currency
+		currency: invoice.currency,
+		reference: result.data.reference ?? data.reference,
+		paidAt: (/* @__PURE__ */ new Date()).toISOString()
 	};
 });
 //#endregion

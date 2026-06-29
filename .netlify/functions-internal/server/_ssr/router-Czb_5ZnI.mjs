@@ -1,17 +1,17 @@
 import { r as __toESM } from "../_runtime.mjs";
+import { c as HeadContent, d as createRouter, f as Outlet, g as Link, h as createRootRouteWithContext, j as redirect, m as createFileRoute, p as lazyRouteComponent, s as Scripts, v as useRouter } from "../_libs/@tanstack/react-router+[...].mjs";
 import { t as supabase } from "./client-yydkHmVi.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { I as useRouter, c as HeadContent, d as createRouter, f as Outlet, g as Link, h as createRootRouteWithContext, k as redirect, m as createFileRoute, p as lazyRouteComponent, s as Scripts } from "../_libs/@tanstack/react-router+[...].mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { t as Route$16 } from "./auth-BsnON3VI.mjs";
 import { t as Toaster } from "../_libs/sonner.mjs";
-import { t as AuthProvider } from "./use-auth-CJoPS59J.mjs";
+import { t as AuthProvider } from "./use-auth-B-LWZl48.mjs";
 import { n as QueryClient } from "../_libs/tanstack__query-core.mjs";
 import { r as QueryClientProvider } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-oN0LZmGU.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-Czb_5ZnI.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-var styles_default = "/assets/styles-LGjgvJsD.css";
+var styles_default = "/assets/styles-B7Q5qfhV.css";
 function reportLovableError(error, context = {}) {
 	if (typeof window === "undefined") return;
 	window.__lovableEvents?.captureException?.(error, {
@@ -166,7 +166,7 @@ var Route$14 = createFileRoute("/signup")({ beforeLoad: () => {
 		search: { tab: "signup" }
 	});
 } });
-var $$splitComponentImporter$13 = () => import("./dashboard-CdpTndvg.mjs");
+var $$splitComponentImporter$13 = () => import("./dashboard-BcXyhtoA.mjs");
 var Route$13 = createFileRoute("/dashboard")({
 	beforeLoad: async () => {
 		if (typeof window === "undefined") return;
@@ -194,29 +194,29 @@ var Route$12 = createFileRoute("/")({
 	] }),
 	component: lazyRouteComponent($$splitComponentImporter$12, "component")
 });
-var $$splitComponentImporter$11 = () => import("./dashboard.index-DJLaiKtV.mjs");
+var $$splitComponentImporter$11 = () => import("./dashboard.index-CN8u6Bhk.mjs");
 var Route$11 = createFileRoute("/dashboard/")({ component: lazyRouteComponent($$splitComponentImporter$11, "component") });
-var $$splitComponentImporter$10 = () => import("./dashboard.visitors-Bpt1JFjc.mjs");
+var $$splitComponentImporter$10 = () => import("./dashboard.visitors-CR6-pWs3.mjs");
 var Route$10 = createFileRoute("/dashboard/visitors")({ component: lazyRouteComponent($$splitComponentImporter$10, "component") });
-var $$splitComponentImporter$9 = () => import("./dashboard.settings-Dy9uFzSk.mjs");
+var $$splitComponentImporter$9 = () => import("./dashboard.settings-Co9_Cb_C.mjs");
 var Route$9 = createFileRoute("/dashboard/settings")({ component: lazyRouteComponent($$splitComponentImporter$9, "component") });
-var $$splitComponentImporter$8 = () => import("./dashboard.security-rDGTragP.mjs");
+var $$splitComponentImporter$8 = () => import("./dashboard.security-CmFnsswx.mjs");
 var Route$8 = createFileRoute("/dashboard/security")({ component: lazyRouteComponent($$splitComponentImporter$8, "component") });
-var $$splitComponentImporter$7 = () => import("./dashboard.residents-BxSgV4Li.mjs");
+var $$splitComponentImporter$7 = () => import("./dashboard.residents-Bv9XA87d.mjs");
 var Route$7 = createFileRoute("/dashboard/residents")({ component: lazyRouteComponent($$splitComponentImporter$7, "component") });
 var $$splitComponentImporter$6 = () => import("./dashboard.reports-DCcXd2Ma.mjs");
 var Route$6 = createFileRoute("/dashboard/reports")({ component: lazyRouteComponent($$splitComponentImporter$6, "component") });
-var $$splitComponentImporter$5 = () => import("./dashboard.properties-UdjZaYjw.mjs");
+var $$splitComponentImporter$5 = () => import("./dashboard.properties-BVTJk4vP.mjs");
 var Route$5 = createFileRoute("/dashboard/properties")({ component: lazyRouteComponent($$splitComponentImporter$5, "component") });
-var $$splitComponentImporter$4 = () => import("./dashboard.payments-2tPps0W2.mjs");
+var $$splitComponentImporter$4 = () => import("./dashboard.payments-DSKr-l9M.mjs");
 var Route$4 = createFileRoute("/dashboard/payments")({ component: lazyRouteComponent($$splitComponentImporter$4, "component") });
-var $$splitComponentImporter$3 = () => import("./dashboard.onboarding-D2Fux36c.mjs");
+var $$splitComponentImporter$3 = () => import("./dashboard.onboarding-CuuKwn2U.mjs");
 var Route$3 = createFileRoute("/dashboard/onboarding")({ component: lazyRouteComponent($$splitComponentImporter$3, "component") });
 var $$splitComponentImporter$2 = () => import("./dashboard.documents-Dn0uI3T1.mjs");
 var Route$2 = createFileRoute("/dashboard/documents")({ component: lazyRouteComponent($$splitComponentImporter$2, "component") });
-var $$splitComponentImporter$1 = () => import("./dashboard.complaints-Cthpirx5.mjs");
+var $$splitComponentImporter$1 = () => import("./dashboard.complaints-BwPZszHg.mjs");
 var Route$1 = createFileRoute("/dashboard/complaints")({ component: lazyRouteComponent($$splitComponentImporter$1, "component") });
-var $$splitComponentImporter = () => import("./dashboard.announcements-B8dZnAn2.mjs");
+var $$splitComponentImporter = () => import("./dashboard.announcements-CEVIjBxs.mjs");
 var Route = createFileRoute("/dashboard/announcements")({ component: lazyRouteComponent($$splitComponentImporter, "component") });
 var SignupRoute = Route$14.update({
 	id: "/signup",

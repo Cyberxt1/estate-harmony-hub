@@ -5,17 +5,67 @@ import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+
 import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { I as CircleX, L as CircleCheck, T as Download, h as Plus, l as Share2, m as QrCode } from "../_libs/lucide-react.mjs";
-import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
+import { D as Download, H as CircleCheck, V as CircleX, g as Plus, h as QrCode, u as Share2 } from "../_libs/lucide-react.mjs";
+import { a as useAuth } from "./use-auth-B-LWZl48.mjs";
 import { n as PageLoading, t as PageLoadError } from "./page-loading-BzoD1xkC.mjs";
-import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
 import { a as DialogHeader, i as DialogFooter, n as DialogContent, o as DialogTitle, r as DialogDescription, s as DialogTrigger, t as Dialog } from "./dialog-DyVDz4Ba.mjs";
 import { i as useQueryClient, n as useQuery, t as useMutation } from "../_libs/tanstack__react-query.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.visitors-Bpt1JFjc.js
+import { n as PageHeader, t as EmptyState } from "./page-header-DnpF6lGt.mjs";
+import { t as require_lib } from "../_libs/qrcode.mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.visitors-CR6-pWs3.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
+var import_lib = /* @__PURE__ */ __toESM(require_lib());
+function getVisitorInvitePayload(visitor) {
+	return [
+		`Estate visitor invite for ${visitor.full_name}`,
+		`Gate code: ${visitor.qr_code || "Not available"}`,
+		`Purpose: ${visitor.purpose || "Visitor entry"}`,
+		`Expected time: ${formatDateTime(visitor.expected_at)}`
+	].join("\n");
+}
+async function getVisitorQrDataUrl(visitor) {
+	return import_lib.toDataURL(getVisitorInvitePayload(visitor), {
+		margin: 1,
+		width: 512,
+		color: {
+			dark: "#0f172a",
+			light: "#ffffff"
+		}
+	});
+}
+function formatDateTime(value) {
+	return value ? new Date(value).toLocaleString() : "Not provided";
+}
+function normalizeWhatsAppPhone(value) {
+	if (!value) return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	if (trimmed.startsWith("+")) return trimmed.slice(1).replace(/\D/g, "");
+	const digits = trimmed.replace(/\D/g, "");
+	if (!digits) return null;
+	if (digits.startsWith("234")) return digits;
+	if (digits.length === 11 && digits.startsWith("0")) return `234${digits.slice(1)}`;
+	return digits;
+}
+function getVisitorWhatsAppLink(visitor, hostName) {
+	const phone = normalizeWhatsAppPhone(visitor.phone);
+	if (!phone) return null;
+	const text = [
+		`Hello ${visitor.full_name},`,
+		`${hostName} invited you to Oyesile Estate.`,
+		"",
+		`Gate code: ${visitor.qr_code || "Not available"}`,
+		`Purpose: ${visitor.purpose || "Visitor entry"}`,
+		`Expected time: ${formatDateTime(visitor.expected_at)}`,
+		"",
+		"Your QR code is attached in the app when this message opens.",
+		"Please show the QR code or gate code at the entrance."
+	].join("\n");
+	return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+}
 function VisitorsPage() {
-	const { user, profile, isSecurity, isAdmin } = useAuth();
+	const { user, profile, isSecurity, isAdmin, primaryRole } = useAuth();
 	const qc = useQueryClient();
 	const [open, setOpen] = (0, import_react.useState)(false);
 	const [fullName, setFullName] = (0, import_react.useState)("");
@@ -24,6 +74,8 @@ function VisitorsPage() {
 	const [expectedAt, setExpectedAt] = (0, import_react.useState)("");
 	const [selectedVisitor, setSelectedVisitor] = (0, import_react.useState)(null);
 	const [shareVisitor, setShareVisitor] = (0, import_react.useState)(null);
+	const [shareQrUrl, setShareQrUrl] = (0, import_react.useState)("");
+	const canInvite = primaryRole !== "security_gateman";
 	const { data, isLoading, isError, refetch } = useQuery({
 		queryKey: ["visitors"],
 		queryFn: async () => {
@@ -32,6 +84,13 @@ function VisitorsPage() {
 			return data ?? [];
 		}
 	});
+	(0, import_react.useEffect)(() => {
+		if (!shareVisitor) {
+			setShareQrUrl("");
+			return;
+		}
+		getVisitorQrDataUrl(shareVisitor).then(setShareQrUrl).catch(() => setShareQrUrl(""));
+	}, [shareVisitor]);
 	const invite = useMutation({
 		mutationFn: async () => {
 			if (!user || !profile?.estate_id) throw new Error("Your account is not linked to Oyesile Estate yet.");
@@ -83,9 +142,9 @@ function VisitorsPage() {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
 		/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PageHeader, {
 			title: "Visitors",
-			description: "Invite, generate QR codes, check in and out.",
+			description: canInvite ? "Invite, generate QR codes, check in and out." : "Scan, check in and log visitors at the gate.",
 			icon: QrCode,
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
+			children: canInvite && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Dialog, {
 				open,
 				onOpenChange: setOpen,
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogTrigger, {
@@ -96,35 +155,35 @@ function VisitorsPage() {
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "space-y-4",
 						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "space-y-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: "Full name" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+								label: "Full name",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									value: fullName,
 									onChange: (e) => setFullName(e.target.value)
-								})]
+								})
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "space-y-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: "Visitor phone" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+								label: "Visitor phone",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									value: phone,
 									onChange: (e) => setPhone(e.target.value),
 									placeholder: "08012345678"
-								})]
+								})
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "space-y-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: "Purpose" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+								label: "Purpose",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									value: purpose,
 									onChange: (e) => setPurpose(e.target.value)
-								})]
+								})
 							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "space-y-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: "Expected arrival" }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+								label: "Expected arrival",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Input, {
 									type: "datetime-local",
 									value: expectedAt,
 									onChange: (e) => setExpectedAt(e.target.value)
-								})]
+								})
 							})
 						]
 					}),
@@ -170,31 +229,31 @@ function VisitorsPage() {
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("th", { className: "px-4 py-3" })
 					] })
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", { children: data.map((v) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", {
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("tbody", { children: data.map((visitor) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("tr", {
 					className: "cursor-pointer border-t border-border transition hover:bg-secondary/30",
-					onClick: () => setSelectedVisitor(v),
+					onClick: () => setSelectedVisitor(visitor),
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
 							className: "px-4 py-3 font-medium",
-							children: v.full_name
+							children: visitor.full_name
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
 							className: "px-4 py-3 text-muted-foreground",
-							children: v.purpose || "-"
+							children: visitor.purpose || "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
 							className: "px-4 py-3 text-muted-foreground",
-							children: v.expected_at ? new Date(v.expected_at).toLocaleString() : "-"
+							children: visitor.expected_at ? new Date(visitor.expected_at).toLocaleString() : "-"
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
 							className: "px-4 py-3 font-mono text-xs",
-							children: v.qr_code
+							children: visitor.qr_code
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
 							className: "px-4 py-3",
 							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 								className: "rounded-full bg-accent px-2 py-0.5 text-xs capitalize text-accent-foreground",
-								children: v.status.replace("_", " ")
+								children: visitor.status.replace("_", " ")
 							})
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("td", {
@@ -206,23 +265,23 @@ function VisitorsPage() {
 									/* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 										size: "sm",
 										variant: "outline",
-										onClick: () => setShareVisitor(v),
+										onClick: () => setShareVisitor(visitor),
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Share2, { className: "mr-1 h-3.5 w-3.5" }), " Share"]
 									}),
-									(isSecurity || isAdmin) && v.status === "expected" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+									(isSecurity || isAdmin) && visitor.status === "expected" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 										size: "sm",
 										variant: "outline",
 										onClick: () => updateStatus.mutate({
-											id: v.id,
+											id: visitor.id,
 											status: "checked_in"
 										}),
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleCheck, { className: "mr-1 h-3.5 w-3.5" }), " Check in"]
 									}),
-									(isSecurity || isAdmin) && v.status === "checked_in" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
+									(isSecurity || isAdmin) && visitor.status === "checked_in" && /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(Button, {
 										size: "sm",
 										variant: "outline",
 										onClick: () => updateStatus.mutate({
-											id: v.id,
+											id: visitor.id,
 											status: "checked_out"
 										}),
 										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CircleX, { className: "mr-1 h-3.5 w-3.5" }), " Check out"]
@@ -231,7 +290,7 @@ function VisitorsPage() {
 							})
 						})
 					]
-				}, v.id)) })]
+				}, visitor.id)) })]
 			})
 		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyState, {
 			title: "No visitors yet",
@@ -293,10 +352,13 @@ function VisitorsPage() {
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							className: "rounded-2xl border border-border bg-secondary/20 p-4",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
-								src: getVisitorQrImageUrl(shareVisitor),
+							children: shareQrUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
+								src: shareQrUrl,
 								alt: `QR code for ${shareVisitor.full_name}`,
 								className: "mx-auto h-64 w-64 rounded-xl bg-white p-3"
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "grid h-64 place-items-center text-sm text-muted-foreground",
+								children: "Generating QR code..."
 							})
 						}),
 						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
@@ -341,6 +403,12 @@ function VisitorsPage() {
 		})
 	] });
 }
+function Field({ label, children }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-2",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Label, { children: label }), children]
+	});
+}
 function Detail({ label, value, wide = false }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: `rounded-md border border-border bg-secondary/20 p-3 ${wide ? "sm:col-span-2" : ""}`,
@@ -353,48 +421,6 @@ function Detail({ label, value, wide = false }) {
 		})]
 	});
 }
-function formatDateTime(value) {
-	return value ? new Date(value).toLocaleString() : "Not provided";
-}
-function getVisitorInvitePayload(visitor) {
-	return [
-		`Estate visitor invite for ${visitor.full_name}`,
-		`Gate code: ${visitor.qr_code || "Not available"}`,
-		`Purpose: ${visitor.purpose || "Visitor entry"}`,
-		`Expected time: ${formatDateTime(visitor.expected_at)}`
-	].join("\n");
-}
-function getVisitorQrImageUrl(visitor) {
-	const payload = getVisitorInvitePayload(visitor);
-	return `https://api.qrserver.com/v1/create-qr-code/?size=512x512&data=${encodeURIComponent(payload)}`;
-}
-function getVisitorWhatsAppLink(visitor, hostName) {
-	const phone = normalizeWhatsAppPhone(visitor.phone);
-	if (!phone) return null;
-	const text = [
-		`Hello ${visitor.full_name},`,
-		`${hostName} invited you to Oyesile Estate.`,
-		"",
-		`Gate code: ${visitor.qr_code || "Not available"}`,
-		`Purpose: ${visitor.purpose || "Visitor entry"}`,
-		`Expected time: ${formatDateTime(visitor.expected_at)}`,
-		"",
-		`QR code: ${getVisitorQrImageUrl(visitor)}`,
-		"Please show the QR code or gate code at the entrance."
-	].join("\n");
-	return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-}
-function normalizeWhatsAppPhone(value) {
-	if (!value) return null;
-	const trimmed = value.trim();
-	if (!trimmed) return null;
-	if (trimmed.startsWith("+")) return trimmed.slice(1).replace(/\D/g, "");
-	const digits = trimmed.replace(/\D/g, "");
-	if (!digits) return null;
-	if (digits.startsWith("234")) return digits;
-	if (digits.length === 11 && digits.startsWith("0")) return `234${digits.slice(1)}`;
-	return digits;
-}
 function openWhatsAppShare(visitor, hostName) {
 	const link = getVisitorWhatsAppLink(visitor, hostName);
 	if (!link) {
@@ -405,17 +431,13 @@ function openWhatsAppShare(visitor, hostName) {
 }
 async function downloadQrCode(visitor) {
 	try {
-		const response = await fetch(getVisitorQrImageUrl(visitor));
-		if (!response.ok) throw new Error("QR download failed");
-		const blob = await response.blob();
-		const fileUrl = URL.createObjectURL(blob);
+		const dataUrl = await getVisitorQrDataUrl(visitor);
 		const link = document.createElement("a");
-		link.href = fileUrl;
+		link.href = dataUrl;
 		link.download = `${visitor.full_name.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "visitor"}-qr.png`;
 		document.body.appendChild(link);
 		link.click();
 		link.remove();
-		URL.revokeObjectURL(fileUrl);
 	} catch {
 		toast.error("QR code could not be downloaded right now.");
 	}

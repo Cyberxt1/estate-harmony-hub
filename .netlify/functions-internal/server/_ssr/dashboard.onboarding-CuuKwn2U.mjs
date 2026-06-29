@@ -1,19 +1,19 @@
 import { r as __toESM } from "../_runtime.mjs";
+import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { t as supabase } from "./client-yydkHmVi.mjs";
 import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { g as Link } from "../_libs/@tanstack/react-router+[...].mjs";
 import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
 import { t as Button } from "./button-CelYkufv.mjs";
 import { n as Label, t as Input } from "./label-B2wtZvId.mjs";
 import { n as toast } from "../_libs/sonner.mjs";
-import { L as CircleCheck, O as ClipboardList } from "../_libs/lucide-react.mjs";
-import { r as useAuth } from "./use-auth-CJoPS59J.mjs";
-import { n as PageHeader } from "./page-header-DnpF6lGt.mjs";
+import { A as ClipboardList, H as CircleCheck } from "../_libs/lucide-react.mjs";
+import { a as useAuth } from "./use-auth-B-LWZl48.mjs";
 import { t as Textarea } from "./textarea-6e1tF3H-.mjs";
-import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectItem, t as Select } from "./select-BKZRgQX9.mjs";
 import { i as useQueryClient, t as useMutation } from "../_libs/tanstack__react-query.mjs";
+import { n as PageHeader } from "./page-header-DnpF6lGt.mjs";
+import { a as SelectValue, i as SelectTrigger, n as SelectContent, r as SelectItem, t as Select } from "./select-BKZRgQX9.mjs";
 import { o as syncResidentPropertyOccupancy, r as getResidentHousingDetails } from "./property-occupancy-9h6ABKMf.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.onboarding-D2Fux36c.js
+//#region node_modules/.nitro/vite/services/ssr/assets/dashboard.onboarding-CuuKwn2U.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function ResidentFormPage() {

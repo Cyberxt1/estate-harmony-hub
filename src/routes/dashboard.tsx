@@ -28,6 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth, signOut } from "@/hooks/use-auth";
 import type { AppRole } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { DashboardNotifications } from "@/components/dashboard-notifications";
+import { EmergencyFab } from "@/components/emergency-fab";
 import { PageLoading } from "@/components/page-loading";
 import { cn } from "@/lib/utils";
 
@@ -46,7 +48,7 @@ const nav = [
     label: "Overview",
     icon: LayoutDashboard,
     exact: true,
-    groups: ["resident", "operations", "cso"],
+    groups: ["resident", "operations", "cso", "gate"],
   },
   { to: "/dashboard/onboarding", label: "My details", icon: Users, groups: ["resident"] },
   {
@@ -56,7 +58,12 @@ const nav = [
     groups: ["operations", "cso"],
   },
   { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations", "cso"] },
-  { to: "/dashboard/visitors", label: "Visitors", icon: QrCode, groups: ["resident", "cso"] },
+  {
+    to: "/dashboard/visitors",
+    label: "Visitors",
+    icon: QrCode,
+    groups: ["resident", "cso", "gate"],
+  },
   {
     to: "/dashboard/payments",
     label: "Dues",
@@ -75,7 +82,7 @@ const nav = [
     icon: MessageSquareWarning,
     groups: ["resident", "operations", "cso"],
   },
-  { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso"] },
+  { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso", "gate"] },
   {
     to: "/dashboard/documents",
     label: "Documents",
@@ -87,7 +94,7 @@ const nav = [
     to: "/dashboard/settings",
     label: "Settings",
     icon: SettingsIcon,
-    groups: ["resident", "operations", "cso"],
+    groups: ["resident", "operations", "cso", "gate"],
   },
 ];
 
@@ -222,6 +229,7 @@ function DashboardLayout() {
               {workspace.description}
             </p>
           </div>
+          <DashboardNotifications />
           <div className="hidden text-sm text-muted-foreground md:block">
             {profile?.full_name || profile?.email}
           </div>
@@ -231,12 +239,22 @@ function DashboardLayout() {
             <Outlet />
           </div>
         </main>
+        <EmergencyFab />
       </div>
     </div>
   );
 }
 
 function getWorkspace(role: AppRole) {
+  if (role === "security_gateman") {
+    return {
+      key: "gate",
+      label: "Gate view",
+      title: "Gate workspace",
+      description: "Scan, check in and log people at the gate.",
+    } as const;
+  }
+
   if (role === "chief_security_officer" || role === "security_officer") {
     return {
       key: "cso",
@@ -294,6 +312,7 @@ function formatRole(role: string) {
     treasurer: "Treasurer",
     chief_security_officer: "Chief Security Officer",
     security_officer: "Security officer",
+    security_gateman: "Security gateman",
     resident: "Resident",
     household_member: "Household member",
     domestic_staff: "Domestic staff",

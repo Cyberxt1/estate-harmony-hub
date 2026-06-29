@@ -2,23 +2,8 @@ import { r as __toESM } from "../../_runtime.mjs";
 import { u as require_react } from "../@floating-ui/react-dom+[...].mjs";
 import { C as Presence, D as useLayoutEffect2, M as useComposedRefs, N as require_jsx_runtime, O as createContextScope, k as Primitive, w as useControllableState } from "./react-alert-dialog+[...].mjs";
 import { t as composeEventHandlers } from "../radix-ui__primitive.mjs";
-//#region node_modules/@radix-ui/react-use-previous/dist/index.mjs
-var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
-function usePrevious(value) {
-	const ref = import_react.useRef({
-		value,
-		previous: value
-	});
-	return import_react.useMemo(() => {
-		if (ref.current.value !== value) {
-			ref.current.previous = ref.current.value;
-			ref.current.value = value;
-		}
-		return ref.current.previous;
-	}, [value]);
-}
-//#endregion
 //#region node_modules/@radix-ui/react-use-size/dist/index.mjs
+var import_react = /* @__PURE__ */ __toESM(require_react(), 1);
 function useSize(element) {
 	const [size, setSize] = import_react.useState(void 0);
 	useLayoutEffect2(() => {
@@ -52,6 +37,21 @@ function useSize(element) {
 		} else setSize(void 0);
 	}, [element]);
 	return size;
+}
+//#endregion
+//#region node_modules/@radix-ui/react-use-previous/dist/index.mjs
+function usePrevious(value) {
+	const ref = import_react.useRef({
+		value,
+		previous: value
+	});
+	return import_react.useMemo(() => {
+		if (ref.current.value !== value) {
+			ref.current.previous = ref.current.value;
+			ref.current.value = value;
+		}
+		return ref.current.previous;
+	}, [value]);
 }
 //#endregion
 //#region node_modules/@radix-ui/react-checkbox/dist/index.mjs
@@ -228,4 +228,4 @@ function getState(checked) {
 	return isIndeterminate(checked) ? "indeterminate" : checked ? "checked" : "unchecked";
 }
 //#endregion
-export { usePrevious as i, CheckboxIndicator as n, useSize as r, Checkbox as t };
+export { useSize as i, CheckboxIndicator as n, usePrevious as r, Checkbox as t };

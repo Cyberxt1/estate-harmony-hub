@@ -84,5 +84,7 @@ export const verifyDuePayment = createServerFn({ method: "POST" })
       title: invoice.description || "Estate due",
       amount: amountDue / 100,
       currency: invoice.currency,
+      reference: result.data.reference ?? data.reference,
+      paidAt: new Date().toISOString(),
     };
   });

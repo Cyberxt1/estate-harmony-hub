@@ -1,5 +1,5 @@
-import { t as supabase } from "./client-yydkHmVi.mjs";
 import { n as createStart, t as createMiddleware } from "./createStart-Dt05N14y.mjs";
+import { t as supabase } from "./client-yydkHmVi.mjs";
 import { t as renderErrorPage } from "./ssr.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/start-mSU0gQm1.js
 var attachSupabaseAuth = createMiddleware({ type: "function" }).client(async ({ next }) => {

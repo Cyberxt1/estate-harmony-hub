@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { claimPendingAdminInvitations } from "@/lib/admin.functions";
 
 export type AppRole =
   | "super_admin"
@@ -17,6 +18,7 @@ export type AppRole =
   | "treasurer"
   | "chief_security_officer"
   | "security_officer"
+  | "security_gateman"
   | "resident"
   | "household_member"
   | "domestic_staff";
@@ -77,9 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabase.from("profiles").select("*").eq("id", u.id).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", u.id),
       ]);
+      await claimPendingAdminInvitations();
+      const { data: refreshedRoles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", u.id);
       if (!mounted) return;
       setProfile(p as Profile | null);
-      setRoles(((r ?? []) as { role: AppRole }[]).map((x) => x.role));
+      setRoles(((refreshedRoles ?? r ?? []) as { role: AppRole }[]).map((x) => x.role));
     };
 
     supabase.auth.getSession().then(({ data }) => {
@@ -104,11 +111,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (r: AppRole) => roles.includes(r);
   const isAdmin = roles.some((role) => adminRoles.includes(role));
-  const isSecurity = hasRole("security_officer") || hasRole("chief_security_officer");
+  const isSecurity =
+    hasRole("security_officer") || hasRole("chief_security_officer") || hasRole("security_gateman");
   const primaryRole: AppRole = isAdmin
     ? (roles.find((role) => adminRoles.includes(role)) ?? "estate_admin")
     : isSecurity
-      ? "security_officer"
+      ? ((roles.find((role) =>
+          ["chief_security_officer", "security_officer", "security_gateman"].includes(role),
+        ) as AppRole | undefined) ?? "security_officer")
       : (roles[0] ?? "resident");
 
   return createElement(

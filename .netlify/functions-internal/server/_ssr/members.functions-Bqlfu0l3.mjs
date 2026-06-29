@@ -1,6 +1,6 @@
 import { l as createServerFn } from "./esm-9EjmF9OT.mjs";
-import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
 import { t as createServerRpc } from "./createServerRpc-TAUNrjZd.mjs";
+import { t as requireSupabaseAuth } from "./auth-middleware-DZO41X7i.mjs";
 //#region node_modules/.nitro/vite/services/ssr/assets/members.functions-Bqlfu0l3.js
 var memberAdminRoles = /* @__PURE__ */ new Set([
 	"community_chairman",

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { downloadDueReceipt } from "@/lib/receipts";
 import { PageLoadError, PageLoading } from "@/components/page-loading";
 
 export const Route = createFileRoute("/dashboard/")({
@@ -20,7 +21,7 @@ export const Route = createFileRoute("/dashboard/")({
 });
 
 function DashboardHome() {
-  const { profile, primaryRole, isAdmin, isSecurity } = useAuth();
+  const { profile, primaryRole, isAdmin, isSecurity, user, roles } = useAuth();
 
   useEffect(() => {
     const rawReceipt = sessionStorage.getItem("duePaymentReceipt");
@@ -31,9 +32,16 @@ function DashboardHome() {
         title: string;
         amount: number;
         currency: string;
+        reference?: string;
+        paidAt?: string;
+        residentName?: string;
       };
       toast.success(`You paid ${receipt.title}`, {
         description: formatMoney(receipt.amount, receipt.currency),
+        action: {
+          label: "Receipt",
+          onClick: () => downloadDueReceipt(receipt),
+        },
       });
     } catch {
       toast.success("Your due was paid successfully");
@@ -83,6 +91,24 @@ function DashboardHome() {
         outstanding,
         duesToPay,
       };
+    },
+  });
+
+  const { data: assignedTasks = [] } = useQuery({
+    queryKey: ["assigned-tasks", user?.id, roles.join(",")],
+    enabled: Boolean(user?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("staff_tasks")
+        .select("*")
+        .in("status", ["pending", "in_progress"])
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).filter(
+        (task) =>
+          task.assigned_user_id === user?.id ||
+          (task.assigned_role && roles.includes(task.assigned_role)),
+      );
     },
   });
 
@@ -185,6 +211,32 @@ function DashboardHome() {
           </p>
         </div>
       </div>
+
+      {assignedTasks.length > 0 && (
+        <section className="rounded-lg border border-border bg-card p-4 shadow-sm">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-semibold">Assigned tasks</h2>
+              <p className="text-sm text-muted-foreground">
+                Tasks delegated to your role or account.
+              </p>
+            </div>
+            <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-medium text-accent-foreground">
+              {assignedTasks.length}
+            </span>
+          </div>
+          <div className="mt-4 space-y-2">
+            {assignedTasks.slice(0, 4).map((task) => (
+              <div key={task.id} className="rounded-lg border border-border px-3 py-2">
+                <p className="text-sm font-medium">{task.title}</p>
+                {task.description && (
+                  <p className="mt-1 text-xs text-muted-foreground">{task.description}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -1,11 +1,11 @@
 import "../_runtime.mjs";
-import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
-import { A as rootRouteId, C as resolveManifestAssetLink, D as isResolvedRedirect, E as isRedirect, N as invariant, S as getStylesheetHref, T as executeRewriteInput, a as replaceSsrResponse, i as normalizeSsrResponse, j as isNotFound, n as defineHandlerCallback, o as stripSsrResponseBody, r as isSsrResponse, t as renderRouterToStream, u as RouterProvider, w as resolveManifestCssLink, x as getScriptPreloadAttrs } from "../_libs/@tanstack/react-router+[...].mjs";
-import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
+import { C as getScriptPreloadAttrs, D as executeRewriteInput, E as resolveManifestCssLink, F as invariant, M as rootRouteId, N as isNotFound, O as isRedirect, T as resolveManifestAssetLink, a as replaceSsrResponse, i as normalizeSsrResponse, k as isResolvedRedirect, n as defineHandlerCallback, o as stripSsrResponseBody, r as isSsrResponse, t as renderRouterToStream, u as RouterProvider, w as getStylesheetHref } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as createMemoryHistory } from "../_libs/tanstack__history.mjs";
 import { d as su, i as mergeHeaders, l as Pu, n as getNormalizedURL, o as createRawStreamRPCPlugin, r as getOrigin, s as createSerializationAdapter, t as attachRouterServerSsrUtils, u as iu } from "../_libs/@tanstack/router-core+[...].mjs";
 import { _ as safeObjectMerge, a as X_TSS_RAW_RESPONSE, c as createNullProtoObject, d as getDefaultSerovalPlugins, g as runWithStartContext, h as requestHandler, i as TSS_SERVER_FUNCTION, m as getStartContext, n as TSS_CONTENT_TYPE_FRAMED_VERSIONED, o as X_TSS_SERIALIZED, p as getResponse, r as TSS_FORMDATA_CONTEXT, s as createCsrfMiddleware, t as FrameType, u as flattenMiddlewares } from "./esm-9EjmF9OT.mjs";
-import { t as getServerFnById } from "../__23tanstack-start-server-fn-resolver-ra8uWVQ5.mjs";
+import { u as require_react } from "../_libs/@floating-ui/react-dom+[...].mjs";
+import { N as require_jsx_runtime } from "../_libs/@radix-ui/react-alert-dialog+[...].mjs";
+import { t as getServerFnById } from "../__23tanstack-start-server-fn-resolver-Cp3xBhYN.mjs";
 require_react();
 var import_jsx_runtime = require_jsx_runtime();
 function StartServer(props) {
@@ -27,7 +27,7 @@ var defaultStreamHandler = defineHandlerCallback(({ request, router, responseHea
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-Btf5AGjv.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-DsutZHS1.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -968,7 +968,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-oN0LZmGU.mjs"),
+		import("./router-Czb_5ZnI.mjs"),
 		import("./start-mSU0gQm1.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);
