@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import {
   classifyPropertyOccupants,
+  getResidentHousingDetails,
   getPropertyLabel,
   sortPropertiesByHouse,
 } from "@/lib/property-occupancy";
@@ -16,6 +17,7 @@ import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -39,6 +41,10 @@ export const Route = createFileRoute("/dashboard/properties")({
 
 type Property = Tables<"properties">;
 type Occupant = Tables<"property_occupants">;
+type MemberProfile = Pick<
+  Tables<"profiles">,
+  "id" | "full_name" | "phone" | "whatsapp_number" | "resident_type" | "onboarding_data"
+>;
 type NewTenant = { fullName: string; phone: string; whatsappNumber: string; stayDuration: string };
 
 const emptyTenant = (): NewTenant => ({
@@ -53,6 +59,7 @@ function PropertiesPage() {
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [peopleTab, setPeopleTab] = useState<"landlords" | "tenants">("landlords");
   const [compoundName, setCompoundName] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
   const [apartmentName, setApartmentName] = useState("");
@@ -105,6 +112,24 @@ function PropertiesPage() {
     },
   });
 
+  const {
+    data: memberProfiles = [],
+    isLoading: membersLoading,
+    isError: membersError,
+  } = useQuery({
+    queryKey: ["property-member-profiles", profile?.estate_id],
+    enabled: Boolean(profile?.estate_id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, phone, whatsapp_number, resident_type, onboarding_data")
+        .in("resident_type", ["landlord", "tenant"])
+        .order("full_name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as MemberProfile[];
+    },
+  });
+
   const occupantsByProperty = useMemo(() => {
     const grouped = new Map<string, Occupant[]>();
     allOccupants.forEach((occupant) => {
@@ -112,6 +137,15 @@ function PropertiesPage() {
     });
     return grouped;
   }, [allOccupants]);
+
+  const landlordProfiles = useMemo(
+    () => memberProfiles.filter((member) => member.resident_type === "landlord"),
+    [memberProfiles],
+  );
+  const tenantProfiles = useMemo(
+    () => memberProfiles.filter((member) => member.resident_type === "tenant"),
+    [memberProfiles],
+  );
 
   const resetForm = () => {
     setCompoundName("");
@@ -225,7 +259,7 @@ function PropertiesPage() {
     <div>
       <PageHeader
         title="Properties"
-        description="Every property, the landlord in charge, the tenants there now, and the tenants who have moved out."
+        description="Property records, house numbers, landlords and tenants across the estate."
         icon={Home}
       >
         {isAdmin && (
@@ -238,85 +272,102 @@ function PropertiesPage() {
 
       <div className="mb-6 grid gap-3 sm:grid-cols-3">
         <Stat label="Properties" value={properties.length} />
-        <Stat
-          label="Landlords shown"
-          value={
-            allOccupants.filter(
-              (occupant) => occupant.occupant_type === "landlord" && occupant.is_current,
-            ).length
-          }
-        />
-        <Stat
-          label="Current tenants"
-          value={
-            allOccupants.filter(
-              (occupant) => occupant.occupant_type === "tenant" && occupant.is_current,
-            ).length
-          }
-        />
+        <Stat label="Landlords" value={landlordProfiles.length} />
+        <Stat label="Tenants" value={tenantProfiles.length} />
       </div>
 
-      {isError || occupantsError ? (
+      {isError || occupantsError || membersError ? (
         <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
-      ) : isLoading || occupantsLoading ? (
+      ) : isLoading || occupantsLoading || membersLoading ? (
         <PageLoading label="Loading properties" onRetry={() => void queryClient.refetchQueries()} />
       ) : properties.length > 0 ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {properties.map((property) => {
-            const propertyOccupants = occupantsByProperty.get(property.id) ?? [];
-            const { currentLandlords, currentTenants, previousTenants } =
-              classifyPropertyOccupants(propertyOccupants);
-            const landlord = currentLandlords[0];
+        <div className="space-y-6">
+          <section className="rounded-xl border border-border bg-card p-4 sm:p-5">
+            <Tabs
+              value={peopleTab}
+              onValueChange={(value) => setPeopleTab(value as typeof peopleTab)}
+            >
+              <TabsList>
+                <TabsTrigger value="landlords">Landlords</TabsTrigger>
+                <TabsTrigger value="tenants">Tenants</TabsTrigger>
+              </TabsList>
 
-            return (
-              <button
-                key={property.id}
-                type="button"
-                className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40"
-                onClick={() => setSelectedProperty(property)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium uppercase text-muted-foreground">
-                      {property.compound_name || "Standalone property"}
-                    </p>
-                    <h2 className="mt-1 truncate text-base font-semibold">
-                      {getPropertyLabel(property)}
-                    </h2>
-                    {property.street && (
-                      <p className="mt-1 truncate text-sm text-muted-foreground">
-                        {property.street}
+              <TabsContent value="landlords" className="mt-4">
+                <RoleList
+                  members={landlordProfiles}
+                  emptyText="No landlords have been added yet."
+                />
+              </TabsContent>
+
+              <TabsContent value="tenants" className="mt-4">
+                <RoleList members={tenantProfiles} emptyText="No tenants have been added yet." />
+              </TabsContent>
+            </Tabs>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              <h2 className="text-base font-semibold">Property records</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              {properties.map((property) => {
+                const propertyOccupants = occupantsByProperty.get(property.id) ?? [];
+                const { currentLandlords, currentTenants, previousTenants } =
+                  classifyPropertyOccupants(propertyOccupants);
+                const landlord = currentLandlords[0];
+
+                return (
+                  <button
+                    key={property.id}
+                    type="button"
+                    className="rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/40"
+                    onClick={() => setSelectedProperty(property)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase text-muted-foreground">
+                          {property.compound_name || "Standalone property"}
+                        </p>
+                        <h2 className="mt-1 truncate text-base font-semibold">
+                          {getPropertyLabel(property)}
+                        </h2>
+                        {property.street && (
+                          <p className="mt-1 truncate text-sm text-muted-foreground">
+                            {property.street}
+                          </p>
+                        )}
+                      </div>
+                      <Building2 className="h-5 w-5 shrink-0 text-primary" />
+                    </div>
+
+                    <div className="mt-4 space-y-2 text-sm">
+                      <p>
+                        <span className="text-muted-foreground">Landlord:</span>{" "}
+                        <span className="font-medium">{landlord?.full_name || "Not added"}</span>
                       </p>
-                    )}
-                  </div>
-                  <Building2 className="h-5 w-5 shrink-0 text-primary" />
-                </div>
+                      <p>
+                        <span className="text-muted-foreground">Current tenants:</span>{" "}
+                        <span className="font-medium">
+                          {currentTenants.length > 0
+                            ? currentTenants.map((tenant) => tenant.full_name).join(", ")
+                            : "None"}
+                        </span>
+                      </p>
+                    </div>
 
-                <div className="mt-4 space-y-2 text-sm">
-                  <p>
-                    <span className="text-muted-foreground">Landlord:</span>{" "}
-                    <span className="font-medium">{landlord?.full_name || "Not added"}</span>
-                  </p>
-                  <p>
-                    <span className="text-muted-foreground">Current tenants:</span>{" "}
-                    <span className="font-medium">
-                      {currentTenants.length > 0
-                        ? currentTenants.map((tenant) => tenant.full_name).join(", ")
-                        : "None"}
-                    </span>
-                  </p>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
-                  <span className="capitalize">{property.status.replace("_", " ")}</span>
-                  <span>
-                    {previousTenants.length} previous tenant
-                    {previousTenants.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
+                      <span className="capitalize">{property.status.replace("_", " ")}</span>
+                      <span>
+                        {previousTenants.length} previous tenant
+                        {previousTenants.length === 1 ? "" : "s"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
       ) : (
         <EmptyState
@@ -748,6 +799,42 @@ function Detail({ label, value }: { label: string; value?: string | number | nul
     <div className="rounded-lg border border-border bg-card p-3">
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 capitalize">{value ?? "Not provided"}</p>
+    </div>
+  );
+}
+
+function RoleList({ members, emptyText }: { members: MemberProfile[]; emptyText: string }) {
+  if (members.length === 0) {
+    return <p className="text-sm text-muted-foreground">{emptyText}</p>;
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(120px,0.9fr)] gap-3 border-b border-border bg-secondary/30 px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        <span>Name</span>
+        <span>House number</span>
+      </div>
+      {members.map((member, index) => {
+        const housing = getResidentHousingDetails(member);
+        const houseLabel = housing.compoundName
+          ? `${housing.houseOrApartment || "No house set"} · ${housing.compoundName}`
+          : housing.houseOrApartment || "No house set";
+
+        return (
+          <div
+            key={member.id}
+            className={`grid grid-cols-[minmax(0,1.3fr)_minmax(120px,0.9fr)] gap-3 px-4 py-3 text-sm ${index !== members.length - 1 ? "border-b border-border" : ""}`}
+          >
+            <div className="min-w-0">
+              <p className="truncate font-medium">{member.full_name || "Unnamed member"}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {member.whatsapp_number || member.phone || "No contact number"}
+              </p>
+            </div>
+            <p className="text-muted-foreground">{houseLabel}</p>
+          </div>
+        );
+      })}
     </div>
   );
 }

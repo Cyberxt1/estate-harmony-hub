@@ -70,7 +70,7 @@ function ResidentFormPage() {
       if (!fullName.trim()) throw new Error("Enter your full name.");
       if (!phone.trim()) throw new Error("Enter your phone number.");
       if (!whatsappNumber.trim()) throw new Error("Enter your WhatsApp number.");
-      if (!houseOrApartment.trim()) throw new Error("Enter your house or apartment.");
+      if (!houseOrApartment.trim()) throw new Error("Enter your house number.");
 
       const onboardingData = {
         compoundName: compoundName.trim(),
@@ -149,7 +149,7 @@ function ResidentFormPage() {
             <Summary label="Phone" value={phone} />
             <Summary label="WhatsApp" value={whatsappNumber} />
             <Summary label="Compound" value={compoundName || "Not provided"} />
-            <Summary label="House or apartment" value={houseOrApartment} />
+            <Summary label="House number" value={houseOrApartment} />
             {residentType === "tenant" && (
               <>
                 <Summary label="Landlord name" value={landlordName || "Not provided"} />
@@ -216,7 +216,10 @@ function ResidentFormPage() {
               </div>
             </FormSection>
 
-            <FormSection title="Your home" description="Tell us where to find your household.">
+            <FormSection
+              title="Property details"
+              description="Tell us the compound and house number for your household."
+            >
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Compound name">
                   <Input
@@ -225,7 +228,7 @@ function ResidentFormPage() {
                     placeholder="For example, Adebayo Compound"
                   />
                 </Field>
-                <Field label="House or apartment" required>
+                <Field label="House number" required>
                   <Input
                     value={houseOrApartment}
                     onChange={(event) => setHouseOrApartment(event.target.value)}

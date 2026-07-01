@@ -14,33 +14,12 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { removeCommunityMember } from "@/lib/members.functions";
-import {
-  getResidentHousingDetails,
-  groupResidentsByHouse,
-  syncResidentPropertyOccupancy,
-} from "@/lib/property-occupancy";
 import { useAuth } from "@/hooks/use-auth";
-import { PageHeader, EmptyState } from "@/components/page-header";
+import { removeCommunityMember } from "@/lib/members.functions";
+import { getResidentHousingDetails, syncResidentPropertyOccupancy } from "@/lib/property-occupancy";
+import { EmptyState, PageHeader } from "@/components/page-header";
 import { PageLoadError, PageLoading } from "@/components/page-loading";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -51,6 +30,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const Route = createFileRoute("/dashboard/residents")({
   component: ResidentsPage,
@@ -112,10 +108,6 @@ function ResidentsPage() {
     });
   }, [residents, search]);
 
-  const groupedResidents = useMemo(
-    () => groupResidentsByHouse(filteredResidents),
-    [filteredResidents],
-  );
   const activeCount = residents.filter((resident) => resident.status === "active").length;
   const suspendedCount = residents.filter((resident) => resident.status === "suspended").length;
 
@@ -141,6 +133,7 @@ function ResidentsPage() {
     mutationFn: async () => {
       if (!editingResident) throw new Error("Choose a member to edit.");
       if (!fullName.trim()) throw new Error("Enter the member's name.");
+      if (!houseOrApartment.trim()) throw new Error("Enter the house number.");
 
       const oldData =
         editingResident.onboarding_data && typeof editingResident.onboarding_data === "object"
@@ -219,7 +212,7 @@ function ResidentsPage() {
     <div>
       <PageHeader
         title="Community members"
-        description="Smaller house-by-house view of everyone in the estate."
+        description="Simple name list with house numbers for everyone in the estate."
         icon={Users}
       />
 
@@ -235,7 +228,7 @@ function ResidentsPage() {
           className="pl-9"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          placeholder="Search name, phone or house"
+          placeholder="Search name, phone or house number"
         />
       </div>
 
@@ -244,120 +237,106 @@ function ResidentsPage() {
       ) : isLoading ? (
         <PageLoading label="Loading community members" onRetry={() => void refetch()} />
       ) : filteredResidents.length > 0 ? (
-        <div className="space-y-4">
-          {groupedResidents.map((group) => (
-            <section
-              key={group.houseLabel}
-              className="overflow-hidden rounded-xl border border-border bg-card"
-            >
-              <div className="flex items-center justify-between border-b border-border bg-secondary/30 px-4 py-2">
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground">House</p>
-                  <h2 className="text-sm font-semibold">{group.houseLabel}</h2>
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {group.members.length} {group.members.length === 1 ? "member" : "members"}
-                </span>
-              </div>
+        <div className="overflow-hidden rounded-xl border border-border bg-card">
+          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(130px,0.9fr)] gap-3 border-b border-border bg-secondary/30 px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.9fr)_auto] sm:px-5">
+            <span>Name</span>
+            <span>House number</span>
+            <span className="hidden sm:block">Actions</span>
+          </div>
 
-              {group.members.map((resident, index) => {
-                const whatsapp = resident.whatsapp_number || resident.phone;
-                return (
-                  <article
-                    key={resident.id}
-                    className={`px-4 py-3 sm:px-5 ${index !== group.members.length - 1 ? "border-b border-border" : ""}`}
+          {filteredResidents.map((resident, index) => {
+            const whatsapp = resident.whatsapp_number || resident.phone;
+            const housing = getResidentHousingDetails(resident);
+            const houseLabel = housing.compoundName
+              ? `${housing.houseOrApartment || "No house set"} · ${housing.compoundName}`
+              : housing.houseOrApartment || "No house set";
+
+            return (
+              <div
+                key={resident.id}
+                className={`grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.9fr)_auto] sm:px-5 ${index !== filteredResidents.length - 1 ? "border-b border-border" : ""}`}
+              >
+                <button
+                  type="button"
+                  className="min-w-0 text-left"
+                  onClick={() => setSelectedResident(resident)}
+                >
+                  <p className="truncate text-sm font-semibold sm:text-base">
+                    {resident.full_name || "Unnamed member"}
+                  </p>
+                  <p className="mt-1 text-xs capitalize text-muted-foreground">
+                    {resident.resident_type || "Details incomplete"}
+                    {resident.status === "suspended" ? " · Suspended" : ""}
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  className="text-left text-sm text-muted-foreground"
+                  onClick={() => setSelectedResident(resident)}
+                >
+                  {houseLabel}
+                </button>
+
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  {whatsapp && (
+                    <Button asChild size="sm" variant="ghost">
+                      <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp
+                      </a>
+                    </Button>
+                  )}
+                  {resident.phone && (
+                    <Button asChild size="sm" variant="ghost">
+                      <a href={`tel:${resident.phone}`}>
+                        <Phone className="mr-2 h-4 w-4" />
+                        Call
+                      </a>
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => openEditor(resident)}>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() =>
+                      updateStatus.mutate({
+                        resident,
+                        status: resident.status === "suspended" ? "active" : "suspended",
+                      })
+                    }
                   >
-                    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                      <button
-                        type="button"
-                        className="min-w-0 text-left"
-                        onClick={() => setSelectedResident(resident)}
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-foreground/80">
-                            {resident.memberNumber}
-                          </span>
-                          <h3 className="text-sm font-semibold sm:text-base">
-                            {resident.full_name || "Unnamed member"}
-                          </h3>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs capitalize ${
-                              resident.status === "suspended"
-                                ? "bg-destructive/15 text-destructive"
-                                : "bg-success/15 text-success"
-                            }`}
-                          >
-                            {resident.status}
-                          </span>
-                        </div>
-                        <p className="mt-1 text-xs capitalize text-muted-foreground sm:text-sm">
-                          {resident.resident_type || "Details incomplete"}
-                          {resident.phone ? ` · ${resident.phone}` : ""}
-                        </p>
-                      </button>
-
-                      <div className="flex flex-wrap gap-2">
-                        {whatsapp && (
-                          <Button asChild size="sm" variant="ghost">
-                            <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
-                              <MessageCircle className="mr-2 h-4 w-4" />
-                              WhatsApp
-                            </a>
-                          </Button>
-                        )}
-                        {resident.phone && (
-                          <Button asChild size="sm" variant="ghost">
-                            <a href={`tel:${resident.phone}`}>
-                              <Phone className="mr-2 h-4 w-4" />
-                              Call
-                            </a>
-                          </Button>
-                        )}
-                        <Button size="sm" variant="ghost" onClick={() => openEditor(resident)}>
-                          <Edit3 className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            updateStatus.mutate({
-                              resident,
-                              status: resident.status === "suspended" ? "active" : "suspended",
-                            })
-                          }
-                        >
-                          {resident.status === "suspended" ? (
-                            <UserCheck className="mr-2 h-4 w-4" />
-                          ) : (
-                            <ShieldOff className="mr-2 h-4 w-4" />
-                          )}
-                          {resident.status === "suspended" ? "Reactivate" : "Suspend"}
-                        </Button>
-                        {resident.id !== user?.id && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setResidentToRemove(resident)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </section>
-          ))}
+                    {resident.status === "suspended" ? (
+                      <UserCheck className="mr-2 h-4 w-4" />
+                    ) : (
+                      <ShieldOff className="mr-2 h-4 w-4" />
+                    )}
+                    {resident.status === "suspended" ? "Reactivate" : "Suspend"}
+                  </Button>
+                  {resident.id !== user?.id && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => setResidentToRemove(resident)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <EmptyState
           title={search ? "No matching members" : "No community members"}
           description={
-            search ? "Try another name, number or house." : "New members will appear here."
+            search ? "Try another name, number or house number." : "New members will appear here."
           }
         />
       )}
@@ -371,7 +350,7 @@ function ResidentsPage() {
         <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Edit member</DialogTitle>
-            <DialogDescription>Update contact, house and tenant details.</DialogDescription>
+            <DialogDescription>Update contact, house number and tenant details.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name">
@@ -407,7 +386,7 @@ function ResidentsPage() {
                 onChange={(event) => setCompoundName(event.target.value)}
               />
             </Field>
-            <Field label="House or apartment">
+            <Field label="House number">
               <Input
                 value={houseOrApartment}
                 onChange={(event) => setHouseOrApartment(event.target.value)}
@@ -492,13 +471,14 @@ function MemberDetails({ resident, onClose }: { resident: Resident | null; onClo
         </DialogHeader>
         {resident && (
           <div className="grid gap-3 sm:grid-cols-2">
+            <Detail label="Name" value={resident.full_name} />
             <Detail label="Type" value={resident.resident_type} />
             <Detail label="Status" value={resident.status} />
+            <Detail label="House number" value={housing.houseOrApartment} />
+            <Detail label="Compound" value={housing.compoundName} />
             <Detail label="Phone" value={resident.phone} />
             <Detail label="WhatsApp" value={resident.whatsapp_number || resident.phone} />
             <Detail label="Email" value={resident.email} />
-            <Detail label="Compound" value={String(submitted.compoundName || "")} />
-            <Detail label="House or apartment" value={String(submitted.houseOrApartment || "")} />
             {resident.resident_type === "tenant" && (
               <>
                 <Detail label="Landlord name" value={housing.landlordName} />
