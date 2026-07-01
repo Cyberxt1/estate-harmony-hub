@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { Tables } from "@/integrations/supabase/types";
+import type { Database, Tables } from "@/integrations/supabase/types";
 
 type ResidentProfile = Pick<
   Tables<"profiles">,
@@ -14,14 +14,24 @@ type ResidentProfile = Pick<
 
 type PropertyRecord = Pick<
   Tables<"properties">,
-  "id" | "estate_id" | "compound_name" | "house_number" | "apartment_name"
+  | "id"
+  | "estate_id"
+  | "compound_name"
+  | "house_number"
+  | "apartment_name"
+  | "owner_name"
+  | "owner_phone"
 >;
 
 type PropertyOccupant = Tables<"property_occupants">;
 
 export type ResidentHousingDetails = {
+  propertyId: string;
   compoundName: string;
   houseOrApartment: string;
+  numberOfHouses: string;
+  peopleInCompound: string;
+  peopleInHouse: string;
   landlordName: string;
   landlordPhone: string;
   stayDuration: string;
@@ -33,9 +43,17 @@ export function getResidentHousingDetails(resident: Pick<Tables<"profiles">, "on
       ? (resident.onboarding_data as Record<string, unknown>)
       : {};
 
+  const legacyHouseholdCount = /^\d+$/.test(String(submitted.householdMembers || "").trim())
+    ? String(submitted.householdMembers).trim()
+    : "";
+
   return {
+    propertyId: String(submitted.propertyId || "").trim(),
     compoundName: String(submitted.compoundName || "").trim(),
     houseOrApartment: String(submitted.houseOrApartment || "").trim(),
+    numberOfHouses: String(submitted.numberOfHouses || "").trim(),
+    peopleInCompound: String(submitted.peopleInCompound || "").trim(),
+    peopleInHouse: String(submitted.peopleInHouse || legacyHouseholdCount).trim(),
     landlordName: String(submitted.landlordName || "").trim(),
     landlordPhone: String(submitted.landlordPhone || "").trim(),
     stayDuration: String(submitted.stayDuration || "").trim(),
@@ -67,7 +85,7 @@ export function groupResidentsByHouse<
     const house = details.houseOrApartment || "No house set";
     const compound = details.compoundName || "";
     const houseLabel = compound ? `${compound} - ${house}` : house;
-    const key = normalizeText(`${compound}::${house}`);
+    const key = details.propertyId || normalizeText(`${compound}::${house}`);
     const current = grouped.get(key) ?? {
       houseLabel,
       houseSort: normalizeText(houseLabel),
@@ -110,7 +128,7 @@ export function classifyPropertyOccupants(occupants: PropertyOccupant[]) {
 }
 
 export async function syncResidentPropertyOccupancy(resident: ResidentProfile) {
-  if (!resident.estate_id || !resident.resident_type) return { matched: false as const };
+  if (!resident.estate_id) return { matched: false as const };
 
   const details = getResidentHousingDetails(resident);
   const today = new Date().toISOString().slice(0, 10);
@@ -123,47 +141,41 @@ export async function syncResidentPropertyOccupancy(resident: ResidentProfile) {
 
   if (currentError) throw currentError;
 
+  // A landlord owns a house through properties.owner_id. Do not create a
+  // resident occupancy that could incorrectly make relatives co-owners.
+  if (resident.resident_type !== "tenant") {
+    await closeOccupancies(currentOccupancies ?? [], today);
+    return { matched: false as const };
+  }
+
   const { data: properties, error: propertyError } = await supabase
     .from("properties")
-    .select("id, estate_id, compound_name, house_number, apartment_name")
+    .select("id, estate_id, compound_name, house_number, apartment_name, owner_name, owner_phone")
     .eq("estate_id", resident.estate_id);
 
   if (propertyError) throw propertyError;
 
   const matchingProperty = findMatchingProperty(properties ?? [], details);
-
   const occupanciesToClose = (currentOccupancies ?? []).filter(
     (occupancy) => !matchingProperty || occupancy.property_id !== matchingProperty.id,
   );
-
-  if (occupanciesToClose.length > 0) {
-    const { error: closeError } = await supabase
-      .from("property_occupants")
-      .update({
-        is_current: false,
-        move_out_date: today,
-      })
-      .in(
-        "id",
-        occupanciesToClose.map((occupancy) => occupancy.id),
-      );
-
-    if (closeError) throw closeError;
-  }
+  await closeOccupancies(occupanciesToClose, today);
 
   if (!matchingProperty) return { matched: false as const };
 
-  const payload: Tables<"property_occupants">["Update"] = {
+  const payload: Database["public"]["Tables"]["property_occupants"]["Update"] = {
     estate_id: resident.estate_id,
     property_id: matchingProperty.id,
     resident_id: resident.id,
     full_name: resident.full_name?.trim() || "Unnamed resident",
     phone: resident.phone?.trim() || null,
     whatsapp_number: resident.whatsapp_number?.trim() || resident.phone?.trim() || null,
-    occupant_type: resident.resident_type,
-    landlord_name: resident.resident_type === "tenant" ? details.landlordName || null : null,
-    landlord_phone: resident.resident_type === "tenant" ? details.landlordPhone || null : null,
-    stay_duration: resident.resident_type === "tenant" ? details.stayDuration || null : null,
+    occupant_type: "tenant",
+    household_size: toPositiveInteger(details.peopleInHouse),
+    landlord_name: matchingProperty.owner_name,
+    landlord_phone: matchingProperty.owner_phone,
+    stay_duration: null,
+    is_primary: true,
     is_current: true,
     move_in_date: today,
     move_out_date: null,
@@ -183,7 +195,7 @@ export async function syncResidentPropertyOccupancy(resident: ResidentProfile) {
   } else {
     const { error: insertError } = await supabase
       .from("property_occupants")
-      .insert(payload as Tables<"property_occupants">["Insert"]);
+      .insert(payload as Database["public"]["Tables"]["property_occupants"]["Insert"]);
 
     if (insertError) throw insertError;
   }
@@ -191,7 +203,26 @@ export async function syncResidentPropertyOccupancy(resident: ResidentProfile) {
   return { matched: true as const, propertyId: matchingProperty.id };
 }
 
+async function closeOccupancies(occupancies: PropertyOccupant[], today: string) {
+  if (occupancies.length === 0) return;
+
+  const { error } = await supabase
+    .from("property_occupants")
+    .update({ is_current: false, move_out_date: today })
+    .in(
+      "id",
+      occupancies.map((occupancy) => occupancy.id),
+    );
+  if (error) throw error;
+}
+
 function findMatchingProperty(properties: PropertyRecord[], details: ResidentHousingDetails) {
+  if (details.propertyId) {
+    return properties.find((property) => property.id === details.propertyId) ?? null;
+  }
+
+  // Keep old completed profiles working until they choose a house from the
+  // new dropdown during their next edit.
   const house = normalizeText(details.houseOrApartment);
   const compound = normalizeText(details.compoundName);
   if (!house) return null;
@@ -203,17 +234,20 @@ function findMatchingProperty(properties: PropertyRecord[], details: ResidentHou
       getPropertyLabel(property),
       `${property.house_number} ${property.apartment_name || ""}`,
     ].map(normalizeText);
-
     return labels.includes(house);
   });
 
   if (directMatches.length === 0) return null;
   if (!compound) return directMatches[0];
-
   return (
     directMatches.find((property) => normalizeText(property.compound_name || "") === compound) ??
     directMatches[0]
   );
+}
+
+function toPositiveInteger(value: string) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
 function normalizeText(value: string) {

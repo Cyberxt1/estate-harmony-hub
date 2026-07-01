@@ -655,6 +655,9 @@ function resolveHostPropertyId({
   properties: PropertyLite[];
 }) {
   const housing = getResidentHousingDetails(profile);
+  if (housing.propertyId) {
+    return properties.find((property) => property.id === housing.propertyId)?.id ?? null;
+  }
   if (!housing.houseOrApartment) return isAdmin || isSecurity ? null : null;
 
   const houseKey = normalizeText(housing.houseOrApartment);
@@ -694,8 +697,12 @@ function normalizeText(value: string) {
 
 function emptyHousingDetails(): ResidentHousingDetails {
   return {
+    propertyId: "",
     compoundName: "",
     houseOrApartment: "",
+    numberOfHouses: "",
+    peopleInCompound: "",
+    peopleInHouse: "",
     landlordName: "",
     landlordPhone: "",
     stayDuration: "",

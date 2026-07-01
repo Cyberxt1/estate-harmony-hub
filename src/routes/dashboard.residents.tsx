@@ -67,11 +67,11 @@ function ResidentsPage() {
   const [phone, setPhone] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [residentType, setResidentType] = useState<ResidentType>("tenant");
+  const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [compoundName, setCompoundName] = useState("");
-  const [houseOrApartment, setHouseOrApartment] = useState("");
-  const [landlordName, setLandlordName] = useState("");
-  const [landlordPhone, setLandlordPhone] = useState("");
-  const [stayDuration, setStayDuration] = useState("");
+  const [numberOfHouses, setNumberOfHouses] = useState("");
+  const [peopleInCompound, setPeopleInCompound] = useState("");
+  const [peopleInHouse, setPeopleInHouse] = useState("");
 
   const {
     data: residents = [],
@@ -89,6 +89,33 @@ function ResidentsPage() {
       return data ?? [];
     },
   });
+
+  const { data: properties = [] } = useQuery({
+    queryKey: ["resident-editor-properties"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("id, compound_name, house_number, owner_name, owner_phone, status")
+        .order("compound_name", { ascending: true })
+        .order("house_number", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const selectedProperty = useMemo(
+    () => properties.find((property) => property.id === selectedPropertyId) ?? null,
+    [properties, selectedPropertyId],
+  );
+  const availableProperties = useMemo(
+    () =>
+      properties.filter(
+        (property) =>
+          property.id === selectedPropertyId ||
+          property.status === "vacant" ||
+          property.status === "occupied",
+      ),
+    [properties, selectedPropertyId],
+  );
 
   const filteredResidents = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -134,7 +161,15 @@ function ResidentsPage() {
     mutationFn: async () => {
       if (!editingResident) throw new Error("Choose a member to edit.");
       if (!fullName.trim()) throw new Error("Enter the member's name.");
-      if (!houseOrApartment.trim()) throw new Error("Enter the house number.");
+      if (residentType === "tenant" && !selectedProperty) {
+        throw new Error("Choose the tenant's house.");
+      }
+      if (residentType === "tenant" && Number(peopleInHouse) < 1) {
+        throw new Error("Enter how many people live in the house.");
+      }
+      if (residentType === "landlord" && !compoundName.trim()) {
+        throw new Error("Enter the landlord's compound.");
+      }
 
       const oldData =
         editingResident.onboarding_data && typeof editingResident.onboarding_data === "object"
@@ -143,11 +178,16 @@ function ResidentsPage() {
 
       const onboardingData = {
         ...oldData,
-        compoundName: compoundName.trim(),
-        houseOrApartment: houseOrApartment.trim(),
-        landlordName: residentType === "tenant" ? landlordName.trim() : "",
-        landlordPhone: residentType === "tenant" ? landlordPhone.trim() : "",
-        stayDuration: residentType === "tenant" ? stayDuration.trim() : "",
+        propertyId: residentType === "tenant" ? selectedProperty?.id || "" : "",
+        compoundName:
+          residentType === "tenant" ? selectedProperty?.compound_name || "" : compoundName.trim(),
+        houseOrApartment: residentType === "tenant" ? selectedProperty?.house_number || "" : "",
+        numberOfHouses: residentType === "landlord" ? Number(numberOfHouses) || null : null,
+        peopleInCompound: residentType === "landlord" ? Number(peopleInCompound) || null : null,
+        peopleInHouse: residentType === "tenant" ? Number(peopleInHouse) : null,
+        landlordName: residentType === "tenant" ? selectedProperty?.owner_name || "" : "",
+        landlordPhone: residentType === "tenant" ? selectedProperty?.owner_phone || "" : "",
+        stayDuration: "",
       };
 
       const { error } = await supabase
@@ -203,11 +243,11 @@ function ResidentsPage() {
     setPhone(resident.phone || "");
     setWhatsappNumber(resident.whatsapp_number || resident.phone || "");
     setResidentType(resident.resident_type || "tenant");
+    setSelectedPropertyId(housing.propertyId);
     setCompoundName(housing.compoundName);
-    setHouseOrApartment(housing.houseOrApartment);
-    setLandlordName(housing.landlordName);
-    setLandlordPhone(housing.landlordPhone);
-    setStayDuration(housing.stayDuration);
+    setNumberOfHouses(housing.numberOfHouses);
+    setPeopleInCompound(housing.peopleInCompound);
+    setPeopleInHouse(housing.peopleInHouse);
   };
 
   return (
@@ -248,10 +288,17 @@ function ResidentsPage() {
 
           {filteredResidents.map((resident, index) => {
             const housing = getResidentHousingDetails(resident);
-            const houseLabel = housing.houseOrApartment || "No house set";
+            const houseLabel =
+              resident.resident_type === "landlord"
+                ? housing.compoundName || "No compound set"
+                : housing.houseOrApartment || "No house set";
             const whatsapp = resident.whatsapp_number || resident.phone;
             const profileComplete = Boolean(
-              resident.onboarding_completed && resident.full_name && housing.houseOrApartment,
+              resident.onboarding_completed &&
+              resident.full_name &&
+              (resident.resident_type === "landlord"
+                ? housing.compoundName
+                : housing.houseOrApartment),
             );
 
             return (
@@ -340,7 +387,7 @@ function ResidentsPage() {
         <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Edit member</DialogTitle>
-            <DialogDescription>Update contact, house number and tenant details.</DialogDescription>
+            <DialogDescription>Update contact and compound or house details.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name">
@@ -370,37 +417,53 @@ function ResidentsPage() {
                 onChange={(event) => setWhatsappNumber(event.target.value)}
               />
             </Field>
-            <Field label="Compound">
-              <Input
-                value={compoundName}
-                onChange={(event) => setCompoundName(event.target.value)}
-              />
-            </Field>
-            <Field label="House number">
-              <Input
-                value={houseOrApartment}
-                onChange={(event) => setHouseOrApartment(event.target.value)}
-              />
-            </Field>
-            {residentType === "tenant" && (
+            {residentType === "landlord" ? (
               <>
-                <Field label="Landlord name">
+                <Field label="Compound">
                   <Input
-                    value={landlordName}
-                    onChange={(event) => setLandlordName(event.target.value)}
+                    value={compoundName}
+                    onChange={(event) => setCompoundName(event.target.value)}
                   />
                 </Field>
-                <Field label="Landlord phone">
+                <Field label="Houses in compound">
                   <Input
-                    type="tel"
-                    value={landlordPhone}
-                    onChange={(event) => setLandlordPhone(event.target.value)}
+                    type="number"
+                    min="1"
+                    value={numberOfHouses}
+                    onChange={(event) => setNumberOfHouses(event.target.value)}
                   />
                 </Field>
-                <Field label="Duration of stay">
+                <Field label="People living in compound">
                   <Input
-                    value={stayDuration}
-                    onChange={(event) => setStayDuration(event.target.value)}
+                    type="number"
+                    min="1"
+                    value={peopleInCompound}
+                    onChange={(event) => setPeopleInCompound(event.target.value)}
+                  />
+                </Field>
+              </>
+            ) : (
+              <>
+                <Field label="House">
+                  <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a compound and house" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableProperties.map((property) => (
+                        <SelectItem key={property.id} value={property.id}>
+                          {property.compound_name || "Unnamed compound"} · {property.house_number}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field label="People living in house">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={peopleInHouse}
+                    onChange={(event) => setPeopleInHouse(event.target.value)}
                   />
                 </Field>
               </>
@@ -463,11 +526,12 @@ function MemberDetails({
   onToggleStatus: (resident: Resident) => void;
   onRemove: (resident: Resident) => void;
 }) {
-  const submitted = resident ? getSubmittedData(resident) : {};
   const housing = resident ? getResidentHousingDetails(resident) : emptyHousingDetails();
   const whatsapp = resident?.whatsapp_number || resident?.phone;
   const profileComplete = Boolean(
-    resident?.onboarding_completed && resident?.full_name && housing.houseOrApartment,
+    resident?.onboarding_completed &&
+    resident?.full_name &&
+    (resident.resident_type === "landlord" ? housing.compoundName : housing.houseOrApartment),
   );
 
   return (
@@ -542,8 +606,10 @@ function MemberDetails({
               <Detail label="Name" value={resident.full_name} />
               <Detail label="Type" value={resident.resident_type} />
               <Detail label="Status" value={resident.status} />
-              <Detail label="House number" value={housing.houseOrApartment} />
               <Detail label="Compound" value={housing.compoundName} />
+              {resident.resident_type === "tenant" && (
+                <Detail label="House number" value={housing.houseOrApartment} />
+              )}
               <Detail label="Phone" value={resident.phone} />
               <Detail label="WhatsApp" value={resident.whatsapp_number || resident.phone} />
               <Detail label="Email" value={resident.email} />
@@ -551,14 +617,15 @@ function MemberDetails({
                 <>
                   <Detail label="Landlord name" value={housing.landlordName} />
                   <Detail label="Landlord phone" value={housing.landlordPhone} />
-                  <Detail label="Duration of stay" value={housing.stayDuration} />
+                  <Detail label="People living in house" value={housing.peopleInHouse} />
                 </>
               )}
-              <Detail
-                label="People living with member"
-                value={String(submitted.householdMembers || "")}
-                wide
-              />
+              {resident.resident_type === "landlord" && (
+                <>
+                  <Detail label="Houses in compound" value={housing.numberOfHouses} />
+                  <Detail label="People living in compound" value={housing.peopleInCompound} />
+                </>
+              )}
               <Detail
                 label="Emergency contact"
                 value={formatContact(
@@ -575,16 +642,14 @@ function MemberDetails({
   );
 }
 
-function getSubmittedData(resident: Resident) {
-  return resident.onboarding_data && typeof resident.onboarding_data === "object"
-    ? (resident.onboarding_data as Record<string, unknown>)
-    : {};
-}
-
 function emptyHousingDetails() {
   return {
+    propertyId: "",
     compoundName: "",
     houseOrApartment: "",
+    numberOfHouses: "",
+    peopleInCompound: "",
+    peopleInHouse: "",
     landlordName: "",
     landlordPhone: "",
     stayDuration: "",

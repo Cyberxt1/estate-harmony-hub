@@ -707,6 +707,9 @@ export type Database = {
           id: string;
           notes: string | null;
           occupant_capacity: number | null;
+          owner_id: string | null;
+          owner_name: string | null;
+          owner_phone: string | null;
           property_type: Database["public"]["Enums"]["property_type"];
           status: Database["public"]["Enums"]["property_status"];
           street: string | null;
@@ -725,6 +728,9 @@ export type Database = {
           id?: string;
           notes?: string | null;
           occupant_capacity?: number | null;
+          owner_id?: string | null;
+          owner_name?: string | null;
+          owner_phone?: string | null;
           property_type?: Database["public"]["Enums"]["property_type"];
           status?: Database["public"]["Enums"]["property_status"];
           street?: string | null;
@@ -743,6 +749,9 @@ export type Database = {
           id?: string;
           notes?: string | null;
           occupant_capacity?: number | null;
+          owner_id?: string | null;
+          owner_name?: string | null;
+          owner_phone?: string | null;
           property_type?: Database["public"]["Enums"]["property_type"];
           status?: Database["public"]["Enums"]["property_status"];
           street?: string | null;
@@ -757,6 +766,13 @@ export type Database = {
             referencedRelation: "estates";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "properties_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
         ];
       };
       property_occupants: {
@@ -764,6 +780,7 @@ export type Database = {
           created_at: string;
           estate_id: string;
           full_name: string;
+          household_size: number | null;
           id: string;
           is_primary: boolean;
           is_current: boolean;
@@ -784,6 +801,7 @@ export type Database = {
           created_at?: string;
           estate_id: string;
           full_name: string;
+          household_size?: number | null;
           id?: string;
           is_primary?: boolean;
           is_current?: boolean;
@@ -804,6 +822,7 @@ export type Database = {
           created_at?: string;
           estate_id?: string;
           full_name?: string;
+          household_size?: number | null;
           id?: string;
           is_primary?: boolean;
           is_current?: boolean;

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
@@ -17,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 
 export const Route = createFileRoute("/dashboard/onboarding")({
   component: ResidentFormPage,
@@ -39,14 +38,45 @@ function ResidentFormPage() {
   const [phone, setPhone] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [residentType, setResidentType] = useState<ResidentType>("tenant");
+  const [selectedPropertyId, setSelectedPropertyId] = useState("");
   const [compoundName, setCompoundName] = useState("");
   const [houseOrApartment, setHouseOrApartment] = useState("");
-  const [householdMembers, setHouseholdMembers] = useState("");
+  const [numberOfHouses, setNumberOfHouses] = useState("");
+  const [peopleInCompound, setPeopleInCompound] = useState("");
+  const [peopleInHouse, setPeopleInHouse] = useState("");
   const [landlordName, setLandlordName] = useState("");
   const [landlordPhone, setLandlordPhone] = useState("");
-  const [stayDuration, setStayDuration] = useState("");
   const [emergencyName, setEmergencyName] = useState("");
   const [emergencyPhone, setEmergencyPhone] = useState("");
+
+  const { data: properties = [] } = useQuery({
+    queryKey: ["onboarding-properties", profile?.estate_id],
+    enabled: Boolean(profile?.estate_id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("properties")
+        .select("id, compound_name, house_number, apartment_name, owner_name, owner_phone, status")
+        .order("compound_name", { ascending: true })
+        .order("house_number", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const selectedProperty = useMemo(
+    () => properties.find((property) => property.id === selectedPropertyId) ?? null,
+    [properties, selectedPropertyId],
+  );
+  const availableProperties = useMemo(
+    () =>
+      properties.filter(
+        (property) =>
+          property.id === selectedPropertyId ||
+          property.status === "vacant" ||
+          property.status === "occupied",
+      ),
+    [properties, selectedPropertyId],
+  );
 
   useEffect(() => {
     if (!profile) return;
@@ -55,12 +85,14 @@ function ResidentFormPage() {
     setWhatsappNumber(profile.whatsapp_number || profile.phone || "");
     setResidentType(profile.resident_type || "tenant");
     const housing = getResidentHousingDetails(profile);
+    setSelectedPropertyId(housing.propertyId);
     setCompoundName(housing.compoundName);
     setHouseOrApartment(housing.houseOrApartment);
+    setNumberOfHouses(housing.numberOfHouses);
+    setPeopleInCompound(housing.peopleInCompound);
+    setPeopleInHouse(housing.peopleInHouse);
     setLandlordName(housing.landlordName);
     setLandlordPhone(housing.landlordPhone);
-    setStayDuration(housing.stayDuration);
-    setHouseholdMembers(String(saved.householdMembers || ""));
     setEmergencyName(profile.emergency_contact_name || "");
     setEmergencyPhone(profile.emergency_contact_phone || "");
   }, [profile, saved]);
@@ -71,15 +103,32 @@ function ResidentFormPage() {
       if (!fullName.trim()) throw new Error("Enter your full name.");
       if (!phone.trim()) throw new Error("Enter your phone number.");
       if (!whatsappNumber.trim()) throw new Error("Enter your WhatsApp number.");
-      if (!houseOrApartment.trim()) throw new Error("Enter your house number.");
+      if (residentType === "tenant" && !selectedProperty) {
+        throw new Error("Choose the house where you live.");
+      }
+      if (residentType === "tenant" && Number(peopleInHouse) < 1) {
+        throw new Error("Enter how many people live in the house.");
+      }
+      if (residentType === "landlord" && !compoundName.trim()) {
+        throw new Error("Enter your compound name.");
+      }
+      if (residentType === "landlord" && Number(numberOfHouses) < 1) {
+        throw new Error("Enter how many houses are in your compound.");
+      }
+      if (residentType === "landlord" && Number(peopleInCompound) < 1) {
+        throw new Error("Enter how many people live in your compound.");
+      }
 
       const onboardingData = {
-        compoundName: compoundName.trim(),
-        houseOrApartment: houseOrApartment.trim(),
-        householdMembers: householdMembers.trim(),
-        landlordName: residentType === "tenant" ? landlordName.trim() : "",
-        landlordPhone: residentType === "tenant" ? landlordPhone.trim() : "",
-        stayDuration: residentType === "tenant" ? stayDuration.trim() : "",
+        propertyId: residentType === "tenant" ? selectedProperty?.id || "" : "",
+        compoundName:
+          residentType === "tenant" ? selectedProperty?.compound_name || "" : compoundName.trim(),
+        houseOrApartment: residentType === "tenant" ? selectedProperty?.house_number || "" : "",
+        numberOfHouses: residentType === "landlord" ? Number(numberOfHouses) : null,
+        peopleInCompound: residentType === "landlord" ? Number(peopleInCompound) : null,
+        peopleInHouse: residentType === "tenant" ? Number(peopleInHouse) : null,
+        landlordName: residentType === "tenant" ? selectedProperty?.owner_name || "" : "",
+        landlordPhone: residentType === "tenant" ? selectedProperty?.owner_phone || "" : "",
       };
 
       const { error } = await supabase
@@ -152,12 +201,21 @@ function ResidentFormPage() {
             <Summary label="Phone" value={phone} />
             <Summary label="WhatsApp" value={whatsappNumber} />
             <Summary label="Compound" value={compoundName || "Not provided"} />
-            <Summary label="House number" value={houseOrApartment} />
+            {residentType === "tenant" && <Summary label="House number" value={houseOrApartment} />}
+            {residentType === "landlord" && (
+              <>
+                <Summary label="Houses in compound" value={numberOfHouses || "Not provided"} />
+                <Summary
+                  label="People living in compound"
+                  value={peopleInCompound || "Not provided"}
+                />
+              </>
+            )}
             {residentType === "tenant" && (
               <>
                 <Summary label="Landlord name" value={landlordName || "Not provided"} />
                 <Summary label="Landlord phone" value={landlordPhone || "Not provided"} />
-                <Summary label="Duration of stay" value={stayDuration || "Not provided"} />
+                <Summary label="People living in house" value={peopleInHouse || "Not provided"} />
               </>
             )}
             <Summary
@@ -168,7 +226,6 @@ function ResidentFormPage() {
                   : "Not provided"
               }
             />
-            <Summary label="People living with you" value={householdMembers || "Not provided"} />
           </div>
 
           <Button asChild variant="outline" className="mt-6">
@@ -221,57 +278,78 @@ function ResidentFormPage() {
 
             <FormSection
               title="Property details"
-              description="Tell us the compound and house number for your household."
+              description={
+                residentType === "tenant"
+                  ? "Choose the house already created by an estate administrator."
+                  : "Tell us the size of your compound. Administrators create and assign its houses."
+              }
             >
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Compound name">
-                  <Input
-                    value={compoundName}
-                    onChange={(event) => setCompoundName(event.target.value)}
-                    placeholder="For example, Adebayo Compound"
-                  />
-                </Field>
-                <Field label="House number" required>
-                  <Input
-                    value={houseOrApartment}
-                    onChange={(event) => setHouseOrApartment(event.target.value)}
-                    placeholder="For example, House 4 or Flat B"
-                  />
-                </Field>
-              </div>
-              {residentType === "tenant" && (
+              {residentType === "landlord" ? (
                 <div className="grid gap-4 sm:grid-cols-3">
-                  <Field label="Landlord name">
+                  <Field label="Compound name" required>
                     <Input
-                      value={landlordName}
-                      onChange={(event) => setLandlordName(event.target.value)}
-                      placeholder="Who owns this property?"
+                      value={compoundName}
+                      onChange={(event) => setCompoundName(event.target.value)}
+                      placeholder="For example, Adebayo Compound"
                     />
                   </Field>
-                  <Field label="Landlord phone">
+                  <Field label="How many houses are in the compound?" required>
                     <Input
-                      type="tel"
-                      value={landlordPhone}
-                      onChange={(event) => setLandlordPhone(event.target.value)}
-                      placeholder="080..."
+                      type="number"
+                      min="1"
+                      inputMode="numeric"
+                      value={numberOfHouses}
+                      onChange={(event) => setNumberOfHouses(event.target.value)}
                     />
                   </Field>
-                  <Field label="Duration of stay" hint="For example, 1 year or Since March 2026">
+                  <Field label="How many people live in the compound?" required>
                     <Input
-                      value={stayDuration}
-                      onChange={(event) => setStayDuration(event.target.value)}
+                      type="number"
+                      min="1"
+                      inputMode="numeric"
+                      value={peopleInCompound}
+                      onChange={(event) => setPeopleInCompound(event.target.value)}
+                    />
+                  </Field>
+                </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="House" required>
+                    <Select value={selectedPropertyId} onValueChange={setSelectedPropertyId}>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            availableProperties.length
+                              ? "Choose your compound and house"
+                              : "No houses have been created yet"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableProperties.map((property) => (
+                          <SelectItem key={property.id} value={property.id}>
+                            {property.compound_name || "Unnamed compound"} · {property.house_number}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedProperty && (
+                      <p className="text-xs text-muted-foreground">
+                        Main owner: {selectedProperty.owner_name || "Not assigned yet"}
+                      </p>
+                    )}
+                  </Field>
+                  <Field label="How many people live in this house?" required>
+                    <Input
+                      type="number"
+                      min="1"
+                      inputMode="numeric"
+                      value={peopleInHouse}
+                      onChange={(event) => setPeopleInHouse(event.target.value)}
                     />
                   </Field>
                 </div>
               )}
-              <Field label="Names of people living with you" hint="Optional">
-                <Textarea
-                  rows={3}
-                  value={householdMembers}
-                  onChange={(event) => setHouseholdMembers(event.target.value)}
-                  placeholder="Write their names, separated by commas"
-                />
-              </Field>
             </FormSection>
 
             <FormSection

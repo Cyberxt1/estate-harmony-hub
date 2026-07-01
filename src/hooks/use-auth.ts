@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { claimPendingAdminInvitations } from "@/lib/admin.functions";
 
 export type AppRole =
@@ -41,11 +42,13 @@ export interface Profile {
   email: string | null;
   phone: string | null;
   whatsapp_number: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
   avatar_url: string | null;
   resident_type: "landlord" | "tenant" | null;
   onboarding_completed: boolean;
   onboarding_completed_at: string | null;
-  onboarding_data: Record<string, unknown>;
+  onboarding_data: Json;
   status: string;
 }
 
