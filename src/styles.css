@@ -66,7 +66,7 @@
   --radius: 0.75rem;
 
   /* warm cream background, ink foreground */
-  --background: oklch(0.985 0.005 85);
+  --background: oklch(0.982 0.01 92);
   --foreground: oklch(0.22 0.02 250);
 
   --card: oklch(1 0 0);
@@ -76,20 +76,20 @@
   --popover-foreground: oklch(0.22 0.02 250);
 
   /* muted forest green */
-  --primary: oklch(0.38 0.07 165);
+  --primary: oklch(0.44 0.11 165);
   --primary-foreground: oklch(0.985 0.005 85);
 
-  --secondary: oklch(0.96 0.01 85);
+  --secondary: oklch(0.955 0.015 92);
   --secondary-foreground: oklch(0.28 0.03 250);
 
-  --muted: oklch(0.955 0.008 85);
+  --muted: oklch(0.95 0.012 92);
   --muted-foreground: oklch(0.5 0.02 250);
 
-  --accent: oklch(0.93 0.03 160);
-  --accent-foreground: oklch(0.28 0.05 165);
+  --accent: oklch(0.92 0.05 162);
+  --accent-foreground: oklch(0.31 0.08 165);
 
   /* warm brass gold */
-  --gold: oklch(0.78 0.13 80);
+  --gold: oklch(0.82 0.16 80);
   --gold-foreground: oklch(0.25 0.04 80);
 
   --destructive: oklch(0.58 0.21 27);
@@ -101,9 +101,9 @@
   --warning: oklch(0.78 0.14 75);
   --warning-foreground: oklch(0.25 0.04 80);
 
-  --border: oklch(0.91 0.01 85);
-  --input: oklch(0.91 0.01 85);
-  --ring: oklch(0.55 0.08 165);
+  --border: oklch(0.89 0.015 92);
+  --input: oklch(0.89 0.015 92);
+  --ring: oklch(0.58 0.11 165);
 
   --chart-1: oklch(0.55 0.1 165);
   --chart-2: oklch(0.7 0.13 80);
@@ -111,14 +111,14 @@
   --chart-4: oklch(0.65 0.16 30);
   --chart-5: oklch(0.45 0.06 280);
 
-  --sidebar: oklch(0.985 0.005 85);
+  --sidebar: oklch(0.982 0.01 92);
   --sidebar-foreground: oklch(0.3 0.02 250);
-  --sidebar-primary: oklch(0.38 0.07 165);
+  --sidebar-primary: oklch(0.44 0.11 165);
   --sidebar-primary-foreground: oklch(0.985 0.005 85);
-  --sidebar-accent: oklch(0.94 0.02 160);
-  --sidebar-accent-foreground: oklch(0.28 0.05 165);
-  --sidebar-border: oklch(0.91 0.01 85);
-  --sidebar-ring: oklch(0.55 0.08 165);
+  --sidebar-accent: oklch(0.93 0.04 162);
+  --sidebar-accent-foreground: oklch(0.31 0.08 165);
+  --sidebar-border: oklch(0.89 0.015 92);
+  --sidebar-ring: oklch(0.58 0.11 165);
 
   --shadow-soft: 0 1px 2px oklch(0.22 0.02 250 / 0.04), 0 4px 16px oklch(0.22 0.02 250 / 0.04);
   --shadow-lift: 0 10px 30px -10px oklch(0.38 0.07 165 / 0.25);
@@ -174,6 +174,7 @@
 
   body {
     background-color: var(--color-background);
+    background-image: linear-gradient(180deg, oklch(1 0 0 / 0.65), oklch(0.95 0.02 92 / 0.45));
     color: var(--color-foreground);
   }
 
@@ -213,4 +214,8 @@
 
 .app-content :where(.space-y-8) > :not(:last-child) {
   margin-block-end: 1.25rem;
+}
+
+.app-content :where(.bg-card) {
+  box-shadow: var(--shadow-soft);
 }

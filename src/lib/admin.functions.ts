@@ -39,16 +39,26 @@ export const inviteAdminTeamMember = createServerFn({ method: "POST" })
     if (profileError || !profile?.estate_id)
       throw new Error("Your account is not linked to the estate.");
 
-    const { data: chairmanRole, error: chairmanError } = await context.supabase
+    const { data: currentRoles, error: rolesError } = await context.supabase
       .from("user_roles")
-      .select("user_id")
+      .select("role")
       .eq("user_id", context.userId)
       .eq("estate_id", profile.estate_id)
-      .eq("role", "community_chairman")
-      .maybeSingle();
+      .in("role", ["community_chairman", "chief_security_officer"]);
 
-    if (chairmanError || !chairmanRole) {
-      throw new Error("Only the community chairman can add administrators or gatemen.");
+    if (rolesError) {
+      throw rolesError;
+    }
+
+    const isChairman = (currentRoles ?? []).some((item) => item.role === "community_chairman");
+    const isCso = (currentRoles ?? []).some((item) => item.role === "chief_security_officer");
+
+    if (!isChairman && !isCso) {
+      throw new Error("Only the chairman or CSO can manage the admin team.");
+    }
+
+    if (!isChairman && data.role !== "security_gateman") {
+      throw new Error("The CSO can only manage gatemen.");
     }
 
     if (data.role !== "security_gateman") {
@@ -91,10 +101,11 @@ export const inviteAdminTeamMember = createServerFn({ method: "POST" })
       );
     }
 
+    const normalizedEmail = data.email.trim().toLowerCase();
     const redirectTo = data.redirectTo?.trim() || undefined;
 
     const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      data.email.trim(),
+      normalizedEmail,
       {
         redirectTo,
         data: {
@@ -105,17 +116,37 @@ export const inviteAdminTeamMember = createServerFn({ method: "POST" })
     );
     if (inviteError) throw inviteError;
 
-    const { error: rowError } = await supabaseAdmin.from("admin_invitations").upsert(
-      {
-        estate_id: profile.estate_id,
-        email: data.email.trim().toLowerCase(),
-        role: data.role,
-        invited_by: context.userId,
-        note: data.note?.trim() || null,
-        status: "pending",
-      },
-      { onConflict: "estate_id,email,role" },
-    );
+    const { data: existingInvite, error: existingInviteError } = await supabaseAdmin
+      .from("admin_invitations")
+      .select("id")
+      .eq("estate_id", profile.estate_id)
+      .eq("role", data.role)
+      .eq("status", "pending")
+      .ilike("email", normalizedEmail)
+      .maybeSingle();
+
+    if (existingInviteError) throw existingInviteError;
+
+    const invitationPayload = {
+      estate_id: profile.estate_id,
+      email: normalizedEmail,
+      role: data.role,
+      invited_by: context.userId,
+      note: data.note?.trim() || null,
+      status: "pending",
+    };
+
+    const { error: rowError } = existingInvite
+      ? await supabaseAdmin
+          .from("admin_invitations")
+          .update({
+            ...invitationPayload,
+            invited_at: new Date().toISOString(),
+            accepted_at: null,
+            user_id: null,
+          })
+          .eq("id", existingInvite.id)
+      : await supabaseAdmin.from("admin_invitations").insert(invitationPayload);
 
     if (rowError) throw rowError;
 

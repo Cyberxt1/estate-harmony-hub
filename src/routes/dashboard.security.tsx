@@ -162,7 +162,7 @@ function SecurityPage() {
     <div>
       <PageHeader
         title="Security"
-        description="Incidents, emergency contacts, patrol records and resident help tools."
+        description="Incidents and emergency contacts for the estate."
         icon={ShieldCheck}
       >
         <div className="flex gap-2">
@@ -297,7 +297,7 @@ function SecurityPage() {
               {data.map((i) => (
                 <div
                   key={i.id}
-                  className="cursor-pointer rounded-md border border-border bg-card p-4 transition hover:bg-secondary/30"
+                  className="cursor-pointer rounded-lg border border-border bg-card p-3 transition hover:bg-secondary/30"
                   onClick={() => {
                     setSelectedIncident(i);
                     setStatus(i.status);
@@ -306,8 +306,14 @@ function SecurityPage() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="font-semibold">{i.type}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{i.description}</p>
+                      <h3 className="text-sm font-semibold">{i.type}</h3>
+                      {i.description && (
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {i.description.length > 120
+                            ? `${i.description.slice(0, 120)}...`
+                            : i.description}
+                        </p>
+                      )}
                       <p className="mt-1 text-xs text-muted-foreground">
                         {i.location} ·{" "}
                         {i.occurred_at ? new Date(i.occurred_at).toLocaleString() : ""}
@@ -365,15 +371,14 @@ function SecurityPage() {
         open={!!selectedIncident}
         onOpenChange={(nextOpen) => !nextOpen && setSelectedIncident(null)}
       >
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{selectedIncident?.type || "Security incident"}</DialogTitle>
-            <DialogDescription>Expanded security incident record.</DialogDescription>
+            <DialogDescription>Clear incident details and status update.</DialogDescription>
           </DialogHeader>
           {selectedIncident && (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Detail label="Type" value={selectedIncident.type} />
                 <Detail label="Status" value={selectedIncident.status} />
                 <Detail label="Severity" value={selectedIncident.severity} />
                 <Detail label="Location" value={selectedIncident.location} />
@@ -394,6 +399,9 @@ function SecurityPage() {
                   }
                 />
                 <Detail label="Description" value={selectedIncident.description} wide />
+                {selectedIncident.resolution_notes && (
+                  <Detail label="Resolution" value={selectedIncident.resolution_notes} wide />
+                )}
               </div>
 
               {canManageSecurity && (

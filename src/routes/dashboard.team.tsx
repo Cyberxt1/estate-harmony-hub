@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Shield, UserCog, UserPlus, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -48,10 +48,20 @@ function AdminTeamPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("community_secretary");
   const isChairman = hasRole("community_chairman");
+  const isCso = hasRole("chief_security_officer");
+  const canManageOffice = isChairman;
+  const canManageGatemen = isChairman || isCso;
+  const availableInviteRoles = canManageOffice ? inviteRoles : (["security_gateman"] as AppRole[]);
+
+  useEffect(() => {
+    if (!canManageOffice && role !== "security_gateman") {
+      setRole("security_gateman");
+    }
+  }, [canManageOffice, role]);
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["admin-team", profile?.estate_id],
-    enabled: isChairman && Boolean(profile?.estate_id),
+    enabled: canManageGatemen && Boolean(profile?.estate_id),
     queryFn: async () => {
       const [profilesResult, rolesResult, invitesResult] = await Promise.all([
         supabase
@@ -94,13 +104,13 @@ function AdminTeamPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  if (!isChairman) {
+  if (!canManageGatemen) {
     return (
       <div className="grid min-h-[28vh] place-items-center px-5 text-center">
         <div className="max-w-md rounded-lg border border-border bg-card p-5">
-          <h1 className="font-display text-lg font-semibold">Chairman access only</h1>
+          <h1 className="font-display text-lg font-semibold">Chairman or CSO access only</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Only the community chairman can add or review the admin team.
+            The chairman manages the office team, and the CSO manages gatemen.
           </p>
         </div>
       </div>
@@ -124,7 +134,11 @@ function AdminTeamPage() {
     <div>
       <PageHeader
         title="Admin team"
-        description="The four office roles and the gatemen who operate the estate gate."
+        description={
+          canManageOffice
+            ? "The office roles and the gatemen who operate the estate gate."
+            : "Gate staff records and gateman invitations managed by the CSO."
+        }
         icon={UserCog}
       />
 
@@ -180,8 +194,15 @@ function AdminTeamPage() {
           <section className="rounded-lg border border-border bg-card p-5">
             <div className="flex items-center gap-2">
               <UserPlus className="h-4 w-4" />
-              <h2 className="font-display text-lg font-semibold">Invite team member</h2>
+              <h2 className="font-display text-lg font-semibold">
+                {canManageOffice ? "Invite team member" : "Invite gateman"}
+              </h2>
             </div>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {canManageOffice
+                ? "Chairman can invite the secretary, treasurer, CSO and gatemen."
+                : "CSO can invite and manage gatemen only."}
+            </p>
             <div className="mt-4 space-y-4">
               <div className="space-y-2">
                 <Label>Email address</Label>
@@ -199,7 +220,7 @@ function AdminTeamPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {inviteRoles.map((item) => (
+                    {availableInviteRoles.map((item) => (
                       <SelectItem key={item} value={item}>
                         {formatRole(item)}
                       </SelectItem>

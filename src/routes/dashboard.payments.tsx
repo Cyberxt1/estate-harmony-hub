@@ -111,6 +111,12 @@ function PaymentsPage() {
   const queryClient = useQueryClient();
   const { user, profile, isAdmin, hasRole } = useAuth();
   const isTreasurer = hasRole("treasurer");
+  const isChairman = hasRole("community_chairman");
+  const isSecretary = hasRole("community_secretary");
+  const isCso = hasRole("chief_security_officer");
+  const canCreateDues =
+    isTreasurer || isChairman || isCso || hasRole("estate_admin") || hasRole("super_admin");
+  const canTrackDues = canCreateDues || isSecretary;
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [editingGroup, setEditingGroup] = useState<DueGroup | null>(null);
@@ -129,7 +135,7 @@ function PaymentsPage() {
     isError,
   } = useQuery({
     queryKey: ["dues", profile?.estate_id, user?.id, isAdmin],
-    enabled: Boolean(user?.id) && (!isAdmin || isTreasurer),
+    enabled: Boolean(user?.id) && (!isAdmin || canTrackDues),
     queryFn: async () => {
       let query = supabase.from("invoices").select("*").order("due_date", { ascending: true });
       if (!isAdmin && user?.id) query = query.eq("resident_id", user.id);
@@ -145,7 +151,7 @@ function PaymentsPage() {
     isError: residentsError,
   } = useQuery({
     queryKey: ["due-members", profile?.estate_id],
-    enabled: isTreasurer && Boolean(profile?.estate_id),
+    enabled: canTrackDues && Boolean(profile?.estate_id),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -187,6 +193,10 @@ function PaymentsPage() {
     }
     return residents.filter((resident) => resident.resident_type === audience);
   }, [audience, residents, selectedMemberIds]);
+  const residentById = useMemo(
+    () => new Map(residents.map((resident) => [resident.id, resident])),
+    [residents],
+  );
 
   useEffect(() => {
     if (isAdmin || isLoading || invoices.length === 0) return;
@@ -327,20 +337,20 @@ function PaymentsPage() {
     setNote(group.note);
   };
 
-  if (isAdmin && !isTreasurer) {
+  if (isAdmin && !canTrackDues) {
     return (
       <div className="grid min-h-[28vh] place-items-center text-center">
         <div className="max-w-md rounded-lg border border-border bg-card p-5">
-          <h1 className="font-display text-lg font-semibold">Treasurer access only</h1>
+          <h1 className="font-display text-lg font-semibold">Dues access restricted</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Payment requests and collections are managed by the estate treasurer.
+            Dues are handled by the chairman, secretary, CSO and treasurer.
           </p>
         </div>
       </div>
     );
   }
 
-  if (isTreasurer) {
+  if (canTrackDues) {
     const payablePeople = invoices.filter(
       (invoice) => getBalance(invoice) > 0 && isPayable(invoice),
     );
@@ -352,14 +362,20 @@ function PaymentsPage() {
     return (
       <div>
         <PageHeader
-          title="Payments"
-          description="Create payment requests for residents and track collections."
+          title="Dues"
+          description={
+            canCreateDues
+              ? "Create dues, review collections and track who has not paid."
+              : "Track collections and see clearly who has not paid yet."
+          }
           icon={ReceiptText}
         >
-          <Button onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Create payment request
-          </Button>
+          {canCreateDues && (
+            <Button onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Create due
+            </Button>
+          )}
         </PageHeader>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -391,8 +407,9 @@ function PaymentsPage() {
                 groups={groups}
                 emptyTitle="No payment requests"
                 emptyDescription="Create a payment request and it will show here."
-                onEdit={openEditor}
-                onDelete={setDeletingGroup}
+                onEdit={canCreateDues ? openEditor : undefined}
+                onDelete={canCreateDues ? setDeletingGroup : undefined}
+                residentById={residentById}
               />
             </TabsContent>
 
@@ -401,8 +418,9 @@ function PaymentsPage() {
                 groups={fullyPaidGroups}
                 emptyTitle="No completed payments yet"
                 emptyDescription="Fully paid requests will show here."
-                onEdit={openEditor}
-                onDelete={setDeletingGroup}
+                onEdit={canCreateDues ? openEditor : undefined}
+                onDelete={canCreateDues ? setDeletingGroup : undefined}
+                residentById={residentById}
               />
             </TabsContent>
 
@@ -411,91 +429,97 @@ function PaymentsPage() {
                 groups={owingGroups}
                 emptyTitle="No outstanding payments"
                 emptyDescription="Requests with unpaid residents will show here."
-                onEdit={openEditor}
-                onDelete={setDeletingGroup}
+                onEdit={canCreateDues ? openEditor : undefined}
+                onDelete={canCreateDues ? setDeletingGroup : undefined}
+                residentById={residentById}
+                showOwingDetails
               />
             </TabsContent>
           </Tabs>
         )}
 
-        <DueFormDialog
-          open={createOpen}
-          onOpenChange={(open) => {
-            setCreateOpen(open);
-            if (!open) resetForm();
-          }}
-          title="Create payment request"
-          submitLabel="Create request"
-          submitting={createDue.isPending}
-          onSubmit={() => createDue.mutate()}
-          form={{
-            title,
-            setTitle,
-            category,
-            setCategory,
-            amount,
-            setAmount,
-            dueDate,
-            setDueDate,
-            note,
-            setNote,
-          }}
-          audience={audience}
-          setAudience={setAudience}
-          residents={residents}
-          selectedMemberIds={selectedMemberIds}
-          setSelectedMemberIds={setSelectedMemberIds}
-          targetCount={targetMembers.length}
-        />
+        {canCreateDues && (
+          <>
+            <DueFormDialog
+              open={createOpen}
+              onOpenChange={(open) => {
+                setCreateOpen(open);
+                if (!open) resetForm();
+              }}
+              title="Create payment request"
+              submitLabel="Create request"
+              submitting={createDue.isPending}
+              onSubmit={() => createDue.mutate()}
+              form={{
+                title,
+                setTitle,
+                category,
+                setCategory,
+                amount,
+                setAmount,
+                dueDate,
+                setDueDate,
+                note,
+                setNote,
+              }}
+              audience={audience}
+              setAudience={setAudience}
+              residents={residents}
+              selectedMemberIds={selectedMemberIds}
+              setSelectedMemberIds={setSelectedMemberIds}
+              targetCount={targetMembers.length}
+            />
 
-        <DueFormDialog
-          open={Boolean(editingGroup)}
-          onOpenChange={(open) => {
-            if (!open) {
-              setEditingGroup(null);
-              resetForm();
-            }
-          }}
-          title="Edit payment request"
-          submitLabel="Save changes"
-          submitting={updateDue.isPending}
-          onSubmit={() => updateDue.mutate()}
-          form={{
-            title,
-            setTitle,
-            category,
-            setCategory,
-            amount,
-            setAmount,
-            dueDate,
-            setDueDate,
-            note,
-            setNote,
-          }}
-        />
+            <DueFormDialog
+              open={Boolean(editingGroup)}
+              onOpenChange={(open) => {
+                if (!open) {
+                  setEditingGroup(null);
+                  resetForm();
+                }
+              }}
+              title="Edit payment request"
+              submitLabel="Save changes"
+              submitting={updateDue.isPending}
+              onSubmit={() => updateDue.mutate()}
+              form={{
+                title,
+                setTitle,
+                category,
+                setCategory,
+                amount,
+                setAmount,
+                dueDate,
+                setDueDate,
+                note,
+                setNote,
+              }}
+            />
 
-        <AlertDialog
-          open={Boolean(deletingGroup)}
-          onOpenChange={(open) => !open && setDeletingGroup(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this payment request?</AlertDialogTitle>
-              <AlertDialogDescription>
-                It will be removed from every person it was sent to. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep request</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => deletingGroup && deleteDue.mutate(deletingGroup)}
-              >
-                Delete request
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+            <AlertDialog
+              open={Boolean(deletingGroup)}
+              onOpenChange={(open) => !open && setDeletingGroup(null)}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this payment request?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    It will be removed from every person it was sent to. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Keep request</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    onClick={() => deletingGroup && deleteDue.mutate(deletingGroup)}
+                  >
+                    Delete request
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        )}
       </div>
     );
   }
@@ -620,12 +644,16 @@ function AdminDueList({
   emptyDescription,
   onEdit,
   onDelete,
+  residentById,
+  showOwingDetails = false,
 }: {
   groups: DueGroup[];
   emptyTitle: string;
   emptyDescription: string;
-  onEdit: (group: DueGroup) => void;
-  onDelete: (group: DueGroup) => void;
+  onEdit?: (group: DueGroup) => void;
+  onDelete?: (group: DueGroup) => void;
+  residentById?: Map<string, ResidentProfile>;
+  showOwingDetails?: boolean;
 }) {
   if (groups.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -660,23 +688,40 @@ function AdminDueList({
                   <DueStatus paid={group.paidCount} total={group.peopleCount} />
                 </div>
               </div>
+              {showOwingDetails && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Not yet paid:{" "}
+                  {group.invoices
+                    .filter((invoice) => getBalance(invoice) > 0 && isPayable(invoice))
+                    .map(
+                      (invoice) => residentById?.get(invoice.resident_id)?.full_name || "Resident",
+                    )
+                    .join(", ") || "Nobody"}
+                </p>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 lg:pl-4">
-              <Button size="sm" variant="ghost" onClick={() => onEdit(group)}>
-                <Edit3 className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-destructive hover:text-destructive"
-                onClick={() => onDelete(group)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </Button>
-            </div>
+            {(onEdit || onDelete) && (
+              <div className="flex items-center gap-2 lg:pl-4">
+                {onEdit && (
+                  <Button size="sm" variant="ghost" onClick={() => onEdit(group)}>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => onDelete(group)}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </article>
       ))}

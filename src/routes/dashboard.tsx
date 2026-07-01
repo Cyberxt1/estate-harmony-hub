@@ -75,9 +75,9 @@ const nav = [
   },
   {
     to: "/dashboard/payments",
-    label: "Payments",
+    label: "Dues",
     icon: CreditCard,
-    groups: ["treasurer"],
+    groups: ["dues"],
   },
   {
     to: "/dashboard/announcements",
@@ -103,7 +103,7 @@ const nav = [
     to: "/dashboard/team",
     label: "Admin team",
     icon: UserCog,
-    groups: ["chairman"],
+    groups: ["team"],
   },
   {
     to: "/dashboard/gate",
@@ -337,8 +337,21 @@ function getWorkspace(role: AppRole) {
 
 function getNavGroups(role: AppRole, workspace: string) {
   const groups = [workspace];
-  if (role === "community_chairman") groups.push("chairman");
-  if (role === "treasurer") groups.push("treasurer");
+  if (
+    [
+      "community_chairman",
+      "community_secretary",
+      "treasurer",
+      "chief_security_officer",
+      "estate_admin",
+      "super_admin",
+    ].includes(role)
+  ) {
+    groups.push("dues");
+  }
+  if (role === "community_chairman" || role === "chief_security_officer") {
+    groups.push("team");
+  }
   return groups;
 }
 
