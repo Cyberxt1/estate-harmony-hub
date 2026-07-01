@@ -13,6 +13,10 @@ function canManageRole(role: InviteRole) {
   ].includes(role);
 }
 
+function isOfficeRole(role: InviteRole) {
+  return ["community_secretary", "treasurer", "chief_security_officer"].includes(role);
+}
+
 export const inviteAdminTeamMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(
@@ -209,6 +213,107 @@ export const claimPendingAdminInvitations = createServerFn({ method: "POST" })
     }
 
     return { claimed: pending.length };
+  });
+
+export const promoteResidentToAdminPosition = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { memberId: string; role: InviteRole }) => {
+    if (!input.memberId?.trim()) throw new Error("Choose a landlord to promote.");
+    if (!isOfficeRole(input.role)) throw new Error("Choose a valid office role.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: actor, error: actorError } = await context.supabase
+      .from("profiles")
+      .select("estate_id")
+      .eq("id", context.userId)
+      .single();
+
+    if (actorError || !actor?.estate_id) {
+      throw new Error("Your account is not linked to the estate.");
+    }
+
+    const { data: actorRoles, error: actorRolesError } = await context.supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId)
+      .eq("estate_id", actor.estate_id)
+      .eq("role", "community_chairman");
+
+    if (actorRolesError) throw actorRolesError;
+    if (!(actorRoles ?? []).length) {
+      throw new Error("Only the chairman can promote a resident to an office role.");
+    }
+
+    const { data: member, error: memberError } = await supabaseAdmin
+      .from("profiles")
+      .select("id, estate_id, resident_type, full_name")
+      .eq("id", data.memberId)
+      .eq("estate_id", actor.estate_id)
+      .maybeSingle();
+
+    if (memberError) throw memberError;
+    if (!member) throw new Error("This resident could not be found in the estate.");
+    if (member.resident_type !== "landlord") {
+      throw new Error("Only landlord residents can be promoted into office admin positions.");
+    }
+
+    const [{ data: assignedRole }, { data: existingOfficeRole }] = await Promise.all([
+      supabaseAdmin
+        .from("user_roles")
+        .select("id")
+        .eq("estate_id", actor.estate_id)
+        .eq("role", data.role)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("user_roles")
+        .select("id, role")
+        .eq("estate_id", actor.estate_id)
+        .eq("user_id", member.id)
+        .in("role", [
+          "community_chairman",
+          "community_secretary",
+          "treasurer",
+          "chief_security_officer",
+          "security_gateman",
+          "estate_admin",
+          "super_admin",
+        ]),
+    ]);
+
+    if (assignedRole) {
+      throw new Error(`The ${formatRole(data.role)} position is already filled.`);
+    }
+    if ((existingOfficeRole ?? []).length) {
+      throw new Error("This resident already has an estate staff or admin role.");
+    }
+
+    const { error: roleError } = await supabaseAdmin.from("user_roles").upsert(
+      {
+        user_id: member.id,
+        estate_id: actor.estate_id,
+        role: data.role,
+      },
+      { onConflict: "user_id,estate_id,role", ignoreDuplicates: true },
+    );
+
+    if (roleError) throw roleError;
+
+    const { error: residentRoleError } = await supabaseAdmin
+      .from("user_roles")
+      .delete()
+      .eq("user_id", member.id)
+      .eq("estate_id", actor.estate_id)
+      .eq("role", "resident");
+
+    if (residentRoleError) throw residentRoleError;
+
+    return {
+      memberName: member.full_name || "Landlord resident",
+      role: data.role,
+    };
   });
 
 function formatRole(role: InviteRole) {

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { inviteAdminTeamMember } from "@/lib/admin.functions";
+import { inviteAdminTeamMember, promoteResidentToAdminPosition } from "@/lib/admin.functions";
 import { useAuth, type AppRole } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/page-header";
 import { PageLoadError, PageLoading } from "@/components/page-loading";
@@ -24,7 +24,10 @@ export const Route = createFileRoute("/dashboard/team")({
   component: AdminTeamPage,
 });
 
-type TeamProfile = Pick<Tables<"profiles">, "id" | "full_name" | "email" | "phone">;
+type TeamProfile = Pick<
+  Tables<"profiles">,
+  "id" | "full_name" | "email" | "phone" | "resident_type"
+>;
 type TeamRole = Pick<Tables<"user_roles">, "user_id" | "role">;
 type Invitation = Tables<"admin_invitations">;
 
@@ -41,12 +44,15 @@ const officeRoles: AppRole[] = [
   "community_secretary",
   "treasurer",
 ];
+const promotionRoles: AppRole[] = ["chief_security_officer", "community_secretary", "treasurer"];
 
 function AdminTeamPage() {
   const { profile, hasRole } = useAuth();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<AppRole>("community_secretary");
+  const [promoteMemberId, setPromoteMemberId] = useState("");
+  const [promoteRole, setPromoteRole] = useState<AppRole>("community_secretary");
   const isChairman = hasRole("community_chairman");
   const isCso = hasRole("chief_security_officer");
   const canManageOffice = isChairman;
@@ -66,7 +72,7 @@ function AdminTeamPage() {
       const [profilesResult, rolesResult, invitesResult] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, full_name, email, phone")
+          .select("id, full_name, email, phone, resident_type")
           .eq("estate_id", profile!.estate_id!),
         supabase.from("user_roles").select("user_id, role").eq("estate_id", profile!.estate_id!),
         supabase
@@ -104,6 +110,23 @@ function AdminTeamPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const promote = useMutation({
+    mutationFn: () =>
+      promoteResidentToAdminPosition({
+        data: {
+          memberId: promoteMemberId,
+          role: promoteRole,
+        },
+      }),
+    onSuccess: async (result) => {
+      toast.success(`${result.memberName} is now ${formatRole(result.role)}.`);
+      setPromoteMemberId("");
+      setPromoteRole("community_secretary");
+      await queryClient.invalidateQueries({ queryKey: ["admin-team"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   if (!canManageGatemen) {
     return (
       <div className="grid min-h-[28vh] place-items-center px-5 text-center">
@@ -124,11 +147,30 @@ function AdminTeamPage() {
     const assignment = data?.roles.find((item) => item.role === officeRole);
     return { role: officeRole, member: assignment ? profileById.get(assignment.user_id) : null };
   });
+  const occupiedAdminIds = new Set(
+    data?.roles
+      .filter((item) =>
+        [
+          "community_chairman",
+          "chief_security_officer",
+          "community_secretary",
+          "treasurer",
+          "security_gateman",
+          "estate_admin",
+          "super_admin",
+        ].includes(item.role),
+      )
+      .map((item) => item.user_id) ?? [],
+  );
   const gatemen =
     data?.roles
       .filter((item) => item.role === "security_gateman")
       .map((item) => profileById.get(item.user_id))
       .filter((member): member is TeamProfile => Boolean(member)) ?? [];
+  const landlordCandidates =
+    data?.profiles.filter(
+      (member) => member.resident_type === "landlord" && !occupiedAdminIds.has(member.id),
+    ) ?? [];
 
   return (
     <div>
@@ -239,6 +281,65 @@ function AdminTeamPage() {
               </Button>
             </div>
           </section>
+
+          {canManageOffice && (
+            <section className="rounded-lg border border-border bg-card p-5">
+              <h2 className="font-display text-base font-semibold">Promote landlord to admin</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Move an existing landlord resident directly into an office admin position.
+              </p>
+              <div className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label>Landlord resident</Label>
+                  <Select value={promoteMemberId} onValueChange={setPromoteMemberId}>
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          landlordCandidates.length
+                            ? "Choose a landlord resident"
+                            : "No landlord resident available"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {landlordCandidates.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.full_name || member.email || "Landlord resident"}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Admin position</Label>
+                  <Select
+                    value={promoteRole}
+                    onValueChange={(value) => setPromoteRole(value as AppRole)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {promotionRoles.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {formatRole(item)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  className="w-full"
+                  disabled={!promoteMemberId}
+                  onClick={() => promote.mutate()}
+                  loading={promote.isPending}
+                  loadingLabel="Promoting resident"
+                >
+                  Promote resident
+                </Button>
+              </div>
+            </section>
+          )}
 
           <section className="rounded-lg border border-border bg-card p-5">
             <h2 className="font-display text-base font-semibold">Recent invitations</h2>
