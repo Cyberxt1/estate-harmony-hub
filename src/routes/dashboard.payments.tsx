@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CreditCard,
   Edit3,
+  BellRing,
   Landmark,
   Plus,
   ReceiptText,
@@ -147,7 +148,7 @@ function PaymentsPage() {
   const [dueDate, setDueDate] = useState(() => getDefaultDueDate());
   const [audience, setAudience] = useState<Audience>("all");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
-  const [includeAdmins, setIncludeAdmins] = useState(false);
+  const [includeAdmins, setIncludeAdmins] = useState(true);
   const [note, setNote] = useState("");
 
   const {
@@ -245,13 +246,21 @@ function PaymentsPage() {
     () => invoices.filter((invoice) => invoice.status === "paid" || getBalance(invoice) === 0),
     [invoices],
   );
-  const dueCandidates = useMemo(
-    () =>
-      includeAdmins
-        ? residents
-        : residents.filter((resident) => !adminUserIds.includes(resident.id)),
-    [adminUserIds, includeAdmins, residents],
+  const myInvoices = useMemo(
+    () => invoices.filter((invoice) => invoice.resident_id === user?.id).sort(compareDues),
+    [invoices, user?.id],
   );
+  const dueCandidates = useMemo(() => {
+    const eligibleMembers = residents.filter(
+      (resident) =>
+        resident.resident_type === "landlord" ||
+        resident.resident_type === "tenant" ||
+        adminUserIds.includes(resident.id),
+    );
+    return includeAdmins
+      ? eligibleMembers
+      : eligibleMembers.filter((resident) => !adminUserIds.includes(resident.id));
+  }, [adminUserIds, includeAdmins, residents]);
   const targetMembers = useMemo(() => {
     if (audience === "all") return dueCandidates;
     if (audience === "selected") {
@@ -271,6 +280,16 @@ function PaymentsPage() {
     });
     return map;
   }, [paymentRecords]);
+  const newMyDuesCount = useMemo(
+    () =>
+      myInvoices.filter(
+        (invoice) =>
+          !invoice.viewed_at &&
+          invoice.status !== "cancelled" &&
+          getInvoicePaymentState(invoice, paymentByInvoiceId.get(invoice.id)) !== "paid",
+      ).length,
+    [myInvoices, paymentByInvoiceId],
+  );
   const pendingManualApprovals = useMemo(
     () =>
       paymentRecords.filter(
@@ -283,7 +302,7 @@ function PaymentsPage() {
   );
 
   useEffect(() => {
-    if (isAdmin || isLoading || invoices.length === 0) return;
+    if (isLoading || invoices.length === 0) return;
     const pendingPayments = readPendingDuePayments();
     if (pendingPayments.length === 0) return;
 
@@ -304,7 +323,7 @@ function PaymentsPage() {
     if (!pendingInvoice?.invoice) return;
 
     void confirmCompletedPayment(pendingInvoice.invoice, pendingInvoice.payment.reference, true);
-  }, [invoices, isAdmin, isLoading]);
+  }, [invoices, isLoading]);
 
   const resetForm = () => {
     setTitle("");
@@ -313,7 +332,7 @@ function PaymentsPage() {
     setDueDate(getDefaultDueDate());
     setAudience("all");
     setSelectedMemberIds([]);
-    setIncludeAdmins(false);
+    setIncludeAdmins(true);
     setNote("");
   };
 
@@ -422,6 +441,18 @@ function PaymentsPage() {
     setNote(group.note);
   };
 
+  const openMyDue = async (invoice: Invoice) => {
+    setSelectedInvoice(invoice);
+    if (invoice.viewed_at) return;
+
+    const { error } = await supabase.rpc("mark_due_seen", { _invoice_id: invoice.id });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["dues"] });
+  };
+
   if (isAdmin && !canTrackDues) {
     return (
       <div className="grid min-h-[28vh] place-items-center text-center">
@@ -472,10 +503,7 @@ function PaymentsPage() {
 
         {isError || residentsError || adminRolesError || estatePaymentSettingsError ? (
           <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
-        ) : isLoading ||
-          residentsLoading ||
-          adminRolesLoading ||
-          estatePaymentSettingsLoading ? (
+        ) : isLoading || residentsLoading || adminRolesLoading || estatePaymentSettingsLoading ? (
           <PageLoading label="Loading payments" onRetry={() => void queryClient.refetchQueries()} />
         ) : groups.length === 0 ? (
           <EmptyState
@@ -483,15 +511,29 @@ function PaymentsPage() {
             description="Create a payment request and send it to residents."
           />
         ) : (
-          <Tabs defaultValue="created">
-            <TabsList className="mb-4 grid h-auto w-full grid-cols-4 gap-1 rounded-xl bg-muted/70 p-1 sm:w-[720px]">
-              <TabsTrigger value="created">Requests ({groups.length})</TabsTrigger>
-              <TabsTrigger value="pending">
-                Pending ({pendingManualApprovals.length})
+          <Tabs defaultValue={newMyDuesCount > 0 ? "my-dues" : "created"}>
+            <TabsList className="mb-4 grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-muted/70 p-1 sm:grid-cols-5">
+              <TabsTrigger value="my-dues" className="gap-1.5">
+                My dues ({myInvoices.length})
+                {newMyDuesCount > 0 && (
+                  <span className="rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-semibold text-destructive-foreground">
+                    {newMyDuesCount} new
+                  </span>
+                )}
               </TabsTrigger>
+              <TabsTrigger value="created">Requests ({groups.length})</TabsTrigger>
+              <TabsTrigger value="pending">Pending ({pendingManualApprovals.length})</TabsTrigger>
               <TabsTrigger value="paid">Paid ({fullyPaidGroups.length})</TabsTrigger>
               <TabsTrigger value="owing">Owing ({owingGroups.length})</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="my-dues" className="mt-0">
+              <AdminMyDuesList
+                invoices={myInvoices}
+                paymentByInvoiceId={paymentByInvoiceId}
+                onSelect={(invoice) => void openMyDue(invoice)}
+              />
+            </TabsContent>
 
             <TabsContent value="created" className="mt-0">
               <AdminDueList
@@ -635,6 +677,12 @@ function PaymentsPage() {
           residentById={residentById}
           onClose={() => setSelectedDueGroup(null)}
         />
+        <ResidentDueDialog
+          invoice={selectedInvoice}
+          payment={selectedInvoice ? (paymentByInvoiceId.get(selectedInvoice.id) ?? null) : null}
+          paymentSettings={estatePaymentSettings ?? null}
+          onClose={() => setSelectedInvoice(null)}
+        />
       </div>
     );
   }
@@ -750,10 +798,80 @@ function PaymentsPage() {
 
       <ResidentDueDialog
         invoice={selectedInvoice}
-        payment={selectedInvoice ? paymentByInvoiceId.get(selectedInvoice.id) ?? null : null}
+        payment={selectedInvoice ? (paymentByInvoiceId.get(selectedInvoice.id) ?? null) : null}
         paymentSettings={estatePaymentSettings ?? null}
         onClose={() => setSelectedInvoice(null)}
       />
+    </div>
+  );
+}
+
+function AdminMyDuesList({
+  invoices,
+  paymentByInvoiceId,
+  onSelect,
+}: {
+  invoices: Invoice[];
+  paymentByInvoiceId: Map<string, PaymentRecord>;
+  onSelect: (invoice: Invoice) => void;
+}) {
+  if (invoices.length === 0) {
+    return (
+      <EmptyState
+        title="No personal dues"
+        description="When an administrator is included in a due, it will appear here."
+      />
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      <div className="hidden grid-cols-[minmax(0,1fr)_140px_120px] gap-4 border-b border-border bg-secondary/30 px-5 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid">
+        <span>Due</span>
+        <span>Amount</span>
+        <span>Status</span>
+      </div>
+      {invoices.map((invoice, index) => {
+        const paymentState = getInvoicePaymentState(invoice, paymentByInvoiceId.get(invoice.id));
+        const status = getPersonalDueStatus(invoice, paymentState);
+        return (
+          <button
+            key={invoice.id}
+            type="button"
+            className={`grid w-full gap-3 px-4 py-3 text-left transition hover:bg-secondary/25 sm:grid-cols-[minmax(0,1fr)_140px_120px] sm:items-center sm:gap-4 sm:px-5 ${
+              index !== invoices.length - 1 ? "border-b border-border" : ""
+            }`}
+            onClick={() => onSelect(invoice)}
+          >
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-sm font-semibold">
+                  {invoice.description || "Estate due"}
+                </p>
+                {!invoice.viewed_at &&
+                  paymentState !== "paid" &&
+                  invoice.status !== "cancelled" && (
+                    <BellRing className="h-3.5 w-3.5 shrink-0 text-destructive" />
+                  )}
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Due {formatDate(invoice.due_date)}
+              </p>
+            </div>
+            <p className="text-sm font-semibold">
+              {formatMoney(
+                paymentState === "paid" ? Number(invoice.amount) : getBalance(invoice),
+                invoice.currency,
+              )}
+            </p>
+            <span
+              className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${status.className}`}
+            >
+              {status.label}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -816,13 +934,15 @@ function AdminDueList({
                   <DueStatus paid={group.paidCount} total={group.peopleCount} />
                 </div>
               </div>
+              <p className="mt-2 text-xs font-medium text-primary">View payment list</p>
               {memberView && (
                 <p className="mt-2 text-xs text-muted-foreground">
                   {memberView === "paid" ? "Paid by: " : "Not yet paid: "}
                   {group.invoices
                     .filter((invoice) =>
                       memberView === "paid"
-                        ? getInvoicePaymentState(invoice, paymentByInvoiceId?.get(invoice.id)) === "paid"
+                        ? getInvoicePaymentState(invoice, paymentByInvoiceId?.get(invoice.id)) ===
+                          "paid"
                         : getBalance(invoice) > 0 && isPayable(invoice),
                     )
                     .map(
@@ -927,18 +1047,12 @@ function AdminDueGroupDialog({
                         </p>
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            paymentState === "paid"
+                            paid
                               ? "bg-emerald-500/15 text-emerald-700"
-                              : paymentState === "pending"
-                                ? "bg-sky-500/15 text-sky-700"
-                                : "bg-amber-500/15 text-amber-700"
+                              : "bg-amber-500/15 text-amber-700"
                           }`}
                         >
-                          {paymentState === "paid"
-                            ? "Paid"
-                            : paymentState === "pending"
-                              ? "Pending"
-                              : "Not paid"}
+                          {paid ? "Paid" : "Not paid"}
                         </span>
                       </div>
                     </div>
@@ -1158,7 +1272,10 @@ function PendingManualApprovalsList({
   residentById: Map<string, ResidentProfile>;
 }) {
   const queryClient = useQueryClient();
-  const invoiceById = useMemo(() => new Map(invoices.map((invoice) => [invoice.id, invoice])), [invoices]);
+  const invoiceById = useMemo(
+    () => new Map(invoices.map((invoice) => [invoice.id, invoice])),
+    [invoices],
+  );
   const approvePayment = useMutation({
     mutationFn: async (paymentId: string) => approveManualDuePayment({ data: { paymentId } }),
     onSuccess: async () => {
@@ -1198,12 +1315,15 @@ function PendingManualApprovalsList({
                 <Badge variant="secondary">Pending</Badge>
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                {invoice?.description || "Estate due"} - {formatMoney(payment.amount, payment.currency)}
+                {invoice?.description || "Estate due"} -{" "}
+                {formatMoney(payment.amount, payment.currency)}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Ref: {payment.reference || "Not added"} - Sent {formatDateTime(payment.created_at)}
               </p>
-              {payment.notes && <p className="mt-2 text-xs text-muted-foreground">{payment.notes}</p>}
+              {payment.notes && (
+                <p className="mt-2 text-xs text-muted-foreground">{payment.notes}</p>
+              )}
             </div>
             <Button
               className="lg:shrink-0"
@@ -1241,8 +1361,8 @@ function ResidentDueDialog({
   const [manualNote, setManualNote] = useState("");
   const manualPaymentAvailable = Boolean(
     paymentSettings?.manual_payment_enabled &&
-      paymentSettings.manual_account_name?.trim() &&
-      paymentSettings.manual_account_number?.trim(),
+    paymentSettings.manual_account_name?.trim() &&
+    paymentSettings.manual_account_number?.trim(),
   );
   const onlinePaymentAvailable = Boolean(import.meta.env.VITE_PAYSTACK_PUBLIC_KEY);
 
@@ -1488,7 +1608,8 @@ function getInvoicePaymentState(
   payment?: PaymentRecord | null,
 ): "paid" | "pending" | "unpaid" {
   if (invoice.status === "paid" || getBalance(invoice) === 0) return "paid";
-  if (payment?.status === "pending" && ["transfer", "cash"].includes(payment.method)) return "pending";
+  if (payment?.status === "pending" && ["transfer", "cash"].includes(payment.method))
+    return "pending";
   return "unpaid";
 }
 
@@ -1507,6 +1628,25 @@ function getDueStatus(invoice: Invoice) {
   if (due < today) return "Overdue";
   if (due === today) return "Due today";
   return "To pay";
+}
+
+function getPersonalDueStatus(invoice: Invoice, paymentState: "paid" | "pending" | "unpaid") {
+  if (invoice.status === "cancelled") {
+    return { label: "Cancelled", className: "bg-muted text-muted-foreground" };
+  }
+  if (paymentState === "paid") {
+    return { label: "Paid", className: "bg-success/15 text-success" };
+  }
+  if (paymentState === "pending") {
+    return { label: "Pending", className: "bg-sky-500/15 text-sky-700" };
+  }
+  if (!invoice.viewed_at) {
+    return { label: "New due", className: "bg-destructive/15 text-destructive" };
+  }
+  if (invoice.due_date && getDateKey(invoice.due_date) < getDateKey(new Date())) {
+    return { label: "Overdue", className: "bg-destructive/15 text-destructive" };
+  }
+  return { label: "Not paid", className: "bg-amber-500/15 text-amber-700" };
 }
 
 function formatMoney(amount: number, currency = "NGN") {

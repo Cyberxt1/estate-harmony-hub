@@ -471,6 +471,7 @@ export type Database = {
           resident_id: string;
           status: Database["public"]["Enums"]["invoice_status"];
           updated_at: string;
+          viewed_at: string | null;
         };
         Insert: {
           amount: number;
@@ -489,6 +490,7 @@ export type Database = {
           resident_id: string;
           status?: Database["public"]["Enums"]["invoice_status"];
           updated_at?: string;
+          viewed_at?: string | null;
         };
         Update: {
           amount?: number;
@@ -507,6 +509,7 @@ export type Database = {
           resident_id?: string;
           status?: Database["public"]["Enums"]["invoice_status"];
           updated_at?: string;
+          viewed_at?: string | null;
         };
         Relationships: [
           {
@@ -1197,6 +1200,10 @@ export type Database = {
       is_estate_staff: {
         Args: { _estate_id: string; _user_id: string };
         Returns: boolean;
+      };
+      mark_due_seen: {
+        Args: { _invoice_id: string };
+        Returns: undefined;
       };
       get_estate_admin_directory: {
         Args: Record<PropertyKey, never>;
