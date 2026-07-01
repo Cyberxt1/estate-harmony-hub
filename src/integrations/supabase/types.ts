@@ -301,6 +301,10 @@ export type Database = {
           created_at: string;
           id: string;
           logo_url: string | null;
+          manual_account_name: string | null;
+          manual_account_number: string | null;
+          manual_bank_name: string | null;
+          manual_payment_enabled: boolean;
           name: string;
           slug: string | null;
           state: string | null;
@@ -315,6 +319,10 @@ export type Database = {
           created_at?: string;
           id?: string;
           logo_url?: string | null;
+          manual_account_name?: string | null;
+          manual_account_number?: string | null;
+          manual_bank_name?: string | null;
+          manual_payment_enabled?: boolean;
           name: string;
           slug?: string | null;
           state?: string | null;
@@ -329,6 +337,10 @@ export type Database = {
           created_at?: string;
           id?: string;
           logo_url?: string | null;
+          manual_account_name?: string | null;
+          manual_account_number?: string | null;
+          manual_bank_name?: string | null;
+          manual_payment_enabled?: boolean;
           name?: string;
           slug?: string | null;
           state?: string | null;
@@ -1147,6 +1159,10 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      approve_manual_due_payment: {
+        Args: { _payment_id: string };
+        Returns: undefined;
+      };
       complete_verified_due_payment: {
         Args: { _amount: number; _invoice_id: string; _reference: string };
         Returns: undefined;

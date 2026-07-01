@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CreditCard,
   Edit3,
+  Landmark,
   Plus,
   ReceiptText,
   Trash2,
@@ -14,9 +15,15 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { getDuePaymentAvailability, verifyDuePayment } from "@/lib/payments.functions";
+import {
+  approveManualDuePayment,
+  getDuePaymentAvailability,
+  submitManualDuePayment,
+  verifyDuePayment,
+} from "@/lib/payments.functions";
 import { downloadDueReceipt } from "@/lib/receipts";
 import { useAuth } from "@/hooks/use-auth";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -84,6 +91,10 @@ type PendingDuePayment = {
   savedAt: number;
 };
 type PaymentRecord = Tables<"payments">;
+type EstatePaymentSettings = Pick<
+  Tables<"estates">,
+  "manual_payment_enabled" | "manual_account_name" | "manual_account_number" | "manual_bank_name"
+>;
 const officeAdminRoles: Tables<"user_roles">["role"][] = [
   "community_chairman",
   "community_secretary",
@@ -127,6 +138,7 @@ function PaymentsPage() {
   const canTrackDues = canCreateDues || isSecretary;
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [selectedDueGroup, setSelectedDueGroup] = useState<DueGroup | null>(null);
   const [editingGroup, setEditingGroup] = useState<DueGroup | null>(null);
   const [deletingGroup, setDeletingGroup] = useState<DueGroup | null>(null);
   const [title, setTitle] = useState("");
@@ -190,14 +202,34 @@ function PaymentsPage() {
     },
   });
 
+  const {
+    data: estatePaymentSettings,
+    isLoading: estatePaymentSettingsLoading,
+    isError: estatePaymentSettingsError,
+  } = useQuery({
+    queryKey: ["estate-payment-settings", profile?.estate_id],
+    enabled: Boolean(profile?.estate_id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estates")
+        .select(
+          "manual_payment_enabled, manual_account_name, manual_account_number, manual_bank_name",
+        )
+        .eq("id", profile!.estate_id!)
+        .single();
+      if (error) throw error;
+      return data as EstatePaymentSettings;
+    },
+  });
+
   const { data: paymentRecords = [] } = useQuery({
-    queryKey: ["payments-records", user?.id, isAdmin],
-    enabled: Boolean(user?.id) && !isAdmin,
+    queryKey: ["payments-records", user?.id, isAdmin, canTrackDues],
+    enabled: Boolean(user?.id) && (!isAdmin || canTrackDues),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("payments")
         .select("*")
-        .order("paid_at", { ascending: false });
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as PaymentRecord[];
     },
@@ -230,6 +262,24 @@ function PaymentsPage() {
   const residentById = useMemo(
     () => new Map(residents.map((resident) => [resident.id, resident])),
     [residents],
+  );
+  const paymentByInvoiceId = useMemo(() => {
+    const map = new Map<string, PaymentRecord>();
+    paymentRecords.forEach((payment) => {
+      if (!payment.invoice_id || map.has(payment.invoice_id)) return;
+      map.set(payment.invoice_id, payment);
+    });
+    return map;
+  }, [paymentRecords]);
+  const pendingManualApprovals = useMemo(
+    () =>
+      paymentRecords.filter(
+        (payment) =>
+          payment.status === "pending" &&
+          Boolean(payment.invoice_id) &&
+          ["transfer", "cash"].includes(payment.method),
+      ),
+    [paymentRecords],
   );
 
   useEffect(() => {
@@ -420,9 +470,12 @@ function PaymentsPage() {
           <Stat icon={CreditCard} label="Total expected" value={formatMoney(totalExpected)} />
         </div>
 
-        {isError || residentsError || adminRolesError ? (
+        {isError || residentsError || adminRolesError || estatePaymentSettingsError ? (
           <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
-        ) : isLoading || residentsLoading || adminRolesLoading ? (
+        ) : isLoading ||
+          residentsLoading ||
+          adminRolesLoading ||
+          estatePaymentSettingsLoading ? (
           <PageLoading label="Loading payments" onRetry={() => void queryClient.refetchQueries()} />
         ) : groups.length === 0 ? (
           <EmptyState
@@ -431,8 +484,11 @@ function PaymentsPage() {
           />
         ) : (
           <Tabs defaultValue="created">
-            <TabsList className="mb-4 grid h-auto w-full grid-cols-3 gap-1 rounded-xl bg-muted/70 p-1 sm:w-[520px]">
+            <TabsList className="mb-4 grid h-auto w-full grid-cols-4 gap-1 rounded-xl bg-muted/70 p-1 sm:w-[720px]">
               <TabsTrigger value="created">Requests ({groups.length})</TabsTrigger>
+              <TabsTrigger value="pending">
+                Pending ({pendingManualApprovals.length})
+              </TabsTrigger>
               <TabsTrigger value="paid">Paid ({fullyPaidGroups.length})</TabsTrigger>
               <TabsTrigger value="owing">Owing ({owingGroups.length})</TabsTrigger>
             </TabsList>
@@ -442,6 +498,7 @@ function PaymentsPage() {
                 groups={groups}
                 emptyTitle="No payment requests"
                 emptyDescription="Create a payment request and it will show here."
+                onSelect={setSelectedDueGroup}
                 onEdit={canCreateDues ? openEditor : undefined}
                 onDelete={canCreateDues ? setDeletingGroup : undefined}
                 residentById={residentById}
@@ -453,10 +510,12 @@ function PaymentsPage() {
                 groups={fullyPaidGroups}
                 emptyTitle="No completed payments yet"
                 emptyDescription="Fully paid requests will show here."
+                onSelect={setSelectedDueGroup}
                 onEdit={canCreateDues ? openEditor : undefined}
                 onDelete={canCreateDues ? setDeletingGroup : undefined}
                 residentById={residentById}
                 memberView="paid"
+                paymentByInvoiceId={paymentByInvoiceId}
               />
             </TabsContent>
 
@@ -465,10 +524,20 @@ function PaymentsPage() {
                 groups={owingGroups}
                 emptyTitle="No outstanding payments"
                 emptyDescription="Requests with unpaid residents will show here."
+                onSelect={setSelectedDueGroup}
                 onEdit={canCreateDues ? openEditor : undefined}
                 onDelete={canCreateDues ? setDeletingGroup : undefined}
                 residentById={residentById}
                 memberView="owing"
+                paymentByInvoiceId={paymentByInvoiceId}
+              />
+            </TabsContent>
+
+            <TabsContent value="pending" className="mt-0">
+              <PendingManualApprovalsList
+                payments={pendingManualApprovals}
+                invoices={invoices}
+                residentById={residentById}
               />
             </TabsContent>
           </Tabs>
@@ -559,6 +628,13 @@ function PaymentsPage() {
             </AlertDialog>
           </>
         )}
+
+        <AdminDueGroupDialog
+          group={selectedDueGroup}
+          paymentByInvoiceId={paymentByInvoiceId}
+          residentById={residentById}
+          onClose={() => setSelectedDueGroup(null)}
+        />
       </div>
     );
   }
@@ -581,9 +657,9 @@ function PaymentsPage() {
         <Stat icon={CheckCircle2} label="Payments made" value={String(paidDues.length)} />
       </div>
 
-      {isError ? (
+      {isError || estatePaymentSettingsError ? (
         <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
-      ) : isLoading ? (
+      ) : isLoading || estatePaymentSettingsLoading ? (
         <PageLoading label="Loading your dues" onRetry={() => void queryClient.refetchQueries()} />
       ) : pendingDues.length === 0 ? (
         <EmptyState title="No dues to pay" description="You are all caught up." />
@@ -672,7 +748,12 @@ function PaymentsPage() {
         </section>
       )}
 
-      <ResidentDueDialog invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} />
+      <ResidentDueDialog
+        invoice={selectedInvoice}
+        payment={selectedInvoice ? paymentByInvoiceId.get(selectedInvoice.id) ?? null : null}
+        paymentSettings={estatePaymentSettings ?? null}
+        onClose={() => setSelectedInvoice(null)}
+      />
     </div>
   );
 }
@@ -681,18 +762,22 @@ function AdminDueList({
   groups,
   emptyTitle,
   emptyDescription,
+  onSelect,
   onEdit,
   onDelete,
   residentById,
   memberView,
+  paymentByInvoiceId,
 }: {
   groups: DueGroup[];
   emptyTitle: string;
   emptyDescription: string;
+  onSelect?: (group: DueGroup) => void;
   onEdit?: (group: DueGroup) => void;
   onDelete?: (group: DueGroup) => void;
   residentById?: Map<string, ResidentProfile>;
   memberView?: "paid" | "owing";
+  paymentByInvoiceId?: Map<string, PaymentRecord>;
 }) {
   if (groups.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -706,7 +791,11 @@ function AdminDueList({
           className={`px-4 py-3 sm:px-5 ${index !== groups.length - 1 ? "border-b border-border" : ""}`}
         >
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-left"
+              onClick={() => onSelect?.(group)}
+            >
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span className="rounded-full bg-secondary px-2 py-1 font-medium text-foreground/80">
                   {group.category}
@@ -733,7 +822,7 @@ function AdminDueList({
                   {group.invoices
                     .filter((invoice) =>
                       memberView === "paid"
-                        ? invoice.status === "paid" || getBalance(invoice) === 0
+                        ? getInvoicePaymentState(invoice, paymentByInvoiceId?.get(invoice.id)) === "paid"
                         : getBalance(invoice) > 0 && isPayable(invoice),
                     )
                     .map(
@@ -742,10 +831,13 @@ function AdminDueList({
                     .join(", ") || "Nobody"}
                 </p>
               )}
-            </div>
+            </button>
 
             {(onEdit || onDelete) && (
-              <div className="flex items-center gap-2 lg:pl-4">
+              <div
+                className="flex items-center gap-2 lg:pl-4"
+                onClick={(event) => event.stopPropagation()}
+              >
                 {onEdit && (
                   <Button size="sm" variant="ghost" onClick={() => onEdit(group)}>
                     <Edit3 className="mr-2 h-4 w-4" />
@@ -769,6 +861,95 @@ function AdminDueList({
         </article>
       ))}
     </div>
+  );
+}
+
+function AdminDueGroupDialog({
+  group,
+  paymentByInvoiceId,
+  residentById,
+  onClose,
+}: {
+  group: DueGroup | null;
+  paymentByInvoiceId: Map<string, PaymentRecord>;
+  residentById: Map<string, ResidentProfile>;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open={Boolean(group)} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{group?.title || "Due details"}</DialogTitle>
+          <DialogDescription>
+            Everyone attached to this due and whether they have paid or not paid.
+          </DialogDescription>
+        </DialogHeader>
+        {group && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <SimpleDetail label="Category" value={group.category} />
+              <SimpleDetail label="Amount each" value={formatMoney(group.amountEach)} />
+              <SimpleDetail label="Due date" value={formatDate(group.dueDate)} />
+              <SimpleDetail
+                label="Progress"
+                value={`${group.paidCount}/${group.peopleCount} paid`}
+              />
+            </div>
+
+            <div className="max-h-[52vh] overflow-y-auto rounded-xl border border-border">
+              <div className="divide-y divide-border">
+                {group.invoices.map((invoice) => {
+                  const resident = residentById.get(invoice.resident_id);
+                  const payment = paymentByInvoiceId.get(invoice.id);
+                  const paymentState = getInvoicePaymentState(invoice, payment);
+                  const paid = paymentState === "paid";
+                  return (
+                    <div
+                      key={invoice.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">
+                          {resident?.full_name || resident?.email || "Resident"}
+                        </p>
+                        <p className="mt-0.5 text-xs capitalize text-muted-foreground">
+                          {resident?.resident_type || "Member"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-sm font-medium">
+                          {formatMoney(
+                            paid
+                              ? Number(invoice.amount_paid ?? invoice.amount)
+                              : getBalance(invoice),
+                            invoice.currency,
+                          )}
+                        </p>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            paymentState === "paid"
+                              ? "bg-emerald-500/15 text-emerald-700"
+                              : paymentState === "pending"
+                                ? "bg-sky-500/15 text-sky-700"
+                                : "bg-amber-500/15 text-amber-700"
+                          }`}
+                        >
+                          {paymentState === "paid"
+                            ? "Paid"
+                            : paymentState === "pending"
+                              ? "Pending"
+                              : "Not paid"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -967,9 +1148,127 @@ function DueFormDialog({
   );
 }
 
-function ResidentDueDialog({ invoice, onClose }: { invoice: Invoice | null; onClose: () => void }) {
+function PendingManualApprovalsList({
+  payments,
+  invoices,
+  residentById,
+}: {
+  payments: PaymentRecord[];
+  invoices: Invoice[];
+  residentById: Map<string, ResidentProfile>;
+}) {
+  const queryClient = useQueryClient();
+  const invoiceById = useMemo(() => new Map(invoices.map((invoice) => [invoice.id, invoice])), [invoices]);
+  const approvePayment = useMutation({
+    mutationFn: async (paymentId: string) => approveManualDuePayment({ data: { paymentId } }),
+    onSuccess: async () => {
+      toast.success("Payment marked as paid");
+      await queryClient.invalidateQueries({ queryKey: ["dues"] });
+      await queryClient.invalidateQueries({ queryKey: ["payments-records"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  if (payments.length === 0) {
+    return (
+      <EmptyState
+        title="No manual payments waiting"
+        description="Residents who pay by transfer will show here for confirmation."
+      />
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
+      {payments.map((payment, index) => {
+        const invoice = payment.invoice_id ? invoiceById.get(payment.invoice_id) : null;
+        const resident = residentById.get(payment.resident_id);
+        return (
+          <div
+            key={payment.id}
+            className={`flex flex-col gap-3 px-4 py-3 sm:px-5 lg:flex-row lg:items-center lg:justify-between ${
+              index !== payments.length - 1 ? "border-b border-border" : ""
+            }`}
+          >
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {resident?.full_name || resident?.email || "Resident"}
+                </p>
+                <Badge variant="secondary">Pending</Badge>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {invoice?.description || "Estate due"} - {formatMoney(payment.amount, payment.currency)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ref: {payment.reference || "Not added"} - Sent {formatDateTime(payment.created_at)}
+              </p>
+              {payment.notes && <p className="mt-2 text-xs text-muted-foreground">{payment.notes}</p>}
+            </div>
+            <Button
+              className="lg:shrink-0"
+              onClick={() => approvePayment.mutate(payment.id)}
+              loading={approvePayment.isPending && approvePayment.variables === payment.id}
+              loadingLabel="Confirming"
+            >
+              Mark as paid
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResidentDueDialog({
+  invoice,
+  payment,
+  paymentSettings,
+  onClose,
+}: {
+  invoice: Invoice | null;
+  payment: PaymentRecord | null;
+  paymentSettings: EstatePaymentSettings | null;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
   const meta = invoice ? getDueMeta(invoice) : {};
-  const paid = invoice ? invoice.status === "paid" || getBalance(invoice) === 0 : false;
+  const paymentState = invoice ? getInvoicePaymentState(invoice, payment) : "unpaid";
+  const paid = paymentState === "paid";
+  const pendingManual = paymentState === "pending" ? payment : null;
+  const [showManualForm, setShowManualForm] = useState(false);
+  const [manualReference, setManualReference] = useState("");
+  const [manualNote, setManualNote] = useState("");
+  const manualPaymentAvailable = Boolean(
+    paymentSettings?.manual_payment_enabled &&
+      paymentSettings.manual_account_name?.trim() &&
+      paymentSettings.manual_account_number?.trim(),
+  );
+  const onlinePaymentAvailable = Boolean(import.meta.env.VITE_PAYSTACK_PUBLIC_KEY);
+
+  const submitManual = useMutation({
+    mutationFn: async () => {
+      if (!invoice) throw new Error("Choose a due first.");
+      return submitManualDuePayment({
+        data: {
+          invoiceId: invoice.id,
+          note: manualNote,
+          reference: manualReference,
+        },
+      });
+    },
+    onSuccess: async () => {
+      toast.success("Manual payment submitted", {
+        description: "It will stay pending until the treasurer confirms it.",
+      });
+      setShowManualForm(false);
+      setManualReference("");
+      setManualNote("");
+      await queryClient.invalidateQueries({ queryKey: ["dues"] });
+      await queryClient.invalidateQueries({ queryKey: ["payments-records"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   return (
     <Dialog open={Boolean(invoice)} onOpenChange={(open) => !open && onClose()}>
@@ -988,13 +1287,96 @@ function ResidentDueDialog({ invoice, onClose }: { invoice: Invoice | null; onCl
             </div>
             <div className="grid grid-cols-2 gap-3">
               <SimpleDetail label="Due date" value={formatDate(invoice.due_date)} />
-              <SimpleDetail label="Status" value={paid ? "Paid" : getDueStatus(invoice)} />
+              <SimpleDetail
+                label="Status"
+                value={
+                  paid ? "Paid" : pendingManual ? "Pending confirmation" : getDueStatus(invoice)
+                }
+              />
             </div>
             {meta.note && <p className="text-sm leading-6 text-muted-foreground">{meta.note}</p>}
-            {!paid && (
-              <Button className="h-11 w-full" onClick={() => void startOnlinePayment(invoice)}>
-                Pay now
-              </Button>
+            {!paid && pendingManual && (
+              <div className="space-y-3 rounded-xl border border-sky-200 bg-sky-50/80 p-4">
+                <div className="flex items-center gap-2 text-sky-700">
+                  <Landmark className="h-4 w-4" />
+                  <p className="text-sm font-medium">Manual payment awaiting confirmation</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <SimpleDetail label="Reference" value={pendingManual.reference || "Not added"} />
+                  <SimpleDetail
+                    label="Submitted"
+                    value={formatDateTime(pendingManual.created_at)}
+                  />
+                </div>
+                {pendingManual.notes && (
+                  <p className="text-sm text-sky-700/90">{pendingManual.notes}</p>
+                )}
+              </div>
+            )}
+            {!paid && !pendingManual && (
+              <div className="space-y-3">
+                {onlinePaymentAvailable && (
+                  <Button className="h-11 w-full" onClick={() => void startOnlinePayment(invoice)}>
+                    Pay online
+                  </Button>
+                )}
+                {manualPaymentAvailable && (
+                  <Button
+                    className="h-11 w-full"
+                    variant={showManualForm ? "secondary" : "outline"}
+                    onClick={() => setShowManualForm((current) => !current)}
+                  >
+                    Pay by transfer
+                  </Button>
+                )}
+                {!onlinePaymentAvailable && !manualPaymentAvailable && (
+                  <p className="text-sm text-muted-foreground">
+                    Payment is not available right now. Please check back shortly.
+                  </p>
+                )}
+
+                {showManualForm && manualPaymentAvailable && (
+                  <div className="space-y-4 rounded-xl border border-border bg-secondary/20 p-4">
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">Transfer to this account</p>
+                      <p className="text-sm text-muted-foreground">
+                        {paymentSettings?.manual_bank_name
+                          ? `${paymentSettings.manual_bank_name} - `
+                          : ""}
+                        {paymentSettings?.manual_account_number} -{" "}
+                        {paymentSettings?.manual_account_name}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manual-payment-reference">Transfer reference</Label>
+                      <Input
+                        id="manual-payment-reference"
+                        value={manualReference}
+                        onChange={(event) => setManualReference(event.target.value)}
+                        placeholder="Bank alert or transfer reference"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="manual-payment-note">Short note (optional)</Label>
+                      <Textarea
+                        id="manual-payment-note"
+                        rows={3}
+                        value={manualNote}
+                        onChange={(event) => setManualNote(event.target.value)}
+                        placeholder="Anything the treasurer should know."
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => submitManual.mutate()}
+                      loading={submitManual.isPending}
+                      loadingLabel="Submitting payment"
+                    >
+                      I have paid
+                    </Button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -1099,6 +1481,15 @@ function getDueMeta(invoice: Invoice): DueMeta {
 
 function getBalance(invoice: Invoice) {
   return Math.max(Number(invoice.amount) - Number(invoice.amount_paid ?? 0), 0);
+}
+
+function getInvoicePaymentState(
+  invoice: Invoice,
+  payment?: PaymentRecord | null,
+): "paid" | "pending" | "unpaid" {
+  if (invoice.status === "paid" || getBalance(invoice) === 0) return "paid";
+  if (payment?.status === "pending" && ["transfer", "cash"].includes(payment.method)) return "pending";
+  return "unpaid";
 }
 
 function isPayable(invoice: Invoice) {

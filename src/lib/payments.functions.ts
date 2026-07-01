@@ -88,3 +88,104 @@ export const verifyDuePayment = createServerFn({ method: "POST" })
       paidAt: new Date().toISOString(),
     };
   });
+
+export const submitManualDuePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { invoiceId: string; note?: string; reference?: string }) => {
+    if (!input.invoiceId) throw new Error("Choose a due first.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { data: invoice, error: invoiceError } = await context.supabase
+      .from("invoices")
+      .select("*")
+      .eq("id", data.invoiceId)
+      .eq("resident_id", context.userId)
+      .single();
+
+    if (invoiceError || !invoice) throw new Error("This due could not be found.");
+    if (["draft", "paid", "cancelled"].includes(invoice.status)) {
+      throw new Error("This due is no longer payable.");
+    }
+
+    const balance = Number(invoice.amount) - Number(invoice.amount_paid ?? 0);
+    if (balance <= 0) throw new Error("This due has already been cleared.");
+
+    const { data: estate, error: estateError } = await context.supabase
+      .from("estates")
+      .select(
+        "manual_payment_enabled, manual_account_name, manual_account_number, manual_bank_name",
+      )
+      .eq("id", invoice.estate_id)
+      .single();
+
+    if (estateError || !estate) throw new Error("Estate payment settings are not available.");
+    if (
+      !estate.manual_payment_enabled ||
+      !estate.manual_account_name?.trim() ||
+      !estate.manual_account_number?.trim()
+    ) {
+      throw new Error("Manual payment is not available right now.");
+    }
+
+    const { data: existingPayments, error: paymentsError } = await context.supabase
+      .from("payments")
+      .select("id, status")
+      .eq("invoice_id", invoice.id)
+      .eq("resident_id", context.userId)
+      .eq("method", "transfer")
+      .in("status", ["pending", "completed"])
+      .limit(1);
+
+    if (paymentsError) throw paymentsError;
+    if ((existingPayments ?? []).some((payment) => payment.status === "pending")) {
+      throw new Error("Your manual payment is already waiting for confirmation.");
+    }
+    if ((existingPayments ?? []).some((payment) => payment.status === "completed")) {
+      throw new Error("This due has already been paid.");
+    }
+
+    const reference =
+      data.reference?.trim() ||
+      `manual-${invoice.id.slice(0, 8)}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const { data: payment, error: insertError } = await context.supabase
+      .from("payments")
+      .insert({
+        amount: balance,
+        currency: invoice.currency,
+        estate_id: invoice.estate_id,
+        invoice_id: invoice.id,
+        method: "transfer",
+        notes: data.note?.trim() || "Manual payment awaiting confirmation",
+        reference,
+        resident_id: context.userId,
+        status: "pending",
+      })
+      .select("id, reference, amount, currency")
+      .single();
+
+    if (insertError) {
+      if ("code" in insertError && insertError.code === "23505") {
+        throw new Error("That payment reference has already been used.");
+      }
+      throw insertError;
+    }
+
+    return payment;
+  });
+
+export const approveManualDuePayment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { paymentId: string }) => {
+    if (!input.paymentId) throw new Error("Choose a payment to confirm.");
+    return input;
+  })
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("approve_manual_due_payment", {
+      _payment_id: data.paymentId,
+    });
+
+    if (error) throw error;
+    return { ok: true };
+  });
