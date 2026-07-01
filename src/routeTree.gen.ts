@@ -28,6 +28,7 @@ import { Route as DashboardGateRouteImport } from './routes/dashboard.gate'
 import { Route as DashboardDocumentsRouteImport } from './routes/dashboard.documents'
 import { Route as DashboardComplaintsRouteImport } from './routes/dashboard.complaints'
 import { Route as DashboardAnnouncementsRouteImport } from './routes/dashboard.announcements'
+import { Route as DashboardAdminsRouteImport } from './routes/dashboard.admins'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -124,12 +125,18 @@ const DashboardAnnouncementsRoute = DashboardAnnouncementsRouteImport.update({
   path: '/announcements',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAdminsRoute = DashboardAdminsRouteImport.update({
+  id: '/admins',
+  path: '/admins',
+  getParentRoute: () => DashboardRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/signup': typeof SignupRoute
+  '/dashboard/admins': typeof DashboardAdminsRoute
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
@@ -150,6 +157,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/signup': typeof SignupRoute
+  '/dashboard/admins': typeof DashboardAdminsRoute
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/signup': typeof SignupRoute
+  '/dashboard/admins': typeof DashboardAdminsRoute
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/signup'
+    | '/dashboard/admins'
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
@@ -215,6 +225,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/signup'
+    | '/dashboard/admins'
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
@@ -236,6 +247,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/signup'
+    | '/dashboard/admins'
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
@@ -395,10 +407,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAnnouncementsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/admins': {
+      id: '/dashboard/admins'
+      path: '/admins'
+      fullPath: '/dashboard/admins'
+      preLoaderRoute: typeof DashboardAdminsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
 interface DashboardRouteChildren {
+  DashboardAdminsRoute: typeof DashboardAdminsRoute
   DashboardAnnouncementsRoute: typeof DashboardAnnouncementsRoute
   DashboardComplaintsRoute: typeof DashboardComplaintsRoute
   DashboardDocumentsRoute: typeof DashboardDocumentsRoute
@@ -417,6 +437,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardAdminsRoute: DashboardAdminsRoute,
   DashboardAnnouncementsRoute: DashboardAnnouncementsRoute,
   DashboardComplaintsRoute: DashboardComplaintsRoute,
   DashboardDocumentsRoute: DashboardDocumentsRoute,

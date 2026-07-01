@@ -22,6 +22,7 @@ import {
   ScanLine,
   ClipboardList,
   UserCog,
+  UsersRound,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -54,6 +55,12 @@ const nav = [
     groups: ["resident", "operations"],
   },
   { to: "/dashboard/onboarding", label: "My details", icon: Users, groups: ["resident"] },
+  {
+    to: "/dashboard/admins",
+    label: "Know your admins",
+    icon: UsersRound,
+    groups: ["resident"],
+  },
   {
     to: "/dashboard/residents",
     label: "Community members",
@@ -126,7 +133,7 @@ const nav = [
 ];
 
 function DashboardLayout() {
-  const { profile, primaryRole, loading } = useAuth();
+  const { profile, primaryRole, loading, isAdmin } = useAuth();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -146,6 +153,18 @@ function DashboardLayout() {
       void navigate({ to: "/dashboard/onboarding", replace: true });
     }
   }, [loading, navigate, pathname, primaryRole, profile]);
+
+  useEffect(() => {
+    if (
+      !loading &&
+      isAdmin &&
+      profile &&
+      !profile.avatar_url &&
+      pathname !== "/dashboard/settings"
+    ) {
+      void navigate({ to: "/dashboard/settings", replace: true });
+    }
+  }, [isAdmin, loading, navigate, pathname, profile]);
 
   if (loading) {
     return <PageLoading fullScreen label="Preparing your dashboard" />;

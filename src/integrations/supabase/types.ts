@@ -1179,6 +1179,16 @@ export type Database = {
         Args: { _estate_id: string; _user_id: string };
         Returns: boolean;
       };
+      get_estate_admin_directory: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          avatar_url: string | null;
+          full_name: string | null;
+          id: string;
+          phone: string | null;
+          role: Database["public"]["Enums"]["app_role"];
+        }[];
+      };
     };
     Enums: {
       announcement_priority: "info" | "important" | "emergency";
