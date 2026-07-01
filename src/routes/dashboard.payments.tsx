@@ -109,7 +109,8 @@ const categories = ["Estate levy", "Security", "Maintenance", "Utilities", "Othe
 
 function PaymentsPage() {
   const queryClient = useQueryClient();
-  const { user, profile, isAdmin, primaryRole } = useAuth();
+  const { user, profile, isAdmin, hasRole } = useAuth();
+  const isTreasurer = hasRole("treasurer");
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [editingGroup, setEditingGroup] = useState<DueGroup | null>(null);
@@ -128,7 +129,7 @@ function PaymentsPage() {
     isError,
   } = useQuery({
     queryKey: ["dues", profile?.estate_id, user?.id, isAdmin],
-    enabled: Boolean(user?.id),
+    enabled: Boolean(user?.id) && (!isAdmin || isTreasurer),
     queryFn: async () => {
       let query = supabase.from("invoices").select("*").order("due_date", { ascending: true });
       if (!isAdmin && user?.id) query = query.eq("resident_id", user.id);
@@ -144,7 +145,7 @@ function PaymentsPage() {
     isError: residentsError,
   } = useQuery({
     queryKey: ["due-members", profile?.estate_id],
-    enabled: isAdmin && Boolean(profile?.estate_id),
+    enabled: isTreasurer && Boolean(profile?.estate_id),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
@@ -226,7 +227,7 @@ function PaymentsPage() {
       if (!profile?.estate_id) throw new Error("Your account is not linked to the estate.");
       const numericAmount = validateDueForm(title, amount, dueDate);
       if (targetMembers.length === 0)
-        throw new Error("Choose at least one person to pay this due.");
+        throw new Error("Choose at least one person to receive this payment request.");
 
       const groupId = `DUE-${Date.now()}`;
       const rows = targetMembers.map((resident, index) => ({
@@ -253,7 +254,7 @@ function PaymentsPage() {
       return rows.length;
     },
     onSuccess: async (count) => {
-      toast.success(`Due created for ${count} ${count === 1 ? "person" : "people"}`);
+      toast.success(`Payment request created for ${count} ${count === 1 ? "person" : "people"}`);
       setCreateOpen(false);
       resetForm();
       await queryClient.invalidateQueries({ queryKey: ["dues"] });
@@ -263,14 +264,15 @@ function PaymentsPage() {
 
   const updateDue = useMutation({
     mutationFn: async () => {
-      if (!editingGroup) throw new Error("Choose a due to edit.");
+      if (!editingGroup) throw new Error("Choose a payment request to edit.");
       const numericAmount = validateDueForm(title, amount, dueDate);
       const meta = getDueMeta(editingGroup.invoices[0]);
       const editableIds = editingGroup.invoices
         .filter((invoice) => invoice.status !== "paid")
         .map((invoice) => invoice.id);
 
-      if (editableIds.length === 0) throw new Error("A fully paid due cannot be edited.");
+      if (editableIds.length === 0)
+        throw new Error("A completed payment request cannot be edited.");
       const { error } = await supabase
         .from("invoices")
         .update({
@@ -289,7 +291,7 @@ function PaymentsPage() {
       if (error) throw error;
     },
     onSuccess: async () => {
-      toast.success("Due updated");
+      toast.success("Payment request updated");
       setEditingGroup(null);
       resetForm();
       await queryClient.invalidateQueries({ queryKey: ["dues"] });
@@ -309,7 +311,7 @@ function PaymentsPage() {
       if (error) throw error;
     },
     onSuccess: async () => {
-      toast.success("Due deleted");
+      toast.success("Payment request deleted");
       setDeletingGroup(null);
       await queryClient.invalidateQueries({ queryKey: ["dues"] });
     },
@@ -325,7 +327,20 @@ function PaymentsPage() {
     setNote(group.note);
   };
 
-  if (isAdmin) {
+  if (isAdmin && !isTreasurer) {
+    return (
+      <div className="grid min-h-[28vh] place-items-center text-center">
+        <div className="max-w-md rounded-lg border border-border bg-card p-5">
+          <h1 className="font-display text-lg font-semibold">Treasurer access only</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Payment requests and collections are managed by the estate treasurer.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isTreasurer) {
     const payablePeople = invoices.filter(
       (invoice) => getBalance(invoice) > 0 && isPayable(invoice),
     );
@@ -337,22 +352,18 @@ function PaymentsPage() {
     return (
       <div>
         <PageHeader
-          title="Dues"
-          description={
-            primaryRole === "community_chairman"
-              ? "Chairman overview of community dues and payments."
-              : "Create dues and see who has paid."
-          }
+          title="Payments"
+          description="Create payment requests for residents and track collections."
           icon={ReceiptText}
         >
           <Button onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            Create due
+            Create payment request
           </Button>
         </PageHeader>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Stat icon={ReceiptText} label="Number of dues" value={String(groups.length)} />
+          <Stat icon={ReceiptText} label="Payment requests" value={String(groups.length)} />
           <Stat icon={Users} label="People yet to pay" value={String(payablePeople.length)} />
           <Stat icon={CheckCircle2} label="Payments received" value={String(paidCount)} />
           <Stat icon={CreditCard} label="Total expected" value={formatMoney(totalExpected)} />
@@ -361,16 +372,16 @@ function PaymentsPage() {
         {isError || residentsError ? (
           <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
         ) : isLoading || residentsLoading ? (
-          <PageLoading label="Loading dues" onRetry={() => void queryClient.refetchQueries()} />
+          <PageLoading label="Loading payments" onRetry={() => void queryClient.refetchQueries()} />
         ) : groups.length === 0 ? (
           <EmptyState
-            title="No dues created"
-            description="Use Create due to request a payment from residents."
+            title="No payment requests"
+            description="Create a payment request and send it to residents."
           />
         ) : (
           <Tabs defaultValue="created">
             <TabsList className="mb-4 grid h-auto w-full grid-cols-3 gap-1 rounded-xl bg-muted/70 p-1 sm:w-[520px]">
-              <TabsTrigger value="created">Created dues ({groups.length})</TabsTrigger>
+              <TabsTrigger value="created">Requests ({groups.length})</TabsTrigger>
               <TabsTrigger value="paid">Paid ({fullyPaidGroups.length})</TabsTrigger>
               <TabsTrigger value="owing">Owing ({owingGroups.length})</TabsTrigger>
             </TabsList>
@@ -378,8 +389,8 @@ function PaymentsPage() {
             <TabsContent value="created" className="mt-0">
               <AdminDueList
                 groups={groups}
-                emptyTitle="No created dues"
-                emptyDescription="Create a due and it will show here."
+                emptyTitle="No payment requests"
+                emptyDescription="Create a payment request and it will show here."
                 onEdit={openEditor}
                 onDelete={setDeletingGroup}
               />
@@ -388,8 +399,8 @@ function PaymentsPage() {
             <TabsContent value="paid" className="mt-0">
               <AdminDueList
                 groups={fullyPaidGroups}
-                emptyTitle="No paid dues yet"
-                emptyDescription="Fully paid dues will show here."
+                emptyTitle="No completed payments yet"
+                emptyDescription="Fully paid requests will show here."
                 onEdit={openEditor}
                 onDelete={setDeletingGroup}
               />
@@ -398,8 +409,8 @@ function PaymentsPage() {
             <TabsContent value="owing" className="mt-0">
               <AdminDueList
                 groups={owingGroups}
-                emptyTitle="No dues are owing"
-                emptyDescription="Any due with unpaid residents will show here."
+                emptyTitle="No outstanding payments"
+                emptyDescription="Requests with unpaid residents will show here."
                 onEdit={openEditor}
                 onDelete={setDeletingGroup}
               />
@@ -413,8 +424,8 @@ function PaymentsPage() {
             setCreateOpen(open);
             if (!open) resetForm();
           }}
-          title="Create due"
-          submitLabel="Create due"
+          title="Create payment request"
+          submitLabel="Create request"
           submitting={createDue.isPending}
           onSubmit={() => createDue.mutate()}
           form={{
@@ -445,7 +456,7 @@ function PaymentsPage() {
               resetForm();
             }
           }}
-          title="Edit due"
+          title="Edit payment request"
           submitLabel="Save changes"
           submitting={updateDue.isPending}
           onSubmit={() => updateDue.mutate()}
@@ -469,18 +480,18 @@ function PaymentsPage() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete this due?</AlertDialogTitle>
+              <AlertDialogTitle>Delete this payment request?</AlertDialogTitle>
               <AlertDialogDescription>
                 It will be removed from every person it was sent to. This cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Keep due</AlertDialogCancel>
+              <AlertDialogCancel>Keep request</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 onClick={() => deletingGroup && deleteDue.mutate(deletingGroup)}
               >
-                Delete due
+                Delete request
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -729,7 +740,7 @@ function DueFormDialog({
               id={`${title}-name`}
               value={form.title}
               onChange={(event) => form.setTitle(event.target.value)}
-              placeholder="June security due"
+              placeholder="June security payment"
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -785,7 +796,8 @@ function DueFormDialog({
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {targetCount} {targetCount === 1 ? "person will" : "people will"} receive this due.
+                {targetCount} {targetCount === 1 ? "person will" : "people will"} receive this
+                request.
               </p>
             </div>
           )}

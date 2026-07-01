@@ -19,6 +19,9 @@ import {
   ShieldCheck,
   FileText,
   BarChart3,
+  ScanLine,
+  ClipboardList,
+  UserCog,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -48,53 +51,77 @@ const nav = [
     label: "Overview",
     icon: LayoutDashboard,
     exact: true,
-    groups: ["resident", "operations", "cso", "gate"],
+    groups: ["resident", "operations"],
   },
   { to: "/dashboard/onboarding", label: "My details", icon: Users, groups: ["resident"] },
   {
     to: "/dashboard/residents",
     label: "Community members",
     icon: Users,
-    groups: ["operations", "cso"],
+    groups: ["operations"],
   },
-  { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations", "cso"] },
+  { to: "/dashboard/properties", label: "Properties", icon: Home, groups: ["operations"] },
   {
     to: "/dashboard/visitors",
     label: "Visitors",
     icon: QrCode,
-    groups: ["resident", "cso", "gate"],
+    groups: ["resident", "operations"],
   },
   {
     to: "/dashboard/payments",
     label: "Dues",
     icon: CreditCard,
-    groups: ["resident", "operations", "cso"],
+    groups: ["resident"],
+  },
+  {
+    to: "/dashboard/payments",
+    label: "Payments",
+    icon: CreditCard,
+    groups: ["treasurer"],
   },
   {
     to: "/dashboard/announcements",
     label: "Announcements",
     icon: Megaphone,
-    groups: ["resident", "operations", "cso"],
+    groups: ["resident", "operations"],
   },
   {
     to: "/dashboard/complaints",
     label: "Complaints",
     icon: MessageSquareWarning,
-    groups: ["resident", "operations", "cso"],
+    groups: ["resident", "operations"],
   },
-  { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["cso", "gate"] },
+  { to: "/dashboard/security", label: "Security", icon: ShieldCheck, groups: ["operations"] },
   {
     to: "/dashboard/documents",
     label: "Documents",
     icon: FileText,
     groups: ["resident", "operations"],
   },
-  { to: "/dashboard/reports", label: "Reports", icon: BarChart3, groups: ["operations", "cso"] },
+  { to: "/dashboard/reports", label: "Reports", icon: BarChart3, groups: ["operations"] },
+  {
+    to: "/dashboard/team",
+    label: "Admin team",
+    icon: UserCog,
+    groups: ["chairman"],
+  },
+  {
+    to: "/dashboard/gate",
+    label: "Gate check-in",
+    icon: ScanLine,
+    groups: ["gate"],
+  },
+  {
+    to: "/dashboard/visitor-log",
+    label: "Visitor log",
+    icon: ClipboardList,
+    groups: ["gate"],
+  },
   {
     to: "/dashboard/settings",
     label: "Settings",
     icon: SettingsIcon,
-    groups: ["resident", "operations", "cso", "gate"],
+    groups: ["resident", "operations", "gate"],
   },
 ];
 
@@ -104,6 +131,7 @@ function DashboardLayout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
   const workspace = getWorkspace(primaryRole);
+  const navGroups = getNavGroups(primaryRole, workspace.key);
 
   useEffect(() => setMobileOpen(false), [pathname]);
 
@@ -112,11 +140,12 @@ function DashboardLayout() {
       !loading &&
       profile &&
       !profile.onboarding_completed &&
+      ["resident", "household_member", "domestic_staff"].includes(primaryRole) &&
       pathname !== "/dashboard/onboarding"
     ) {
       void navigate({ to: "/dashboard/onboarding", replace: true });
     }
-  }, [loading, navigate, pathname, profile]);
+  }, [loading, navigate, pathname, primaryRole, profile]);
 
   if (loading) {
     return <PageLoading fullScreen label="Preparing your dashboard" />;
@@ -158,7 +187,7 @@ function DashboardLayout() {
             {workspace.label}
           </div>
           {nav
-            .filter((item) => item.groups.includes(workspace.key))
+            .filter((item) => item.groups.some((group) => navGroups.includes(group)))
             .map((item) => {
               const active = item.exact ? pathname === item.to : pathname.startsWith(item.to);
               return (
@@ -255,9 +284,9 @@ function getWorkspace(role: AppRole) {
     } as const;
   }
 
-  if (role === "chief_security_officer" || role === "security_officer") {
+  if (role === "security_officer") {
     return {
-      key: "cso",
+      key: "operations",
       label: "CSO view",
       title: "Security workspace",
       description: "Visitors, incidents and security reports.",
@@ -267,6 +296,7 @@ function getWorkspace(role: AppRole) {
   if (
     role === "community_secretary" ||
     role === "community_chairman" ||
+    role === "chief_security_officer" ||
     role === "treasurer" ||
     role === "estate_admin" ||
     role === "super_admin"
@@ -275,6 +305,7 @@ function getWorkspace(role: AppRole) {
       community_chairman: "Chairman view",
       community_secretary: "Secretary view",
       treasurer: "Treasurer view",
+      chief_security_officer: "CSO view",
       estate_admin: "Estate admin view",
       super_admin: "Super admin view",
     };
@@ -283,6 +314,7 @@ function getWorkspace(role: AppRole) {
       community_chairman: "Chairman workspace",
       community_secretary: "Secretary workspace",
       treasurer: "Treasurer workspace",
+      chief_security_officer: "CSO workspace",
       estate_admin: "Estate operations workspace",
       super_admin: "Estate operations workspace",
     };
@@ -301,6 +333,13 @@ function getWorkspace(role: AppRole) {
     title: "Resident workspace",
     description: "Your dues, visitors, notices and household records.",
   } as const;
+}
+
+function getNavGroups(role: AppRole, workspace: string) {
+  const groups = [workspace];
+  if (role === "community_chairman") groups.push("chairman");
+  if (role === "treasurer") groups.push("treasurer");
+  return groups;
 }
 
 function formatRole(role: string) {

@@ -15,6 +15,8 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as DashboardVisitorsRouteImport } from './routes/dashboard.visitors'
+import { Route as DashboardVisitorLogRouteImport } from './routes/dashboard.visitor-log'
+import { Route as DashboardTeamRouteImport } from './routes/dashboard.team'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardSecurityRouteImport } from './routes/dashboard.security'
 import { Route as DashboardResidentsRouteImport } from './routes/dashboard.residents'
@@ -22,6 +24,7 @@ import { Route as DashboardReportsRouteImport } from './routes/dashboard.reports
 import { Route as DashboardPropertiesRouteImport } from './routes/dashboard.properties'
 import { Route as DashboardPaymentsRouteImport } from './routes/dashboard.payments'
 import { Route as DashboardOnboardingRouteImport } from './routes/dashboard.onboarding'
+import { Route as DashboardGateRouteImport } from './routes/dashboard.gate'
 import { Route as DashboardDocumentsRouteImport } from './routes/dashboard.documents'
 import { Route as DashboardComplaintsRouteImport } from './routes/dashboard.complaints'
 import { Route as DashboardAnnouncementsRouteImport } from './routes/dashboard.announcements'
@@ -54,6 +57,16 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
 const DashboardVisitorsRoute = DashboardVisitorsRouteImport.update({
   id: '/visitors',
   path: '/visitors',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardVisitorLogRoute = DashboardVisitorLogRouteImport.update({
+  id: '/visitor-log',
+  path: '/visitor-log',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardTeamRoute = DashboardTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -91,6 +104,11 @@ const DashboardOnboardingRoute = DashboardOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardGateRoute = DashboardGateRouteImport.update({
+  id: '/gate',
+  path: '/gate',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardDocumentsRoute = DashboardDocumentsRouteImport.update({
   id: '/documents',
   path: '/documents',
@@ -115,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/gate': typeof DashboardGateRoute
   '/dashboard/onboarding': typeof DashboardOnboardingRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/properties': typeof DashboardPropertiesRoute
@@ -122,6 +141,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/residents': typeof DashboardResidentsRoute
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/team': typeof DashboardTeamRoute
+  '/dashboard/visitor-log': typeof DashboardVisitorLogRoute
   '/dashboard/visitors': typeof DashboardVisitorsRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -132,6 +153,7 @@ export interface FileRoutesByTo {
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/gate': typeof DashboardGateRoute
   '/dashboard/onboarding': typeof DashboardOnboardingRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/properties': typeof DashboardPropertiesRoute
@@ -139,6 +161,8 @@ export interface FileRoutesByTo {
   '/dashboard/residents': typeof DashboardResidentsRoute
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/team': typeof DashboardTeamRoute
+  '/dashboard/visitor-log': typeof DashboardVisitorLogRoute
   '/dashboard/visitors': typeof DashboardVisitorsRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -151,6 +175,7 @@ export interface FileRoutesById {
   '/dashboard/announcements': typeof DashboardAnnouncementsRoute
   '/dashboard/complaints': typeof DashboardComplaintsRoute
   '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/gate': typeof DashboardGateRoute
   '/dashboard/onboarding': typeof DashboardOnboardingRoute
   '/dashboard/payments': typeof DashboardPaymentsRoute
   '/dashboard/properties': typeof DashboardPropertiesRoute
@@ -158,6 +183,8 @@ export interface FileRoutesById {
   '/dashboard/residents': typeof DashboardResidentsRoute
   '/dashboard/security': typeof DashboardSecurityRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/team': typeof DashboardTeamRoute
+  '/dashboard/visitor-log': typeof DashboardVisitorLogRoute
   '/dashboard/visitors': typeof DashboardVisitorsRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -171,6 +198,7 @@ export interface FileRouteTypes {
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
+    | '/dashboard/gate'
     | '/dashboard/onboarding'
     | '/dashboard/payments'
     | '/dashboard/properties'
@@ -178,6 +206,8 @@ export interface FileRouteTypes {
     | '/dashboard/residents'
     | '/dashboard/security'
     | '/dashboard/settings'
+    | '/dashboard/team'
+    | '/dashboard/visitor-log'
     | '/dashboard/visitors'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
@@ -188,6 +218,7 @@ export interface FileRouteTypes {
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
+    | '/dashboard/gate'
     | '/dashboard/onboarding'
     | '/dashboard/payments'
     | '/dashboard/properties'
@@ -195,6 +226,8 @@ export interface FileRouteTypes {
     | '/dashboard/residents'
     | '/dashboard/security'
     | '/dashboard/settings'
+    | '/dashboard/team'
+    | '/dashboard/visitor-log'
     | '/dashboard/visitors'
     | '/dashboard'
   id:
@@ -206,6 +239,7 @@ export interface FileRouteTypes {
     | '/dashboard/announcements'
     | '/dashboard/complaints'
     | '/dashboard/documents'
+    | '/dashboard/gate'
     | '/dashboard/onboarding'
     | '/dashboard/payments'
     | '/dashboard/properties'
@@ -213,6 +247,8 @@ export interface FileRouteTypes {
     | '/dashboard/residents'
     | '/dashboard/security'
     | '/dashboard/settings'
+    | '/dashboard/team'
+    | '/dashboard/visitor-log'
     | '/dashboard/visitors'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
@@ -268,6 +304,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardVisitorsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/visitor-log': {
+      id: '/dashboard/visitor-log'
+      path: '/visitor-log'
+      fullPath: '/dashboard/visitor-log'
+      preLoaderRoute: typeof DashboardVisitorLogRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/team': {
+      id: '/dashboard/team'
+      path: '/team'
+      fullPath: '/dashboard/team'
+      preLoaderRoute: typeof DashboardTeamRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/settings': {
       id: '/dashboard/settings'
       path: '/settings'
@@ -317,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOnboardingRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/gate': {
+      id: '/dashboard/gate'
+      path: '/gate'
+      fullPath: '/dashboard/gate'
+      preLoaderRoute: typeof DashboardGateRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/documents': {
       id: '/dashboard/documents'
       path: '/documents'
@@ -345,6 +402,7 @@ interface DashboardRouteChildren {
   DashboardAnnouncementsRoute: typeof DashboardAnnouncementsRoute
   DashboardComplaintsRoute: typeof DashboardComplaintsRoute
   DashboardDocumentsRoute: typeof DashboardDocumentsRoute
+  DashboardGateRoute: typeof DashboardGateRoute
   DashboardOnboardingRoute: typeof DashboardOnboardingRoute
   DashboardPaymentsRoute: typeof DashboardPaymentsRoute
   DashboardPropertiesRoute: typeof DashboardPropertiesRoute
@@ -352,6 +410,8 @@ interface DashboardRouteChildren {
   DashboardResidentsRoute: typeof DashboardResidentsRoute
   DashboardSecurityRoute: typeof DashboardSecurityRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardTeamRoute: typeof DashboardTeamRoute
+  DashboardVisitorLogRoute: typeof DashboardVisitorLogRoute
   DashboardVisitorsRoute: typeof DashboardVisitorsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -360,6 +420,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAnnouncementsRoute: DashboardAnnouncementsRoute,
   DashboardComplaintsRoute: DashboardComplaintsRoute,
   DashboardDocumentsRoute: DashboardDocumentsRoute,
+  DashboardGateRoute: DashboardGateRoute,
   DashboardOnboardingRoute: DashboardOnboardingRoute,
   DashboardPaymentsRoute: DashboardPaymentsRoute,
   DashboardPropertiesRoute: DashboardPropertiesRoute,
@@ -367,6 +428,8 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardResidentsRoute: DashboardResidentsRoute,
   DashboardSecurityRoute: DashboardSecurityRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardTeamRoute: DashboardTeamRoute,
+  DashboardVisitorLogRoute: DashboardVisitorLogRoute,
   DashboardVisitorsRoute: DashboardVisitorsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }

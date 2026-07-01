@@ -27,9 +27,10 @@ const adminRoles: AppRole[] = [
   "community_chairman",
   "community_secretary",
   "chief_security_officer",
+  "treasurer",
+  // Retained for accounts created before the four office roles were introduced.
   "super_admin",
   "estate_admin",
-  "treasurer",
 ];
 
 export interface Profile {

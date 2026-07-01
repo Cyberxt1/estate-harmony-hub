@@ -6,12 +6,9 @@ type InviteRole = Database["public"]["Enums"]["app_role"];
 
 function canManageRole(role: InviteRole) {
   return [
-    "estate_admin",
-    "community_chairman",
     "community_secretary",
     "treasurer",
     "chief_security_officer",
-    "security_officer",
     "security_gateman",
   ].includes(role);
 }
@@ -42,6 +39,45 @@ export const inviteAdminTeamMember = createServerFn({ method: "POST" })
     if (profileError || !profile?.estate_id)
       throw new Error("Your account is not linked to the estate.");
 
+    const { data: chairmanRole, error: chairmanError } = await context.supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("user_id", context.userId)
+      .eq("estate_id", profile.estate_id)
+      .eq("role", "community_chairman")
+      .maybeSingle();
+
+    if (chairmanError || !chairmanRole) {
+      throw new Error("Only the community chairman can add administrators or gatemen.");
+    }
+
+    if (data.role !== "security_gateman") {
+      const [{ data: assignedRole }, { data: pendingInvite }] = await Promise.all([
+        supabaseAdmin
+          .from("user_roles")
+          .select("id")
+          .eq("estate_id", profile.estate_id)
+          .eq("role", data.role)
+          .limit(1)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("admin_invitations")
+          .select("id")
+          .eq("estate_id", profile.estate_id)
+          .eq("role", data.role)
+          .eq("status", "pending")
+          .limit(1)
+          .maybeSingle(),
+      ]);
+
+      if (assignedRole) throw new Error(`The ${formatRole(data.role)} position is already filled.`);
+      if (pendingInvite) {
+        throw new Error(
+          `An invitation for the ${formatRole(data.role)} position is already pending.`,
+        );
+      }
+    }
+
     const { data: existingProfile } = await supabaseAdmin
       .from("profiles")
       .select("id, email")
@@ -50,25 +86,9 @@ export const inviteAdminTeamMember = createServerFn({ method: "POST" })
       .maybeSingle();
 
     if (existingProfile?.id) {
-      const { error: roleError } = await supabaseAdmin.from("user_roles").upsert(
-        {
-          user_id: existingProfile.id,
-          estate_id: profile.estate_id,
-          role: data.role,
-        },
-        { onConflict: "user_id,estate_id,role", ignoreDuplicates: true },
+      throw new Error(
+        "This email already belongs to a resident account. Administrators and gatemen must use separate staff accounts.",
       );
-      if (roleError) throw roleError;
-
-      await supabaseAdmin.from("notifications").insert({
-        estate_id: profile.estate_id,
-        user_id: existingProfile.id,
-        title: "New estate role assigned",
-        body: `You have been added as ${formatRole(data.role)} in Oyesile Estate.`,
-        link: "/dashboard/settings",
-      });
-
-      return { mode: "assigned" as const };
     }
 
     const redirectTo = data.redirectTo?.trim() || undefined;
@@ -135,6 +155,15 @@ export const claimPendingAdminInvitations = createServerFn({ method: "POST" })
       );
 
       if (roleError) throw roleError;
+
+      const { error: residentRoleError } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", profile.id)
+        .eq("estate_id", profile.estate_id)
+        .eq("role", "resident");
+
+      if (residentRoleError) throw residentRoleError;
 
       const { error: updateError } = await supabaseAdmin
         .from("admin_invitations")

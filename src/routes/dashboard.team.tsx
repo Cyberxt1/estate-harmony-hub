@@ -1,0 +1,257 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Shield, UserCog, UserPlus, Users } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+import { inviteAdminTeamMember } from "@/lib/admin.functions";
+import { useAuth, type AppRole } from "@/hooks/use-auth";
+import { PageHeader } from "@/components/page-header";
+import { PageLoadError, PageLoading } from "@/components/page-loading";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+export const Route = createFileRoute("/dashboard/team")({
+  component: AdminTeamPage,
+});
+
+type TeamProfile = Pick<Tables<"profiles">, "id" | "full_name" | "email" | "phone">;
+type TeamRole = Pick<Tables<"user_roles">, "user_id" | "role">;
+type Invitation = Tables<"admin_invitations">;
+
+const inviteRoles: AppRole[] = [
+  "community_secretary",
+  "treasurer",
+  "chief_security_officer",
+  "security_gateman",
+];
+
+const officeRoles: AppRole[] = [
+  "community_chairman",
+  "chief_security_officer",
+  "community_secretary",
+  "treasurer",
+];
+
+function AdminTeamPage() {
+  const { profile, hasRole } = useAuth();
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState<AppRole>("community_secretary");
+  const isChairman = hasRole("community_chairman");
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-team", profile?.estate_id],
+    enabled: isChairman && Boolean(profile?.estate_id),
+    queryFn: async () => {
+      const [profilesResult, rolesResult, invitesResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("id, full_name, email, phone")
+          .eq("estate_id", profile!.estate_id!),
+        supabase.from("user_roles").select("user_id, role").eq("estate_id", profile!.estate_id!),
+        supabase
+          .from("admin_invitations")
+          .select("*")
+          .eq("estate_id", profile!.estate_id!)
+          .order("invited_at", { ascending: false })
+          .limit(12),
+      ]);
+      if (profilesResult.error) throw profilesResult.error;
+      if (rolesResult.error) throw rolesResult.error;
+      if (invitesResult.error) throw invitesResult.error;
+      return {
+        profiles: (profilesResult.data ?? []) as TeamProfile[],
+        roles: (rolesResult.data ?? []) as TeamRole[],
+        invitations: (invitesResult.data ?? []) as Invitation[],
+      };
+    },
+  });
+
+  const invite = useMutation({
+    mutationFn: () =>
+      inviteAdminTeamMember({
+        data: {
+          email,
+          role,
+          redirectTo: `${window.location.origin}/auth`,
+        },
+      }),
+    onSuccess: async () => {
+      toast.success("Invitation sent");
+      setEmail("");
+      await queryClient.invalidateQueries({ queryKey: ["admin-team"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  if (!isChairman) {
+    return (
+      <div className="grid min-h-[28vh] place-items-center px-5 text-center">
+        <div className="max-w-md rounded-lg border border-border bg-card p-5">
+          <h1 className="font-display text-lg font-semibold">Chairman access only</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Only the community chairman can add or review the admin team.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  if (isLoading) return <PageLoading label="Loading admin team" onRetry={() => void refetch()} />;
+  if (isError) return <PageLoadError onRetry={() => void refetch()} />;
+
+  const profileById = new Map(data?.profiles.map((member) => [member.id, member]) ?? []);
+  const officeTeam = officeRoles.map((officeRole) => {
+    const assignment = data?.roles.find((item) => item.role === officeRole);
+    return { role: officeRole, member: assignment ? profileById.get(assignment.user_id) : null };
+  });
+  const gatemen =
+    data?.roles
+      .filter((item) => item.role === "security_gateman")
+      .map((item) => profileById.get(item.user_id))
+      .filter((member): member is TeamProfile => Boolean(member)) ?? [];
+
+  return (
+    <div>
+      <PageHeader
+        title="Admin team"
+        description="The four office roles and the gatemen who operate the estate gate."
+        icon={UserCog}
+      />
+
+      <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
+        <div className="space-y-5">
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <h2 className="font-display text-lg font-semibold">Office administrators</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {officeTeam.map((item) => (
+                <div key={item.role} className="rounded-lg border border-border bg-card p-4">
+                  <p className="text-xs font-medium uppercase text-muted-foreground">
+                    {formatRole(item.role)}
+                  </p>
+                  <p className="mt-2 font-medium">
+                    {item.member?.full_name || item.member?.email || "Position not filled"}
+                  </p>
+                  {item.member?.phone && (
+                    <p className="mt-1 text-sm text-muted-foreground">{item.member.phone}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <h2 className="font-display text-lg font-semibold">Gatemen</h2>
+            </div>
+            {gatemen.length ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {gatemen.map((member) => (
+                  <div key={member.id} className="rounded-lg border border-border bg-card p-4">
+                    <p className="font-medium">{member.full_name || member.email || "Gateman"}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {member.phone || member.email || "No contact added"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border p-5 text-sm text-muted-foreground">
+                No gateman has been added yet.
+              </p>
+            )}
+          </section>
+        </div>
+
+        <aside className="space-y-5">
+          <section className="rounded-lg border border-border bg-card p-5">
+            <div className="flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              <h2 className="font-display text-lg font-semibold">Invite team member</h2>
+            </div>
+            <div className="mt-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Email address</Label>
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="name@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select value={role} onValueChange={(value) => setRole(value as AppRole)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {inviteRoles.map((item) => (
+                      <SelectItem key={item} value={item}>
+                        {formatRole(item)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                className="w-full"
+                disabled={!email.trim()}
+                onClick={() => invite.mutate()}
+                loading={invite.isPending}
+                loadingLabel="Sending invitation"
+              >
+                Send invitation
+              </Button>
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border bg-card p-5">
+            <h2 className="font-display text-base font-semibold">Recent invitations</h2>
+            <div className="mt-3 space-y-3">
+              {data?.invitations.length ? (
+                data.invitations.map((item) => (
+                  <div
+                    key={item.id}
+                    className="border-b border-border pb-3 last:border-0 last:pb-0"
+                  >
+                    <p className="truncate text-sm font-medium">{item.email}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {formatRole(item.role)} · {item.status}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No invitations sent yet.</p>
+              )}
+            </div>
+          </section>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function formatRole(role: AppRole | string) {
+  const labels: Record<string, string> = {
+    community_chairman: "Chairman",
+    chief_security_officer: "Chief Security Officer",
+    community_secretary: "Secretary",
+    treasurer: "Treasurer",
+    security_gateman: "Gateman",
+  };
+  return labels[role] ?? role.replaceAll("_", " ");
+}

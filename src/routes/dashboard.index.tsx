@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
@@ -22,6 +22,13 @@ export const Route = createFileRoute("/dashboard/")({
 
 function DashboardHome() {
   const { profile, primaryRole, isAdmin, isSecurity, user, roles } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (primaryRole === "security_gateman") {
+      void navigate({ to: "/dashboard/gate", replace: true });
+    }
+  }, [navigate, primaryRole]);
 
   useEffect(() => {
     const rawReceipt = sessionStorage.getItem("duePaymentReceipt");
@@ -112,23 +119,19 @@ function DashboardHome() {
     },
   });
 
-  const cards = isSecurity
+  const cards = isAdmin
     ? [
-        { label: "Expected visitors today", value: stats?.visitors ?? 0, icon: QrCode },
-        { label: "Open incidents", value: stats?.incidents ?? 0, icon: ShieldCheck },
-        { label: "Total residents", value: stats?.residents ?? 0, icon: Users },
-        { label: "Total properties", value: stats?.properties ?? 0, icon: Home },
+        { label: "Residents", value: stats?.residents ?? 0, icon: Users },
+        { label: "Properties", value: stats?.properties ?? 0, icon: Home },
+        { label: "Open complaints", value: stats?.complaints ?? 0, icon: MessageSquareWarning },
+        { label: "Expected visitors", value: stats?.visitors ?? 0, icon: QrCode },
       ]
-    : isAdmin
+    : isSecurity
       ? [
-          { label: "Residents", value: stats?.residents ?? 0, icon: Users },
-          { label: "Properties", value: stats?.properties ?? 0, icon: Home },
-          { label: "Open complaints", value: stats?.complaints ?? 0, icon: MessageSquareWarning },
-          {
-            label: "Outstanding dues",
-            value: formatMoney(stats?.outstanding ?? 0),
-            icon: CreditCard,
-          },
+          { label: "Expected visitors today", value: stats?.visitors ?? 0, icon: QrCode },
+          { label: "Open incidents", value: stats?.incidents ?? 0, icon: ShieldCheck },
+          { label: "Total residents", value: stats?.residents ?? 0, icon: Users },
+          { label: "Total properties", value: stats?.properties ?? 0, icon: Home },
         ]
       : [
           { label: "Expected visitors", value: stats?.visitors ?? 0, icon: QrCode },
@@ -169,7 +172,7 @@ function DashboardHome() {
             </div>
           );
 
-          return c.label === "Outstanding dues" || c.label === "Dues to pay" ? (
+          return c.label === "Dues to pay" ? (
             <Link key={c.label} to="/dashboard/payments" className="block">
               {card}
             </Link>
@@ -183,16 +186,27 @@ function DashboardHome() {
         <div className="rounded-lg border border-border bg-card p-4 lg:col-span-2">
           <h2 className="mb-2 font-display text-lg font-semibold">Getting started</h2>
           <p className="text-sm text-muted-foreground">
-            Oyesile Estate is ready for resident records, properties, visitors, dues and community
-            announcements.
+            {isAdmin
+              ? "Oyesile Estate operations are ready for resident records, properties, visitors, security and community communication."
+              : "Oyesile Estate is ready for your visitors, dues, complaints and community announcements."}
           </p>
           <ul className="mt-3 space-y-1.5 text-sm">
-            {[
-              "Confirm Oyesile Estate details in Settings",
-              "Add properties and assign households",
-              "Assign community officers and security roles",
-              "Create dues for all members or selected residents",
-            ].map((s, i) => (
+            {(isAdmin
+              ? [
+                  "Review resident and landlord or tenant records",
+                  "Keep property and household records current",
+                  "Follow visitor, complaint and security activity",
+                  primaryRole === "community_chairman"
+                    ? "Manage office administrators and gatemen from Admin team"
+                    : "Work from the shared estate administration records",
+                ]
+              : [
+                  "Complete your resident details",
+                  "Invite visitors before they arrive",
+                  "Check announcements and complaints",
+                  "Review and pay your dues",
+                ]
+            ).map((s, i) => (
               <li key={s} className="flex items-start gap-3">
                 <span className="mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
                   {i + 1}
