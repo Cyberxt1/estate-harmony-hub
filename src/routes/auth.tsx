@@ -11,6 +11,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 export const Route = createFileRoute("/auth")({
   validateSearch: (search: Record<string, unknown>) => ({
     tab: search.tab === "signup" ? "signup" : "signin",
+    next:
+      typeof search.next === "string" && search.next.startsWith("/") ? search.next : "/dashboard",
   }),
   head: () => ({
     meta: [
@@ -29,16 +31,31 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const redirectTo = search.next || "/dashboard";
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/dashboard" });
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session?.user) {
+        void navigate({ to: redirectTo, replace: true });
+      }
     });
-  }, [navigate]);
+  }, [navigate, redirectTo]);
 
   useEffect(() => {
     setTab(search.tab);
   }, [search.tab]);
+
+  useEffect(() => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event !== "SIGNED_IN" || !session?.user) return;
+      toast.success("Signed in with Google");
+      void navigate({ to: redirectTo, replace: true });
+    });
+
+    return () => {
+      subscription.subscription.unsubscribe();
+    };
+  }, [navigate, redirectTo]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +88,10 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo: `${window.location.origin}/auth?next=${encodeURIComponent(redirectTo)}`,
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
     if (error) {
