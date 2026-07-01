@@ -3,13 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import {
-  Users,
-  Home,
-  QrCode,
   CreditCard,
+  Home,
   MessageSquareWarning,
+  QrCode,
   ShieldCheck,
   TrendingUp,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/dashboard/")({
 });
 
 function DashboardHome() {
-  const { profile, primaryRole, isAdmin, isSecurity, user, roles } = useAuth();
+  const { profile, primaryRole, isAdmin, isSecurity, user, roles, loading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,6 +62,7 @@ function DashboardHome() {
     refetch,
   } = useQuery({
     queryKey: ["dashboard-stats", profile?.estate_id, primaryRole],
+    enabled: Boolean(profile?.estate_id),
     queryFn: async () => {
       const [residents, properties, visitors, invoices, complaints, incidents] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
@@ -80,8 +81,9 @@ function DashboardHome() {
           .select("id", { count: "exact", head: true })
           .in("status", ["reported", "investigating"]),
       ]);
+
       const outstanding = (invoices.data ?? []).reduce(
-        (sum, i) => sum + (Number(i.amount) - Number(i.amount_paid ?? 0)),
+        (sum, item) => sum + (Number(item.amount) - Number(item.amount_paid ?? 0)),
         0,
       );
       const duesToPay = (invoices.data ?? []).filter(
@@ -89,6 +91,7 @@ function DashboardHome() {
           Number(invoice.amount) > Number(invoice.amount_paid ?? 0) &&
           !["draft", "paid", "cancelled"].includes(invoice.status),
       ).length;
+
       return {
         residents: residents.count ?? 0,
         properties: properties.count ?? 0,
@@ -103,7 +106,7 @@ function DashboardHome() {
 
   const { data: assignedTasks = [] } = useQuery({
     queryKey: ["assigned-tasks", user?.id, roles.join(",")],
-    enabled: Boolean(user?.id),
+    enabled: !loading && Boolean(user?.id),
     queryFn: async () => {
       const { data, error } = await supabase
         .from("staff_tasks")
@@ -137,12 +140,13 @@ function DashboardHome() {
           { label: "Expected visitors", value: stats?.visitors ?? 0, icon: QrCode },
           { label: "Dues to pay", value: stats?.duesToPay ?? 0, icon: CreditCard },
           { label: "Open complaints", value: stats?.complaints ?? 0, icon: MessageSquareWarning },
-          { label: "Announcements", value: "—", icon: TrendingUp },
+          { label: "Announcements", value: "-", icon: TrendingUp },
         ];
 
-  if (isLoading) {
+  if (loading || isLoading) {
     return <PageLoading label="Loading your overview" onRetry={() => void refetch()} />;
   }
+
   if (isError) {
     return <PageLoadError onRetry={() => void refetch()} />;
   }
@@ -159,25 +163,25 @@ function DashboardHome() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => {
+        {cards.map((cardItem) => {
           const card = (
             <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
               <div className="flex items-start justify-between">
-                <p className="text-sm text-muted-foreground">{c.label}</p>
+                <p className="text-sm text-muted-foreground">{cardItem.label}</p>
                 <div className="grid h-8 w-8 place-items-center rounded-md bg-accent text-accent-foreground">
-                  <c.icon className="h-4 w-4" />
+                  <cardItem.icon className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-2 font-display text-xl font-semibold">{c.value}</p>
+              <p className="mt-2 font-display text-xl font-semibold">{cardItem.value}</p>
             </div>
           );
 
-          return c.label === "Dues to pay" ? (
-            <Link key={c.label} to="/dashboard/payments" className="block">
+          return cardItem.label === "Dues to pay" ? (
+            <Link key={cardItem.label} to="/dashboard/payments" className="block">
               {card}
             </Link>
           ) : (
-            <div key={c.label}>{card}</div>
+            <div key={cardItem.label}>{card}</div>
           );
         })}
       </div>
@@ -206,16 +210,17 @@ function DashboardHome() {
                   "Check announcements and complaints",
                   "Review and pay your dues",
                 ]
-            ).map((s, i) => (
-              <li key={s} className="flex items-start gap-3">
+            ).map((step, index) => (
+              <li key={step} className="flex items-start gap-3">
                 <span className="mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
-                  {i + 1}
+                  {index + 1}
                 </span>
-                <span className="text-muted-foreground">{s}</span>
+                <span className="text-muted-foreground">{step}</span>
               </li>
             ))}
           </ul>
         </div>
+
         <div className="rounded-lg border border-border bg-card p-4">
           <h2 className="mb-2 font-display text-lg font-semibold">Your role</h2>
           <p className="text-sm text-muted-foreground">
@@ -255,12 +260,12 @@ function DashboardHome() {
   );
 }
 
-function formatMoney(n: number, currency = "NGN") {
+function formatMoney(amount: number, currency = "NGN") {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
     currency,
     maximumFractionDigits: 0,
-  }).format(n);
+  }).format(amount);
 }
 
 function formatRole(role: string) {

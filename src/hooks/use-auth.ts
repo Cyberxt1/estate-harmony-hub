@@ -3,6 +3,7 @@ import {
   createElement,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -57,6 +58,7 @@ type AuthContextValue = {
   isSecurity: boolean;
   primaryRole: AppRole;
   loading: boolean;
+  refreshAuth: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -66,12 +68,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const authRefreshRef = useRef<null | (() => Promise<void>)>(null);
+  const userRef = useRef<User | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
   useEffect(() => {
     let mounted = true;
 
     const load = async (u: User | null) => {
       if (!u) {
+        if (!mounted) return;
         setProfile(null);
         setRoles([]);
         return;
@@ -90,22 +99,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRoles(((refreshedRoles ?? r ?? []) as { role: AppRole }[]).map((x) => x.role));
     };
 
+    const refreshAuth = async (nextUser?: User | null) => {
+      if (!mounted) return;
+      setLoading(true);
+      const targetUser = nextUser === undefined ? userRef.current : nextUser;
+      await load(targetUser ?? null);
+      if (mounted) setLoading(false);
+    };
+
     supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       const initialUser = data.session?.user ?? null;
       setUser(initialUser);
-      load(initialUser).finally(() => mounted && setLoading(false));
+      void refreshAuth(initialUser);
     });
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       const next = session?.user ?? null;
       setUser(next);
-      setTimeout(() => void load(next), 0);
+      setTimeout(() => void refreshAuth(next), 0);
     });
+
+    authRefreshRef.current = async () => {
+      const { data } = await supabase.auth.getSession();
+      const next = data.session?.user ?? null;
+      if (mounted) setUser(next);
+      await refreshAuth(next);
+    };
 
     return () => {
       mounted = false;
+      authRefreshRef.current = null;
       sub.subscription.unsubscribe();
     };
   }, []);
@@ -125,7 +150,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return createElement(
     AuthContext.Provider,
     {
-      value: { user, profile, roles, hasRole, isAdmin, isSecurity, primaryRole, loading },
+      value: {
+        user,
+        profile,
+        roles,
+        hasRole,
+        isAdmin,
+        isSecurity,
+        primaryRole,
+        loading,
+        refreshAuth: async () => {
+          await authRefreshRef.current?.();
+        },
+      },
     },
     children,
   );

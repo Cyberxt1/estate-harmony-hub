@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ClipboardList } from "lucide-react";
@@ -26,7 +26,8 @@ export const Route = createFileRoute("/dashboard/onboarding")({
 type ResidentType = "landlord" | "tenant";
 
 function ResidentFormPage() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshAuth } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const saved = useMemo(
     () => (profile?.onboarding_data ?? {}) as Record<string, unknown>,
@@ -113,6 +114,8 @@ function ResidentFormPage() {
       setSubmitted(true);
       setEditing(false);
       await queryClient.invalidateQueries();
+      await refreshAuth();
+      void navigate({ to: "/dashboard", replace: true });
     },
     onError: (error: Error) => toast.error(error.message),
   });
