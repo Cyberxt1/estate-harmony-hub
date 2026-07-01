@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,10 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [signInLoading, setSignInLoading] = useState(false);
+  const [signUpLoading, setSignUpLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const oauthPendingRef = useRef(false);
   const redirectTo = search.next || "/dashboard";
 
   useEffect(() => {
@@ -48,7 +51,11 @@ function AuthPage() {
   useEffect(() => {
     const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" || !session?.user) return;
-      toast.success("Signed in with Google");
+      if (oauthPendingRef.current) {
+        toast.success("Signed in with Google");
+        oauthPendingRef.current = false;
+        setGoogleLoading(false);
+      }
       void navigate({ to: redirectTo, replace: true });
     });
 
@@ -59,17 +66,17 @@ function AuthPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSignInLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
+    setSignInLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Welcome back to Oyesile Estate");
-    navigate({ to: "/dashboard" });
+    navigate({ to: redirectTo });
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSignUpLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -78,13 +85,14 @@ function AuthPage() {
         data: { full_name: fullName },
       },
     });
-    setLoading(false);
+    setSignUpLoading(false);
     if (error) return toast.error(error.message);
     toast.success("Account created. Check your email to confirm.");
   };
 
   const handleGoogle = async () => {
-    setLoading(true);
+    oauthPendingRef.current = true;
+    setGoogleLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -95,7 +103,8 @@ function AuthPage() {
       },
     });
     if (error) {
-      setLoading(false);
+      oauthPendingRef.current = false;
+      setGoogleLoading(false);
       toast.error(error.message ?? "Google sign-in failed");
       return;
     }
@@ -175,7 +184,7 @@ function AuthPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  loading={loading}
+                  loading={signInLoading}
                   loadingLabel="Signing in"
                 >
                   Sign in
@@ -218,7 +227,7 @@ function AuthPage() {
                 <Button
                   type="submit"
                   className="w-full"
-                  loading={loading}
+                  loading={signUpLoading}
                   loadingLabel="Creating account"
                 >
                   Create account
@@ -236,8 +245,9 @@ function AuthPage() {
           <Button
             variant="outline"
             className="w-full"
+            type="button"
             onClick={handleGoogle}
-            loading={loading}
+            loading={googleLoading}
             loadingLabel="Opening Google sign in"
           >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">

@@ -84,6 +84,14 @@ type PendingDuePayment = {
   savedAt: number;
 };
 type PaymentRecord = Tables<"payments">;
+const officeAdminRoles: Tables<"user_roles">["role"][] = [
+  "community_chairman",
+  "community_secretary",
+  "treasurer",
+  "chief_security_officer",
+  "estate_admin",
+  "super_admin",
+];
 
 const PENDING_DUE_PAYMENT_KEY = "pendingDuePayments";
 
@@ -127,6 +135,7 @@ function PaymentsPage() {
   const [dueDate, setDueDate] = useState(() => getDefaultDueDate());
   const [audience, setAudience] = useState<Audience>("all");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
+  const [includeAdmins, setIncludeAdmins] = useState(false);
   const [note, setNote] = useState("");
 
   const {
@@ -163,6 +172,24 @@ function PaymentsPage() {
     },
   });
 
+  const {
+    data: adminUserIds = [],
+    isLoading: adminRolesLoading,
+    isError: adminRolesError,
+  } = useQuery({
+    queryKey: ["due-admin-roles", profile?.estate_id],
+    enabled: canTrackDues && Boolean(profile?.estate_id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .eq("estate_id", profile!.estate_id!)
+        .in("role", officeAdminRoles);
+      if (error) throw error;
+      return [...new Set((data ?? []).map((item) => item.user_id))];
+    },
+  });
+
   const { data: paymentRecords = [] } = useQuery({
     queryKey: ["payments-records", user?.id, isAdmin],
     enabled: Boolean(user?.id) && !isAdmin,
@@ -186,13 +213,20 @@ function PaymentsPage() {
     () => invoices.filter((invoice) => invoice.status === "paid" || getBalance(invoice) === 0),
     [invoices],
   );
+  const dueCandidates = useMemo(
+    () =>
+      includeAdmins
+        ? residents
+        : residents.filter((resident) => !adminUserIds.includes(resident.id)),
+    [adminUserIds, includeAdmins, residents],
+  );
   const targetMembers = useMemo(() => {
-    if (audience === "all") return residents;
+    if (audience === "all") return dueCandidates;
     if (audience === "selected") {
-      return residents.filter((resident) => selectedMemberIds.includes(resident.id));
+      return dueCandidates.filter((resident) => selectedMemberIds.includes(resident.id));
     }
-    return residents.filter((resident) => resident.resident_type === audience);
-  }, [audience, residents, selectedMemberIds]);
+    return dueCandidates.filter((resident) => resident.resident_type === audience);
+  }, [audience, dueCandidates, selectedMemberIds]);
   const residentById = useMemo(
     () => new Map(residents.map((resident) => [resident.id, resident])),
     [residents],
@@ -229,6 +263,7 @@ function PaymentsPage() {
     setDueDate(getDefaultDueDate());
     setAudience("all");
     setSelectedMemberIds([]);
+    setIncludeAdmins(false);
     setNote("");
   };
 
@@ -385,9 +420,9 @@ function PaymentsPage() {
           <Stat icon={CreditCard} label="Total expected" value={formatMoney(totalExpected)} />
         </div>
 
-        {isError || residentsError ? (
+        {isError || residentsError || adminRolesError ? (
           <PageLoadError onRetry={() => void queryClient.refetchQueries()} />
-        ) : isLoading || residentsLoading ? (
+        ) : isLoading || residentsLoading || adminRolesLoading ? (
           <PageLoading label="Loading payments" onRetry={() => void queryClient.refetchQueries()} />
         ) : groups.length === 0 ? (
           <EmptyState
@@ -421,6 +456,7 @@ function PaymentsPage() {
                 onEdit={canCreateDues ? openEditor : undefined}
                 onDelete={canCreateDues ? setDeletingGroup : undefined}
                 residentById={residentById}
+                memberView="paid"
               />
             </TabsContent>
 
@@ -432,7 +468,7 @@ function PaymentsPage() {
                 onEdit={canCreateDues ? openEditor : undefined}
                 onDelete={canCreateDues ? setDeletingGroup : undefined}
                 residentById={residentById}
-                showOwingDetails
+                memberView="owing"
               />
             </TabsContent>
           </Tabs>
@@ -464,10 +500,13 @@ function PaymentsPage() {
               }}
               audience={audience}
               setAudience={setAudience}
-              residents={residents}
+              residents={dueCandidates}
               selectedMemberIds={selectedMemberIds}
               setSelectedMemberIds={setSelectedMemberIds}
               targetCount={targetMembers.length}
+              includeAdmins={includeAdmins}
+              setIncludeAdmins={setIncludeAdmins}
+              adminCount={adminUserIds.length}
             />
 
             <DueFormDialog
@@ -645,7 +684,7 @@ function AdminDueList({
   onEdit,
   onDelete,
   residentById,
-  showOwingDetails = false,
+  memberView,
 }: {
   groups: DueGroup[];
   emptyTitle: string;
@@ -653,7 +692,7 @@ function AdminDueList({
   onEdit?: (group: DueGroup) => void;
   onDelete?: (group: DueGroup) => void;
   residentById?: Map<string, ResidentProfile>;
-  showOwingDetails?: boolean;
+  memberView?: "paid" | "owing";
 }) {
   if (groups.length === 0) {
     return <EmptyState title={emptyTitle} description={emptyDescription} />;
@@ -688,11 +727,15 @@ function AdminDueList({
                   <DueStatus paid={group.paidCount} total={group.peopleCount} />
                 </div>
               </div>
-              {showOwingDetails && (
+              {memberView && (
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Not yet paid:{" "}
+                  {memberView === "paid" ? "Paid by: " : "Not yet paid: "}
                   {group.invoices
-                    .filter((invoice) => getBalance(invoice) > 0 && isPayable(invoice))
+                    .filter((invoice) =>
+                      memberView === "paid"
+                        ? invoice.status === "paid" || getBalance(invoice) === 0
+                        : getBalance(invoice) > 0 && isPayable(invoice),
+                    )
                     .map(
                       (invoice) => residentById?.get(invoice.resident_id)?.full_name || "Resident",
                     )
@@ -756,6 +799,9 @@ function DueFormDialog({
   selectedMemberIds = [],
   setSelectedMemberIds,
   targetCount,
+  includeAdmins = false,
+  setIncludeAdmins,
+  adminCount = 0,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -770,6 +816,9 @@ function DueFormDialog({
   selectedMemberIds?: string[];
   setSelectedMemberIds?: (ids: string[]) => void;
   targetCount?: number;
+  includeAdmins?: boolean;
+  setIncludeAdmins?: (value: boolean) => void;
+  adminCount?: number;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -844,6 +893,20 @@ function DueFormDialog({
                 {targetCount} {targetCount === 1 ? "person will" : "people will"} receive this
                 request.
               </p>
+              {setIncludeAdmins && adminCount > 0 && (
+                <label className="flex items-center gap-3 rounded-lg border border-border px-3 py-2 text-sm">
+                  <Checkbox
+                    checked={includeAdmins}
+                    onCheckedChange={(checked) => setIncludeAdmins(Boolean(checked))}
+                  />
+                  <span className="min-w-0">
+                    <span className="block font-medium">Include admins</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Add office admins to the people who can receive this due.
+                    </span>
+                  </span>
+                </label>
+              )}
             </div>
           )}
 
