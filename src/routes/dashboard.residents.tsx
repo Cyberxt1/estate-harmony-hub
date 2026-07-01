@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BadgeCheck,
   Edit3,
   MessageCircle,
   Phone,
@@ -197,6 +198,7 @@ function ResidentsPage() {
   const openEditor = (resident: Resident) => {
     const housing = getResidentHousingDetails(resident);
     setEditingResident(resident);
+    setSelectedResident(null);
     setFullName(resident.full_name || "");
     setPhone(resident.phone || "");
     setWhatsappNumber(resident.whatsapp_number || resident.phone || "");
@@ -238,94 +240,70 @@ function ResidentsPage() {
         <PageLoading label="Loading community members" onRetry={() => void refetch()} />
       ) : filteredResidents.length > 0 ? (
         <div className="overflow-hidden rounded-xl border border-border bg-card">
-          <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(130px,0.9fr)] gap-3 border-b border-border bg-secondary/30 px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.9fr)_auto] sm:px-5">
+          <div className="grid grid-cols-[minmax(0,1.4fr)_minmax(88px,0.7fr)_auto] gap-3 border-b border-border bg-secondary/30 px-3 py-2.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground sm:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.9fr)_auto] sm:px-5 sm:text-xs">
             <span>Name</span>
             <span>House number</span>
-            <span className="hidden sm:block">Actions</span>
+            <span className="text-right">WhatsApp</span>
           </div>
 
           {filteredResidents.map((resident, index) => {
-            const whatsapp = resident.whatsapp_number || resident.phone;
             const housing = getResidentHousingDetails(resident);
-            const houseLabel = housing.compoundName
-              ? `${housing.houseOrApartment || "No house set"} · ${housing.compoundName}`
-              : housing.houseOrApartment || "No house set";
+            const houseLabel = housing.houseOrApartment || "No house set";
+            const whatsapp = resident.whatsapp_number || resident.phone;
+            const profileComplete = Boolean(
+              resident.onboarding_completed && resident.full_name && housing.houseOrApartment,
+            );
 
             return (
               <div
                 key={resident.id}
-                className={`grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.9fr)_auto] sm:px-5 ${index !== filteredResidents.length - 1 ? "border-b border-border" : ""}`}
+                className={`grid grid-cols-[minmax(0,1.4fr)_minmax(88px,0.7fr)_auto] items-center gap-3 px-3 py-2.5 sm:grid-cols-[minmax(0,1.6fr)_minmax(180px,0.9fr)_auto] sm:px-5 ${
+                  index !== filteredResidents.length - 1 ? "border-b border-border" : ""
+                } ${profileComplete ? "bg-emerald-500/5" : "bg-red-500/5"}`}
               >
                 <button
                   type="button"
                   className="min-w-0 text-left"
                   onClick={() => setSelectedResident(resident)}
                 >
-                  <p className="truncate text-sm font-semibold sm:text-base">
-                    {resident.full_name || "Unnamed member"}
-                  </p>
-                  <p className="mt-1 text-xs capitalize text-muted-foreground">
-                    {resident.resident_type || "Details incomplete"}
-                    {resident.status === "suspended" ? " · Suspended" : ""}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`h-2.5 w-2.5 flex-none rounded-full ${
+                        profileComplete ? "bg-emerald-500" : "bg-red-500"
+                      }`}
+                    />
+                    <p className="truncate text-sm font-semibold">
+                      {resident.full_name || "Unnamed member"}
+                    </p>
+                    {profileComplete ? (
+                      <BadgeCheck className="hidden h-4 w-4 flex-none text-emerald-600 sm:block" />
+                    ) : null}
+                  </div>
+                  <p className="mt-0.5 truncate text-[11px] capitalize text-muted-foreground sm:text-xs">
+                    {resident.status === "suspended"
+                      ? "Suspended"
+                      : resident.resident_type || "Profile pending"}
                   </p>
                 </button>
 
                 <button
                   type="button"
-                  className="text-left text-sm text-muted-foreground"
+                  className="truncate text-left text-sm text-muted-foreground"
                   onClick={() => setSelectedResident(resident)}
                 >
                   {houseLabel}
                 </button>
 
-                <div className="flex flex-wrap gap-2 sm:justify-end">
-                  {whatsapp && (
-                    <Button asChild size="sm" variant="ghost">
+                <div className="flex justify-end">
+                  {whatsapp ? (
+                    <Button asChild size="icon" variant="ghost" className="h-8 w-8">
                       <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
-                        <MessageCircle className="mr-2 h-4 w-4" />
-                        WhatsApp
+                        <MessageCircle className="h-4 w-4" />
+                        <span className="sr-only">Open WhatsApp</span>
                       </a>
                     </Button>
-                  )}
-                  {resident.phone && (
-                    <Button asChild size="sm" variant="ghost">
-                      <a href={`tel:${resident.phone}`}>
-                        <Phone className="mr-2 h-4 w-4" />
-                        Call
-                      </a>
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" onClick={() => openEditor(resident)}>
-                    <Edit3 className="mr-2 h-4 w-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() =>
-                      updateStatus.mutate({
-                        resident,
-                        status: resident.status === "suspended" ? "active" : "suspended",
-                      })
-                    }
-                  >
-                    {resident.status === "suspended" ? (
-                      <UserCheck className="mr-2 h-4 w-4" />
-                    ) : (
-                      <ShieldOff className="mr-2 h-4 w-4" />
-                    )}
-                    {resident.status === "suspended" ? "Reactivate" : "Suspend"}
-                  </Button>
-                  {resident.id !== user?.id && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => setResidentToRemove(resident)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Remove
-                    </Button>
+                  ) : (
+                    <span className="inline-block h-8 w-8" />
                   )}
                 </div>
               </div>
@@ -341,7 +319,19 @@ function ResidentsPage() {
         />
       )}
 
-      <MemberDetails resident={selectedResident} onClose={() => setSelectedResident(null)} />
+      <MemberDetails
+        resident={selectedResident}
+        isCurrentUser={selectedResident?.id === user?.id}
+        onClose={() => setSelectedResident(null)}
+        onEdit={openEditor}
+        onToggleStatus={(resident) =>
+          updateStatus.mutate({
+            resident,
+            status: resident.status === "suspended" ? "active" : "suspended",
+          })
+        }
+        onRemove={(resident) => setResidentToRemove(resident)}
+      />
 
       <Dialog
         open={Boolean(editingResident)}
@@ -458,9 +448,27 @@ function ResidentsPage() {
   );
 }
 
-function MemberDetails({ resident, onClose }: { resident: Resident | null; onClose: () => void }) {
+function MemberDetails({
+  resident,
+  isCurrentUser,
+  onClose,
+  onEdit,
+  onToggleStatus,
+  onRemove,
+}: {
+  resident: Resident | null;
+  isCurrentUser: boolean;
+  onClose: () => void;
+  onEdit: (resident: Resident) => void;
+  onToggleStatus: (resident: Resident) => void;
+  onRemove: (resident: Resident) => void;
+}) {
   const submitted = resident ? getSubmittedData(resident) : {};
   const housing = resident ? getResidentHousingDetails(resident) : emptyHousingDetails();
+  const whatsapp = resident?.whatsapp_number || resident?.phone;
+  const profileComplete = Boolean(
+    resident?.onboarding_completed && resident?.full_name && housing.houseOrApartment,
+  );
 
   return (
     <Dialog open={Boolean(resident)} onOpenChange={(open) => !open && onClose()}>
@@ -470,34 +478,96 @@ function MemberDetails({ resident, onClose }: { resident: Resident | null; onClo
           <DialogDescription>Contact, home and account details.</DialogDescription>
         </DialogHeader>
         {resident && (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Detail label="Name" value={resident.full_name} />
-            <Detail label="Type" value={resident.resident_type} />
-            <Detail label="Status" value={resident.status} />
-            <Detail label="House number" value={housing.houseOrApartment} />
-            <Detail label="Compound" value={housing.compoundName} />
-            <Detail label="Phone" value={resident.phone} />
-            <Detail label="WhatsApp" value={resident.whatsapp_number || resident.phone} />
-            <Detail label="Email" value={resident.email} />
-            {resident.resident_type === "tenant" && (
-              <>
-                <Detail label="Landlord name" value={housing.landlordName} />
-                <Detail label="Landlord phone" value={housing.landlordPhone} />
-                <Detail label="Duration of stay" value={housing.stayDuration} />
-              </>
-            )}
-            <Detail
-              label="People living with member"
-              value={String(submitted.householdMembers || "")}
-              wide
-            />
-            <Detail
-              label="Emergency contact"
-              value={`${resident.emergency_contact_name || ""}${
-                resident.emergency_contact_phone ? ` · ${resident.emergency_contact_phone}` : ""
-              }`}
-              wide
-            />
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <span
+                className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+                  profileComplete
+                    ? "bg-emerald-500/15 text-emerald-700"
+                    : "bg-red-500/15 text-red-700"
+                }`}
+              >
+                {profileComplete ? "Profile complete" : "Profile incomplete"}
+              </span>
+              {resident.status === "suspended" ? (
+                <span className="inline-flex items-center rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-medium text-red-700">
+                  Suspended
+                </span>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {whatsapp ? (
+                <Button asChild size="sm" variant="outline">
+                  <a href={getWhatsAppLink(whatsapp)} target="_blank" rel="noreferrer">
+                    <MessageCircle className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </a>
+                </Button>
+              ) : null}
+              {resident.phone ? (
+                <Button asChild size="sm" variant="outline">
+                  <a href={`tel:${resident.phone}`}>
+                    <Phone className="mr-2 h-4 w-4" />
+                    Call
+                  </a>
+                </Button>
+              ) : null}
+              <Button size="sm" variant="outline" onClick={() => onEdit(resident)}>
+                <Edit3 className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => onToggleStatus(resident)}>
+                {resident.status === "suspended" ? (
+                  <UserCheck className="mr-2 h-4 w-4" />
+                ) : (
+                  <ShieldOff className="mr-2 h-4 w-4" />
+                )}
+                {resident.status === "suspended" ? "Reactivate" : "Suspend"}
+              </Button>
+              {!isCurrentUser ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => onRemove(resident)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remove
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Detail label="Name" value={resident.full_name} />
+              <Detail label="Type" value={resident.resident_type} />
+              <Detail label="Status" value={resident.status} />
+              <Detail label="House number" value={housing.houseOrApartment} />
+              <Detail label="Compound" value={housing.compoundName} />
+              <Detail label="Phone" value={resident.phone} />
+              <Detail label="WhatsApp" value={resident.whatsapp_number || resident.phone} />
+              <Detail label="Email" value={resident.email} />
+              {resident.resident_type === "tenant" && (
+                <>
+                  <Detail label="Landlord name" value={housing.landlordName} />
+                  <Detail label="Landlord phone" value={housing.landlordPhone} />
+                  <Detail label="Duration of stay" value={housing.stayDuration} />
+                </>
+              )}
+              <Detail
+                label="People living with member"
+                value={String(submitted.householdMembers || "")}
+                wide
+              />
+              <Detail
+                label="Emergency contact"
+                value={formatContact(
+                  resident.emergency_contact_name,
+                  resident.emergency_contact_phone,
+                )}
+                wide
+              />
+            </div>
           </div>
         )}
       </DialogContent>
@@ -554,6 +624,11 @@ function Stat({ label, value }: { label: string; value: number }) {
       <p className="mt-1 font-display text-2xl font-semibold">{value}</p>
     </div>
   );
+}
+
+function formatContact(name?: string | null, phone?: string | null) {
+  if (name && phone) return `${name} - ${phone}`;
+  return name || phone || "";
 }
 
 function getWhatsAppLink(number: string) {
