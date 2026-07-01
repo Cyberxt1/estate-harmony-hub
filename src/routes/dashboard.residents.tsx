@@ -337,7 +337,7 @@ function ResidentsPage() {
         open={Boolean(editingResident)}
         onOpenChange={(open) => !open && setEditingResident(null)}
       >
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>Edit member</DialogTitle>
             <DialogDescription>Update contact, house number and tenant details.</DialogDescription>
@@ -472,7 +472,7 @@ function MemberDetails({
 
   return (
     <Dialog open={Boolean(resident)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{resident?.full_name || "Community member"}</DialogTitle>
           <DialogDescription>Contact, home and account details.</DialogDescription>

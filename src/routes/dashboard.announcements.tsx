@@ -219,7 +219,7 @@ function AnnouncementsPage() {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-xl">
+        <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>New announcement</DialogTitle>
             <DialogDescription>
@@ -301,7 +301,7 @@ function AnnouncementsPage() {
         open={Boolean(selectedAnnouncement)}
         onOpenChange={(open) => !open && setSelectedAnnouncement(null)}
       >
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{selectedAnnouncement?.title || "Announcement"}</DialogTitle>
             <DialogDescription>

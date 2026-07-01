@@ -367,7 +367,7 @@ function ComplaintDetails({
 
   return (
     <Dialog open={Boolean(complaint)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{complaint?.subject || "Complaint"}</DialogTitle>
           <DialogDescription>

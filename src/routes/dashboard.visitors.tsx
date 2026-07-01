@@ -355,7 +355,7 @@ function VisitorsPage() {
         open={Boolean(selectedVisitor)}
         onOpenChange={(open) => !open && setSelectedVisitor(null)}
       >
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{selectedVisitor?.full_name || "Visitor"}</DialogTitle>
             <DialogDescription>Expanded visitor invite and gate activity.</DialogDescription>
@@ -381,7 +381,7 @@ function VisitorsPage() {
       </Dialog>
 
       <Dialog open={Boolean(shareVisitor)} onOpenChange={(open) => !open && setShareVisitor(null)}>
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{shareVisitor?.full_name || "Visitor invite"}</DialogTitle>
             <DialogDescription>

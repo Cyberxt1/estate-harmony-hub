@@ -383,7 +383,7 @@ function PropertiesPage() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add property</DialogTitle>
             <DialogDescription>
@@ -634,7 +634,7 @@ function PropertyDetails({
 
   return (
     <Dialog open={Boolean(property)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-3xl">
+      <DialogContent className="max-h-[82dvh] overflow-y-auto sm:max-h-[92vh] sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle>{property ? getPropertyLabel(property) : "Property"}</DialogTitle>
           <DialogDescription>
